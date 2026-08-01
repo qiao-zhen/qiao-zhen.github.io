@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <title>桥桥工作台</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; -webkit-tap-highlight-color:transparent; }
+        body { background:#FFF8FA; color:#333; font-size:14px; -webkit-text-size-adjust:100%; }
+        button { font-family:inherit; }
+        a { color:#F06292; text-decoration:none; }
+        a:hover { color:#E91E63; text-decoration:underline; }
+
+        /* ===== 顶部栏 ===== */
+        .top-bar {
+            display:flex; align-items:center; gap:12px;
+            padding:10px 16px; background:#FFFFFF;
+            position:sticky; top:0; z-index:100;
+            border-bottom:1px solid #FCE4EC;
+        }
+        .top-left { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+        .menu-btn { background:#FFF0F4; border:1px solid #FCE4EC; color:#E91E63; font-size:18px; cursor:pointer; padding:5px 9px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; min-width:32px; min-height:32px; }
+        .brand { display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; color:#E91E63; white-space:nowrap; }
+        .brand .dot { width:10px; height:10px; background:#F06292; border-radius:50%; display:inline-block; }
+        .search-center { flex:1; display:flex; justify-content:center; }
+        .search-box {
+            width:100%; max-width:420px; padding:7px 16px;
+            border:1px solid #F8BBD0; border-radius:20px;
+            font-size:13px; background:#FFF8FA; color:#333;
+        }
+        .search-box:focus { outline:none; border-color:#E91E63; background:#FFF; }
+        .mcp-wrap { display:flex; align-items:center; gap:6px; font-size:13px; color:#AD1457; flex-shrink:0; white-space:nowrap; }
+        .mcp-switch { position:relative; width:36px; height:20px; background:#DDD; border-radius:10px; cursor:pointer; transition:background .25s; }
+        .mcp-switch.on { background:#F06292; }
+        .mcp-switch .handle { position:absolute; top:2px; left:2px; width:16px; height:16px; background:#FFF; border-radius:50%; transition:transform .25s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+        .mcp-switch.on .handle { transform:translateX(16px); }
+
+        /* ===== 布局 ===== */
+        .layout { display:flex; height:calc(100vh - 53px); }
+        .sidebar { width:220px; min-width:220px; background:#FFFFFF; overflow-y:auto; padding:12px 10px; transition:transform .25s ease; }
+        /* 桌面端折叠：收起导航栏，主内容自动占满（手机端同样规则见下方媒体查询，此处为桌面生效） */
+        .sidebar.collapsed { display:none; }
+        .group { margin-bottom:8px; }
+        .group-title { display:flex; align-items:center; gap:6px; padding:8px 8px; font-size:14px; font-weight:bold; color:#E91E63; cursor:pointer; user-select:none; }
+        .group-title .arrow { transition:transform .2s; font-size:10px; color:#E91E63; display:inline-block; width:12px; }
+        .group.collapsed .arrow { transform:rotate(-90deg); }
+        .group.collapsed .sub-list { display:none; }
+        .sub-list { display:flex; flex-direction:column; gap:6px; padding:4px 0 8px 0; }
+        .sub-item {
+            display:flex; align-items:center; gap:8px; padding:8px 12px;
+            border:1px solid #FCE4EC; border-radius:8px; background:#FFFFFF;
+            color:#666; font-size:14px; cursor:pointer; transition:all .15s;
+        }
+        .sub-item .ico { color:#F06292; font-size:14px; }
+        .sub-item:hover { background:#FCE4EC; }
+        .sub-item.active { background:#FFB6C1; border-color:#F48FB1; color:#AD1457; font-weight:600; }
+        .sub-item.active .ico { color:#AD1457; }
+
+        /* ===== 主内容 ===== */
+        .main { flex:1; overflow-y:auto; padding:20px 24px; background:#FFF8FA; scrollbar-width:none; -ms-overflow-style:none; }
+        .main::-webkit-scrollbar { width:0; height:0; }
+        .sidebar { scrollbar-width:none; -ms-overflow-style:none; }
+        .sidebar::-webkit-scrollbar { width:0; height:0; }
+        .page { display:none; }
+        .page.active { display:block; }
+        .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+        .page-title { font-size:16px; font-weight:bold; color:#E91E63; display:flex; align-items:center; gap:8px; }
+        .page-title .ico { color:#E91E63; }
+        .pill-btn {
+            background:#F06292; color:#FFF; border:none; padding:6px 16px;
+            border-radius:20px; cursor:pointer; font-size:14px;
+            display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+        }
+        .pill-btn:hover { background:#E91E63; }
+        .tip { font-size:13px; color:#AD1457; margin:4px 0 12px 0; display:flex; align-items:center; gap:4px; }
+        .empty { text-align:center; padding:36px 20px; color:#AD1457; background:#FFF0F4; border-radius:10px; border:1px dashed #F8BBD0; }
+        .empty .ico { font-size:32px; color:#F8BBD0; margin-bottom:8px; }
+        .empty p { font-size:14px; }
+        .empty .sub { font-size:12px; color:#999; margin-top:4px; }
+
+        /* ===== 资讯 / AI 抓取卡片 ===== */
+        .news-card { border:1px solid #FCE4EC; border-radius:6px; padding:12px; margin-bottom:10px; background:#FFFFFF; transition:all .15s; }
+        .news-card:hover { box-shadow:0 2px 8px rgba(248,187,208,.4); }
+        .news-card .n-title { font-size:14px; font-weight:bold; color:#E91E63; margin-bottom:4px; }
+        .news-card .n-content { font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
+        .news-card .n-foot { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#999; flex-wrap:wrap; gap:6px; }
+        .news-card .n-foot .right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .news-card .n-foot .actions { display:flex; gap:10px; opacity:0; transition:opacity .2s; }
+        .news-card:hover .n-foot .actions { opacity:1; }
+        .news-card .n-foot .actions span { cursor:pointer; color:#F06292; }
+        .news-card .n-foot .actions span:hover { color:#E91E63; }
+        .news-card .n-foot .read-more { color:#F06292; cursor:pointer; white-space:nowrap; }
+        .news-card .n-foot .read-more:hover { color:#E91E63; }
+        .news-card .n-link { font-size:12px; margin-bottom:6px; }
+        .news-card .n-link a { color:#1976D2; }
+        .news-card .n-link a:hover { color:#E91E63; }
+
+        /* ===== 选题状态药丸 ===== */
+        .status-pill { padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; cursor:pointer; display:inline-block; }
+        .status-pill.s-pending { background:#E3F2FD; color:#1565C0; }
+        .status-pill.s-done { background:#E8F5E9; color:#2E7D32; }
+        .status-pill.s-hold { background:#FFF3E0; color:#E65100; }
+
+        /* ===== 表单 ===== */
+        .form-item { margin-bottom:10px; }
+        .form-item label { display:block; font-size:14px; color:#555; margin-bottom:4px; }
+        .form-item input, .form-item textarea, .form-item select {
+            width:100%; padding:7px 10px; border:1px solid #F8BBD0;
+            border-radius:6px; font-size:14px; font-family:inherit; background:#FFF; color:#333;
+        }
+        .form-item input:focus, .form-item textarea:focus, .form-item select:focus { outline:none; border-color:#F06292; }
+        .form-item textarea { min-height:60px; resize:vertical; line-height:1.6; }
+        .form-row { display:flex; gap:10px; }
+        .form-row .form-item { flex:1; }
+        .save-btn { background:#F06292; color:#FFF; border:none; padding:7px 18px; border-radius:6px; cursor:pointer; font-size:14px; margin-top:4px; }
+        .save-btn:hover { background:#E91E63; }
+        .form-card { transition:all .3s; overflow:hidden; }
+        .form-card.hidden { display:none; }
+
+        /* ===== 标签药丸 ===== */
+        .tag-row { display:flex; gap:6px; flex-wrap:wrap; }
+        .tag-row span { padding:3px 10px; border:1px solid #F8BBD0; border-radius:12px; font-size:12px; color:#AD1457; cursor:pointer; background:#FFF; }
+        .tag-row span.sel { background:#FFB6C1; border-color:#F48FB1; color:#AD1457; font-weight:600; }
+
+        /* ===== 卡片 ===== */
+        .card { background:#FFFFFF; border:1px solid #FCE4EC; border-radius:8px; padding:18px; margin-bottom:12px; }
+        .card h4 { font-size:16px; color:#E91E63; margin-bottom:6px; }
+
+        /* ===== 估值徽章 ===== */
+        .val-badge { padding:3px 12px; border-radius:12px; font-size:12px; font-weight:bold; display:inline-block; }
+        .val-badge.low { background:#E8F5E9; color:#2E7D32; border:1px solid #A5D6A7; }
+        .val-badge.mid { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+        .val-badge.high { background:#FFEBEE; color:#C62828; border:1px solid #EF9A9A; }
+
+        /* ===== 指数跟踪数据卡 ===== */
+        .idx-card { border:1px solid #FCE4EC; border-radius:8px; padding:14px 16px; margin-bottom:10px; background:#FFF; }
+        .idx-card .idx-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+        .idx-card .idx-name { font-size:15px; font-weight:bold; color:#E91E63; display:flex; align-items:center; gap:6px; }
+        .idx-card .idx-rows { display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:8px; }
+        .idx-card .idx-row { font-size:13px; color:#555; }
+        .idx-card .idx-row b { color:#333; }
+        .idx-card .idx-note { font-size:12px; color:#999; border-top:1px dashed #FCE4EC; padding-top:6px; margin-top:6px; }
+
+        /* ===== 唯一表格：今日打卡面板 ===== */
+        .checkin-section-title { font-size:15px; font-weight:600; color:#E91E63; margin:16px 0 8px 0; display:flex; align-items:center; gap:6px; }
+        .checkin-table { width:100%; border-collapse:collapse; background:#FFF; border:1px solid #FCE4EC; border-radius:8px; overflow:hidden; margin-bottom:14px; }
+        .checkin-table th, .checkin-table td { padding:8px 12px; text-align:left; font-size:14px; border-bottom:1px solid #FCE4EC; }
+        .checkin-table thead th { background:#FFF0F4; color:#E91E63; font-weight:600; }
+        .checkin-table tbody tr:last-child td { border-bottom:none; }
+        .checkin-table td:first-child { font-weight:600; color:#AD1457; width:24%; background:#FFF8FA; }
+        .checkin-table input { border:none; background:transparent; width:100%; font-size:14px; font-family:inherit; color:#555; }
+        .checkin-table input:focus { outline:1px dashed #F06292; border-radius:3px; }
+
+        /* ===== 知识库笔记分类筛选 ===== */
+        .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+        .filter-chip { padding:4px 14px; border:1px solid #F8BBD0; border-radius:14px; font-size:12px; color:#AD1457; cursor:pointer; background:#FFF; }
+        .filter-chip.sel { background:#F06292; color:#FFF; border-color:#F06292; font-weight:600; }
+
+        /* ===== 弹窗 ===== */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:999; align-items:center; justify-content:center; padding:20px; }
+        .modal-overlay.show { display:flex; }
+        .modal { background:#FFF; border-radius:10px; max-width:600px; width:100%; max-height:85vh; overflow-y:auto; padding:22px 24px; position:relative; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+        .modal h3 { color:#E91E63; font-size:16px; margin-bottom:10px; padding-right:28px; }
+        .modal .content { color:#333; line-height:1.7; font-size:14px; white-space:pre-wrap; }
+        .modal .content a { color:#1976D2; word-break:break-all; }
+        .modal .close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:4px 8px; }
+        .modal .close:hover { color:#E91E63; }
+
+        /* ===== Toast 通知 ===== */
+        .toast {
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(60px);
+            background:#E91E63; color:#FFF; padding:10px 24px; border-radius:20px;
+            font-size:13px; z-index:9999; opacity:0; transition:all .3s; box-shadow:0 4px 12px rgba(233,30,99,.3);
+            max-width:90%;
+        }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* ===== 搬运来源标记 ===== */
+        .source-tag { font-size:11px; color:#F06292; background:#FCE4EC; padding:1px 8px; border-radius:8px; margin-left:6px; }
+
+        /* ===== 移动端 ===== */
+        @media (max-width:768px) {
+            /* 防止内部宽内容（表格/卡片）把整行撑破，导致点击错位、内容跑偏 */
+            .layout { position:relative; overflow:hidden; }
+            /* 侧栏默认显示在左侧，作为 flex 子项并排（不浮动、不遮盖内容），占 30% 避免文字竖排 */
+            .sidebar {
+                position:relative;
+                top:auto; left:auto;
+                flex:0 0 30%;
+                width:30%; min-width:30%; max-width:30%;
+                height:calc(100% - 53px);
+                z-index:auto;
+                transform:none;
+                box-shadow:none;
+                border-right:1px solid #FCE4EC;
+                overflow-y:auto;
+            }
+            /* 关闭状态：侧栏完全消失，主内容占满全屏 */
+            .sidebar.collapsed { display:none; }
+            /* min-width:0 关键：让主内容可在 flex 中正常收缩，不被内部表格/卡片撑宽 */
+            .main { flex:1; min-width:0; padding:14px 12px; overflow-y:auto; overflow-x:hidden; }
+            /* 侧栏文字在 30% 宽度下正常换行，不再竖排 */
+            .group-title { font-size:13px; }
+            .sub-item { font-size:13px; padding:8px 8px; line-height:1.4; }
+            .sub-item span:last-child { word-break:break-word; }
+            /* 表格在窄屏可横向滚动，不撑破布局 */
+            .checkin-table { display:block; overflow-x:auto; white-space:nowrap; }
+            .form-row { flex-direction:column; gap:0; }
+            .page-header { gap:8px; }
+            .search-center { order:3; flex-basis:100%; }
+            .top-bar { flex-wrap:wrap; }
+            .news-card .n-foot .actions { opacity:1; }
+            /* 点击更跟手，避免移动端点击延迟/误判 */
+            .group-title, .sub-item, .menu-btn, .pill-btn, .filter-chip { touch-action:manipulation; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 顶部栏 -->
+<div class="top-bar">
+    <div class="top-left">
+        <button class="menu-btn" onclick="toggleSidebar()" id="menuBtn" aria-label="切换导航栏"><svg id="menuIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+        <div class="brand">
+            <span class="dot"></span>
+            <span>桥桥工作台</span>
+        </div>
+    </div>
+    <div class="search-center">
+        <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" oninput="doSearch(this.value)">
+    </div>
+    <div class="mcp-wrap">
+        <i class="fa fa-power-off"></i>
+        <span>MCP</span>
+        <div class="mcp-switch on" id="mcpSwitch" onclick="toggleMCP()">
+            <div class="handle"></div>
+        </div>
+    </div>
+</div>
+
+<div class="layout">
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="group" data-group="1">
+            <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-rocket"></i><span>AI新账号运营</span></div>
+            <div class="sub-list">
+                <div class="sub-item active" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
+                <div class="sub-item" data-page="operation-ideas" onclick="showPage('operation-ideas',this)"><span class="ico"><i class="fa fa-lightbulb-o"></i></span><span>运营思路&选题素材库</span></div>
+                <div class="sub-item" data-page="account-observe" onclick="showPage('account-observe',this)"><span class="ico"><i class="fa fa-binoculars"></i></span><span>对标账号观测记录</span></div>
+                <div class="sub-item" data-page="work-review" onclick="showPage('work-review',this)"><span class="ico"><i class="fa fa-pie-chart"></i></span><span>作品复盘记录表</span></div>
+            </div>
+        </div>
+        <div class="group" data-group="2">
+            <div class="group-title" onclick="toggleGroup(2)"><span class="arrow">▼</span><i class="fa fa-magic"></i><span>AI服装带货</span></div>
+            <div class="sub-list">
+                <div class="sub-item" data-page="product-lib" onclick="showPage('product-lib',this)"><span class="ico"><i class="fa fa-shopping-bag"></i></span><span>选品库管理</span></div>
+                <div class="sub-item" data-page="idea-lib" onclick="showPage('idea-lib',this)"><span class="ico"><i class="fa fa-lightbulb-o"></i></span><span>选题灵感库</span></div>
+                <div class="sub-item" data-page="script-lib" onclick="showPage('script-lib',this)"><span class="ico"><i class="fa fa-file-text-o"></i></span><span>短视频脚本库</span></div>
+                <div class="sub-item" data-page="prompt-lib" onclick="showPage('prompt-lib',this)"><span class="ico"><i class="fa fa-paint-brush"></i></span><span>AI素材提示词仓库</span></div>
+                <div class="sub-item" data-page="record-review" onclick="showPage('record-review',this)"><span class="ico"><i class="fa fa-bar-chart"></i></span><span>发布记录&复盘</span></div>
+            </div>
+        </div>
+        <div class="group" data-group="3">
+            <div class="group-title" onclick="toggleGroup(3)"><span class="arrow">▼</span><i class="fa fa-money"></i><span>赚钱思路与副业机会</span></div>
+            <div class="sub-list">
+                <div class="sub-item" data-page="side-idea" onclick="showPage('side-idea',this)"><span class="ico"><i class="fa fa-flask"></i></span><span>灵感脑洞库</span></div>
+                <div class="sub-item" data-page="project-eval" onclick="showPage('project-eval',this)"><span class="ico"><i class="fa fa-balance-scale"></i></span><span>项目评估池</span></div>
+                <div class="sub-item" data-page="project-test" onclick="showPage('project-test',this)"><span class="ico"><i class="fa fa-vial"></i></span><span>项目测试记录</span></div>
+                <div class="sub-item" data-page="project-archive" onclick="showPage('project-archive',this)"><span class="ico"><i class="fa fa-archive"></i></span><span>项目归档复盘</span></div>
+            </div>
+        </div>
+        <div class="group" data-group="4">
+            <div class="group-title" onclick="toggleGroup(4)"><span class="arrow">▼</span><i class="fa fa-line-chart"></i><span>理财研究</span></div>
+            <div class="sub-list">
+                <div class="sub-item" data-page="finance-news" onclick="showPage('finance-news',this)"><span class="ico"><i class="fa fa-book"></i></span><span>理财每日新知</span></div>
+                <div class="sub-item" data-page="asset-account" onclick="showPage('asset-account',this)"><span class="ico"><i class="fa fa-wallet"></i></span><span>持仓台账</span></div>
+                <div class="sub-item" data-page="index-track" onclick="showPage('index-track',this)"><span class="ico"><i class="fa fa-area-chart"></i></span><span>指数跟踪表</span></div>
+                <div class="sub-item" data-page="rebalance" onclick="showPage('rebalance',this)"><span class="ico"><i class="fa fa-refresh"></i></span><span>调仓再平衡记录</span></div>
+            </div>
+        </div>
+        <div class="group" data-group="5">
+            <div class="group-title" onclick="toggleGroup(5)"><span class="arrow">▼</span><i class="fa fa-heartbeat"></i><span>健康养生</span></div>
+            <div class="sub-list">
+                <div class="sub-item" data-page="health-checkin" onclick="showPage('health-checkin',this)"><span class="ico"><i class="fa fa-check-square-o"></i></span><span>今日打卡面板</span></div>
+                <div class="sub-item" data-page="checkin-history" onclick="showPage('checkin-history',this)"><span class="ico"><i class="fa fa-calendar"></i></span><span>查看历史打卡汇总</span></div>
+                <div class="sub-item" data-page="body-note" onclick="showPage('body-note',this)"><span class="ico"><i class="fa fa-sticky-note-o"></i></span><span>身体观察备忘录</span></div>
+            </div>
+        </div>
+        <div class="group" data-group="6">
+            <div class="group-title" onclick="toggleGroup(6)"><span class="arrow">▼</span><i class="fa fa-wrench"></i><span>通用工具</span></div>
+            <div class="sub-list">
+                <div class="sub-item" data-page="web-summary" onclick="showPage('web-summary',this)"><span class="ico"><i class="fa fa-link"></i></span><span>网页实时摘要</span></div>
+                <div class="sub-item" data-page="todo-list" onclick="showPage('todo-list',this)"><span class="ico"><i class="fa fa-thumb-tack"></i></span><span>今日待办清单</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main" id="main">
+
+        <!-- 1. 知识库笔记（手记+粘贴保存） -->
+        <div class="page active" id="page-knowledge-base">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
+                <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-plus"></i> 新增笔记</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 手动记录抖音底层逻辑、流量池闯关、3秒钩子等干货文章/知识点 · 不自动抓取，纯本地保存</div>
+            <div class="card form-card hidden" id="form-knowledge">
+                <h4>新增知识库笔记</h4>
+                <div class="form-item"><label>笔记标题</label><input type="text" id="kb-title" placeholder="例如：抖音流量池闯关规则"></div>
+                <div class="form-item"><label>分类</label>
+                    <select id="kb-category">
+                        <option>流量逻辑</option>
+                        <option>钩子设计</option>
+                        <option>算法机制</option>
+                        <option>账号权重</option>
+                        <option>运营方法论</option>
+                        <option>其他干货</option>
+                    </select>
+                </div>
+                <div class="form-item"><label>来源链接（可选）</label><input type="text" id="kb-source" placeholder="https://...（看到的原文链接）"></div>
+                <div class="form-item"><label>核心知识点（粘贴大段内容）</label><textarea id="kb-content" style="min-height:120px" placeholder="把刷到的干货文章/知识点粘贴到这里..."></textarea></div>
+                <div class="form-item"><label>我的理解 / 应用场景</label><textarea id="kb-note" placeholder="我看完之后的理解，或者能怎么用"></textarea></div>
+                <button class="save-btn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 保存笔记</button>
+            </div>
+            <div class="filter-row" id="kb-filter">
+                <span class="filter-chip sel" data-cat="all" onclick="filterKnowledge('all',this)">全部</span>
+                <span class="filter-chip" data-cat="流量逻辑" onclick="filterKnowledge('流量逻辑',this)">流量逻辑</span>
+                <span class="filter-chip" data-cat="钩子设计" onclick="filterKnowledge('钩子设计',this)">钩子设计</span>
+                <span class="filter-chip" data-cat="算法机制" onclick="filterKnowledge('算法机制',this)">算法机制</span>
+                <span class="filter-chip" data-cat="账号权重" onclick="filterKnowledge('账号权重',this)">账号权重</span>
+                <span class="filter-chip" data-cat="运营方法论" onclick="filterKnowledge('运营方法论',this)">运营方法论</span>
+                <span class="filter-chip" data-cat="其他干货" onclick="filterKnowledge('其他干货',this)">其他干货</span>
+            </div>
+            <div id="knowledgeList"></div>
+        </div>
+
+        <!-- 2. 运营思路&选题素材库（AI抓取+刷新） -->
+        <div class="page" id="page-operation-ideas">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 运营思路&选题素材库</div>
+                <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业/副业/兴趣背景抓取运营方法论+爆款内容模板 · 每条带原文链接，点「查看全文 ›」可看完整内容</div>
+            <div id="operationIdeasList"></div>
+        </div>
+
+        <!-- 3. 对标账号观测记录（手记） -->
+        <div class="page" id="page-account-observe">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-binoculars ico"></i> 对标账号观测记录</div>
+                <button class="pill-btn" onclick="toggleForm('form-account')"><i class="fa fa-plus"></i> 新增对标账号</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、赛道、爆款视频要点、开头钩子、视频结构、更新节奏、发布时间 · 写下可以借鉴什么、哪些不要照搬</div>
+            <div class="card form-card hidden" id="form-account">
+                <h4>新增对标账号</h4>
+                <div class="form-row">
+                    <div class="form-item"><label>账号名称</label><input type="text" placeholder="对方账号昵称"></div>
+                    <div class="form-item"><label>所属赛道</label><input type="text" placeholder="例如 少女风 / 护肤 / 母婴"></div>
+                </div>
+                <div class="form-item"><label>爆款视频要点</label><textarea placeholder="对方爆款视频讲了什么、拍什么"></textarea></div>
+                <div class="form-item"><label>开头钩子</label><input type="text" placeholder="前3秒用了什么钩子"></div>
+                <div class="form-item"><label>视频结构</label><textarea placeholder="视频整体结构：开头/中间/结尾分别怎么安排"></textarea></div>
+                <div class="form-row">
+                    <div class="form-item"><label>更新节奏</label><input type="text" placeholder="例如 日更 / 周更3条"></div>
+                    <div class="form-item"><label>发布时间</label><input type="text" placeholder="通常几点发布"></div>
+                </div>
+                <div class="form-item"><label>我可以借鉴什么</label><textarea placeholder="对自己有用的点"></textarea></div>
+                <div class="form-item"><label>哪些不要照搬</label><textarea placeholder="不适合自己的点，避免照搬"></textarea></div>
+                <button class="save-btn" onclick="saveAccountObserve()"><i class="fa fa-check"></i> 保存观测</button>
+            </div>
+            <div id="accountObserveList"></div>
+        </div>
+
+        <!-- 4. 作品复盘记录表（手记） -->
+        <div class="page" id="page-work-review">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-pie-chart ico"></i> 作品复盘记录表</div>
+                <button class="pill-btn" onclick="toggleForm('form-work')"><i class="fa fa-plus"></i> 新增复盘</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 每发布完视频后填写 · 判断是钩子不行 / 选题不行 / 内容价值不足 · 写下一次优化调整点</div>
+            <div class="card form-card hidden" id="form-work">
+                <h4>新增作品复盘</h4>
+                <div class="form-row">
+                    <div class="form-item"><label>视频标题</label><input type="text" placeholder="视频标题"></div>
+                    <div class="form-item"><label>发布时间</label><input type="text" placeholder="yyyy/mm/dd HH:MM"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-item"><label>播放量</label><input type="text" placeholder="例如 12.3w"></div>
+                    <div class="form-item"><label>完播率</label><input type="text" placeholder="例如 35%"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-item"><label>收藏数</label><input type="text" placeholder="例如 3200"></div>
+                    <div class="form-item"><label>评论数</label><input type="text" placeholder="例如 280"></div>
+                </div>
+                <div class="form-item"><label>问题判断</label>
+                    <select>
+                        <option>钩子不行</option>
+                        <option>选题不行</option>
+                        <option>内容价值不足</option>
+                        <option>节奏拖沓</option>
+                        <option>其他</option>
+                    </select>
+                </div>
+                <div class="form-item"><label>下一次优化调整点</label><textarea style="min-height:100px" placeholder="具体下次要怎么改"></textarea></div>
+                <button class="save-btn" onclick="saveWorkReview()"><i class="fa fa-check"></i> 保存复盘</button>
+            </div>
+            <div id="workReviewList"></div>
+        </div>
+
+        <!-- 5. 选品库管理 -->
+        <div class="page" id="page-product-lib">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-shopping-bag ico"></i> 选品库管理</div>
+                <button class="pill-btn" onclick="toggleForm('form-product')"><i class="fa fa-plus"></i> 新增选品</button>
+            </div>
+            <div class="tip"><i class="fa fa-filter"></i> 按 风格 / 季节 / 价位 标签筛选过滤选品</div>
+            <div class="card">
+                <div class="form-item"><label>筛选标签（点击切换）</label>
+                    <div class="tag-row">
+                        <span onclick="toggleTag(this)">韩系</span><span onclick="toggleTag(this)">休闲</span><span onclick="toggleTag(this)">通勤</span><span onclick="toggleTag(this)">学院</span><span onclick="toggleTag(this)">复古</span>
+                        <span onclick="toggleTag(this)">春</span><span onclick="toggleTag(this)">夏</span><span onclick="toggleTag(this)">秋</span><span onclick="toggleTag(this)">冬</span>
+                        <span onclick="toggleTag(this)">低价位</span><span onclick="toggleTag(this)">中价位</span><span onclick="toggleTag(this)">高价位</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card form-card hidden" id="form-product">
+                <h4>新增选品</h4>
+                <div class="form-item"><label>商品信息</label><input type="text" placeholder="商品名称 / 货号 / 链接"></div>
+                <div class="form-row">
+                    <div class="form-item"><label>风格</label><select><option>韩系</option><option>休闲</option><option>通勤</option><option>学院</option><option>复古</option></select></div>
+                    <div class="form-item"><label>季节</label><select><option>春</option><option>夏</option><option>秋</option><option>冬</option></select></div>
+                    <div class="form-item"><label>价位区间</label><select><option>低（&lt;100）</option><option>中（100-300）</option><option>高（&gt;300）</option></select></div>
+                </div>
+                <button class="save-btn" onclick="submitForm('form-product','选品已保存')"><i class="fa fa-check"></i> 保存选品</button>
+            </div>
+        </div>
+
+        <!-- 6. 选题灵感库（AI 抓取） -->
+        <div class="page" id="page-idea-lib">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 选题灵感库</div>
+                <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI抓取选题灵感</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业（短视频运营）/ 副业（AI服装带货）/ 兴趣背景抓取选题 · 标记「暂搁置」的选题刷新时保留不删除</div>
+            <div id="ideaLibList"></div>
+        </div>
+
+        <!-- 7. 短视频脚本库 -->
+        <div class="page" id="page-script-lib">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-file-text-o ico"></i> 短视频脚本库</div>
+                <button class="pill-btn" onclick="toggleForm('form-script')"><i class="fa fa-plus"></i> 新增脚本</button>
+            </div>
+            <div class="tip"><i class="fa fa-link"></i> 绑定关联 AI 提示词 ID，实现脚本+素材整套复用</div>
+            <div class="card form-card hidden" id="form-script">
+                <h4>新增脚本</h4>
+                <div class="form-item"><label>脚本标题</label><input type="text" placeholder="脚本标题"></div>
+                <div class="form-item"><label>脚本内容</label><textarea style="min-height:120px" placeholder="粘贴或编写完整脚本"></textarea></div>
+                <div class="form-item"><label>关联 AI 提示词 ID</label><input type="text" placeholder="输入配套绘图素材提示词ID"></div>
+                <button class="save-btn" onclick="submitForm('form-script','脚本已保存')"><i class="fa fa-check"></i> 保存脚本</button>
+            </div>
+        </div>
+
+        <!-- 8. AI素材提示词仓库 -->
+        <div class="page" id="page-prompt-lib">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-paint-brush ico"></i> AI素材提示词仓库</div>
+                <button class="pill-btn" onclick="toggleForm('form-prompt')"><i class="fa fa-plus"></i> 新增提示词</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 统一管理、迭代少女风 / 服装绘图提示词</div>
+            <div class="card form-card hidden" id="form-prompt">
+                <h4>新增提示词</h4>
+                <div class="form-item"><label>提示词标题</label><input type="text" placeholder="例如：少女风校园场景 v1"></div>
+                <div class="form-item"><label>提示词内容</label><textarea style="min-height:100px" placeholder="粘贴完整提示词"></textarea></div>
+                <div class="form-item"><label>风格标签</label>
+                    <div class="tag-row">
+                        <span onclick="toggleTag(this)">少女风</span><span onclick="toggleTag(this)">服装展示</span><span onclick="toggleTag(this)">场景图</span><span onclick="toggleTag(this)">人物模特</span><span onclick="toggleTag(this)">韩系</span>
+                    </div>
+                </div>
+                <button class="save-btn" onclick="submitForm('form-prompt','提示词已保存')"><i class="fa fa-check"></i> 保存提示词</button>
+            </div>
+        </div>
+
+        <!-- 9. 发布记录&复盘 -->
+        <div class="page" id="page-record-review">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-bar-chart ico"></i> 发布记录&复盘</div>
+                <button class="pill-btn" onclick="toggleForm('form-record')"><i class="fa fa-plus"></i> 新增发布记录</button>
+            </div>
+            <div class="tip"><i class="fa fa-exclamation-triangle"></i> 重点记录挂车点击率、成交单数 · 专门复盘高播放但不出单的视频</div>
+            <div class="card form-card hidden" id="form-record">
+                <h4>新增发布记录</h4>
+                <div class="form-item"><label>视频标题</label><input type="text" placeholder="视频标题"></div>
+                <div class="form-row">
+                    <div class="form-item"><label>播放量</label><input type="text" placeholder="例如 12.3w"></div>
+                    <div class="form-item"><label>点赞数</label><input type="text" placeholder="例如 3200"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-item"><label>挂车点击率</label><input type="text" placeholder="百分比 例如 3.5%"></div>
+                    <div class="form-item"><label>成交单数</label><input type="text" placeholder="成交单数"></div>
+                </div>
+                <div class="form-item"><label>复盘分析（高播放低出单原因）</label><textarea style="min-height:100px" placeholder="高播放低出单原因分析 / 优化方向"></textarea></div>
+                <button class="save-btn" onclick="submitForm('form-record','发布记录已保存')"><i class="fa fa-check"></i> 保存记录</button>
+            </div>
+        </div>
+
+        <!-- 10. 灵感脑洞库（手动录入 + 接收搬运） -->
+        <div class="page" id="page-side-idea">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-flask ico"></i> 灵感脑洞库</div>
+                <button class="pill-btn" onclick="toggleForm('form-sideidea')"><i class="fa fa-plus"></i> 新增脑洞</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 手动记录你的副业灵感想法 · 附带「阻碍初步预判」· 服装资讯搬运的内容也显示在这里</div>
+            <div class="card form-card hidden" id="form-sideidea">
+                <h4>新增脑洞</h4>
+                <div class="form-item"><label>想法描述</label><textarea placeholder="一句话描述这个副业想法"></textarea></div>
+                <div class="form-item"><label>阻碍初步预判（必填）</label><input type="text" placeholder="现实约束 1-2 句"></div>
+                <button class="save-btn" onclick="saveSideIdea()"><i class="fa fa-check"></i> 保存想法</button>
+            </div>
+            <div id="sideIdeaList"></div>
+        </div>
+
+        <!-- 11. 项目评估池 -->
+        <div class="page" id="page-project-eval">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-balance-scale ico"></i> 项目评估池</div>
+                <button class="pill-btn" onclick="toggleForm('form-eval')"><i class="fa fa-plus"></i> 新增项目</button>
+            </div>
+            <div class="tip"><i class="fa fa-link"></i> 填写对标案例、参考链接，链接可丢给网页摘要工具解析调研</div>
+            <div class="card form-card hidden" id="form-eval">
+                <h4>新增项目</h4>
+                <div class="form-item"><label>项目信息</label><input type="text" placeholder="项目名称 / 简介"></div>
+                <div class="form-item"><label>对标案例</label><textarea placeholder="同类对标项目说明"></textarea></div>
+                <div class="form-item"><label>参考链接</label><input type="text" placeholder="https://...（可联动网页摘要解析）"></div>
+                <button class="save-btn" onclick="submitForm('form-eval','项目已保存')"><i class="fa fa-check"></i> 保存项目</button>
+            </div>
+        </div>
+
+        <!-- 12. 项目测试记录 -->
+        <div class="page" id="page-project-test">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-vial ico"></i> 项目测试记录</div>
+                <button class="pill-btn" onclick="toggleForm('form-test')"><i class="fa fa-plus"></i> 新增测试</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 记录副业小项目测试全过程、用户反馈、现象</div>
+            <div class="card form-card hidden" id="form-test">
+                <h4>新增测试</h4>
+                <div class="form-item"><label>测试项目</label><input type="text" placeholder="项目名称"></div>
+                <div class="form-item"><label>测试过程 / 现象</label><textarea placeholder="记录测试过程、观察到的现象"></textarea></div>
+                <div class="form-item"><label>用户反馈</label><textarea placeholder="用户反馈内容"></textarea></div>
+                <button class="save-btn" onclick="submitForm('form-test','测试记录已保存')"><i class="fa fa-check"></i> 保存测试</button>
+            </div>
+        </div>
+
+        <!-- 13. 项目归档复盘 -->
+        <div class="page" id="page-project-archive">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-archive ico"></i> 项目归档复盘</div>
+                <button class="pill-btn" onclick="toggleForm('form-archive')"><i class="fa fa-plus"></i> 归档项目</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 项目结束之后归档，复盘得失，留存历史经验</div>
+            <div class="card form-card hidden" id="form-archive">
+                <h4>新增归档</h4>
+                <div class="form-item"><label>归档项目名称</label><input type="text" placeholder="项目名称"></div>
+                <div class="form-item"><label>复盘得失</label><textarea style="min-height:120px" placeholder="做了什么、得到什么、失去什么、经验总结"></textarea></div>
+                <button class="save-btn" onclick="submitForm('form-archive','归档已保存')"><i class="fa fa-check"></i> 保存归档</button>
+            </div>
+        </div>
+
+        <!-- 14. 理财每日新知（AI 抓取） -->
+        <div class="page" id="page-finance-news">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-book ico"></i> 理财每日新知</div>
+                <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-refresh"></i> AI抓取今日新知</button>
+            </div>
+            <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：2026-08-01 · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
+            <div id="financeNewsList"></div>
+        </div>
+
+        <!-- 15. 持仓台账 -->
+        <div class="page" id="page-asset-account">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
+                <button class="pill-btn" onclick="toggleForm('form-asset')"><i class="fa fa-plus"></i> 新增持仓</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 新增【计划仓位】字段 · 对比实际持仓 vs 理论目标占比，识别超配/低配 · 仅台账记录</div>
+            <div class="card form-card hidden" id="form-asset">
+                <h4>新增持仓</h4>
+                <div class="form-item"><label>基金名称</label><input type="text" placeholder="例如 华夏黄金ETF-A"></div>
+                <div class="form-row">
+                    <div class="form-item"><label>实际持仓金额</label><input type="text" placeholder="元"></div>
+                    <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" placeholder="例如 30%"></div>
+                </div>
+                <div class="form-item"><label>超配 / 低配判断</label><input type="text" placeholder="回话时帮你对比计算"></div>
+                <button class="save-btn" onclick="submitForm('form-asset','持仓已保存')"><i class="fa fa-check"></i> 保存持仓</button>
+            </div>
+        </div>
+
+        <!-- 16. 指数跟踪表 -->
+        <div class="page" id="page-index-track">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-area-chart ico"></i> 指数跟踪面板</div>
+                <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-refresh"></i> 刷新估值</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 4 类资产统一估值 · 绿色=低位 / 橙色=中位 / 红色=高位 · 附带个人主观判断备注 · 仅记录不构成建议</div>
+            <div id="indexTrackList">
+                <div class="empty"><div class="ico"><i class="fa fa-area-chart"></i></div><p>点击右上角「刷新估值」查看最新数据</p><p class="sub">4 类资产：黄金 / 纳斯达克100 / 红利低波 / QDII基金</p></div>
+            </div>
+        </div>
+
+        <!-- 17. 调仓再平衡记录 -->
+        <div class="page" id="page-rebalance">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-refresh ico"></i> 调仓再平衡记录</div>
+                <button class="pill-btn" onclick="toggleForm('form-rebalance')"><i class="fa fa-plus"></i> 新增调仓</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 留存当时的判断逻辑，用于后续复盘 · 仅记录不构成建议</div>
+            <div class="card form-card hidden" id="form-rebalance">
+                <h4>新增调仓操作</h4>
+                <div class="form-row">
+                    <div class="form-item"><label>操作时间</label><input type="text" placeholder="yyyy/mm/dd"></div>
+                    <div class="form-item"><label>标的基金</label><input type="text" placeholder="基金名称 / 代码"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-item"><label>买入 / 卖出</label><select><option>买入</option><option>卖出</option></select></div>
+                    <div class="form-item"><label>数量份额</label><input type="text" placeholder="份额"></div>
+                </div>
+                <div class="form-item"><label>操作理由</label><select><option>估值高低</option><option>再平衡</option><option>机会判断</option><option>其他</option></select></div>
+                <div class="form-item"><label>判断逻辑（复盘留痕）</label><textarea style="min-height:80px" placeholder="当时的判断逻辑，后续可回看"></textarea></div>
+                <button class="save-btn" onclick="submitForm('form-rebalance','调仓记录已保存')"><i class="fa fa-check"></i> 保存调仓</button>
+            </div>
+        </div>
+
+        <!-- 18. 今日打卡面板（唯一表格） -->
+        <div class="page" id="page-health-checkin">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-check-square-o ico"></i> 今日打卡面板</div>
+                <button class="pill-btn" onclick="submitForm('','今日打卡已保存')"><i class="fa fa-save"></i> 保存今日打卡</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 游泳属中长期规划，不在这里打卡 · 仅记录计划，身体不适请就医</div>
+            <div class="checkin-section-title"><i class="fa fa-moon-o"></i> 睡眠</div>
+            <table class="checkin-table"><thead><tr><th style="width:24%">维度</th><th>填写内容</th></tr></thead><tbody>
+                <tr><td>睡眠时长</td><td><input type="text" placeholder="例如 7 小时"></td></tr>
+                <tr><td>入睡时间</td><td><input type="text" placeholder="例如 23:30"></td></tr>
+                <tr><td>睡眠质量</td><td><input type="text" placeholder="良好 / 一般 / 差"></td></tr>
+                <tr><td>睡眠备注</td><td><input type="text" placeholder="多梦、易醒、入睡困难等"></td></tr>
+            </tbody></table>
+            <div class="checkin-section-title"><i class="fa fa-heart"></i> 运动打卡（仅瑜伽）</div>
+            <table class="checkin-table"><thead><tr><th>维度</th><th>填写内容</th></tr></thead><tbody>
+                <tr><td>是否完成</td><td><input type="text" placeholder="是 / 否"></td></tr>
+                <tr><td>练习时长</td><td><input type="text" placeholder="分钟"></td></tr>
+                <tr><td>身体感受</td><td><input type="text" placeholder="轻松 / 累 / 一般"></td></tr>
+                <tr><td>难点备注</td><td><input type="text" placeholder="体式难点 / 注意事项"></td></tr>
+            </tbody></table>
+            <div class="checkin-section-title"><i class="fa fa-cutlery"></i> 食疗饮食养生（湿气重 / 气血不足）</div>
+            <table class="checkin-table"><thead><tr><th>维度</th><th>填写内容</th></tr></thead><tbody>
+                <tr><td>黄芪红枣水饮用</td><td><input type="text" placeholder="是 / 否 / 杯数"></td></tr>
+                <tr><td>冰饮生冷控制</td><td><input type="text" placeholder="是否破戒"></td></tr>
+                <tr><td>甜腻重油饮食控制</td><td><input type="text" placeholder="是否破戒"></td></tr>
+                <tr><td>饮水情况</td><td><input type="text" placeholder="毫升 / 杯数"></td></tr>
+                <tr><td>今日饮食 / 肠胃反应</td><td><input type="text" placeholder="开放记录"></td></tr>
+            </tbody></table>
+            <div class="checkin-section-title"><i class="fa fa-thermometer-half"></i> 身体体感</div>
+            <table class="checkin-table"><thead><tr><th>维度</th><th>填写内容</th></tr></thead><tbody>
+                <tr><td>水肿情况</td><td><input type="text" placeholder="无 / 轻微 / 明显"></td></tr>
+                <tr><td>困乏情况</td><td><input type="text" placeholder="无 / 轻微 / 明显"></td></tr>
+                <tr><td>手脚冰凉</td><td><input type="text" placeholder="无 / 轻微 / 明显"></td></tr>
+                <tr><td>其他体感</td><td><input type="text" placeholder="开放记录"></td></tr>
+            </tbody></table>
+        </div>
+
+        <!-- 19. 查看历史打卡汇总 -->
+        <div class="page" id="page-checkin-history">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-calendar ico"></i> 查看历史打卡汇总</div>
+                <button class="pill-btn" onclick="batchRefresh('本月打卡汇总')"><i class="fa fa-bar-chart"></i> AI汇总本月</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 按月聚合汇总打卡数据 · 拒绝杂乱逐条罗列</div>
+            <div class="empty"><div class="ico"><i class="fa fa-calendar"></i></div><p>本月暂无打卡数据</p><p class="sub">回话告诉我"汇总本月打卡"，我会按月聚合睡眠/瑜伽/食疗/体感数据</p></div>
+        </div>
+
+        <!-- 20. 身体观察备忘录 -->
+        <div class="page" id="page-body-note">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-sticky-note-o ico"></i> 身体观察备忘录</div>
+                <button class="pill-btn" onclick="toggleForm('form-bodynote')"><i class="fa fa-plus"></i> 新增记录</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 不定期随手录入 · 记录姨妈 / 湿气发作 / 食疗反馈等 · 仅做记录，身体不适请就医</div>
+            <div class="card form-card hidden" id="form-bodynote">
+                <h4>新增记录</h4>
+                <div class="form-item"><label>日期</label><input type="text" placeholder="yyyy/mm/dd"></div>
+                <div class="form-item"><label>观察内容</label><textarea style="min-height:120px" placeholder="姨妈状态 / 湿气发作 / 食疗身体反馈 / 长期趋势观察"></textarea></div>
+                <button class="save-btn" onclick="submitForm('form-bodynote','观察记录已保存')"><i class="fa fa-check"></i> 保存观察</button>
+            </div>
+        </div>
+
+        <!-- 21. 网页实时摘要 -->
+        <div class="page" id="page-web-summary">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-link ico"></i> 网页实时摘要</div>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 双模式：URL 解析 / 大段文本粘贴 · 必须手动点击按钮触发 · 遇 Cloudflare 立刻停止</div>
+            <div class="card">
+                <h4><i class="fa fa-globe" style="color:#F06292"></i> 模式 ① URL 解析</h4>
+                <div class="form-item"><label>网页 URL</label><input type="text" placeholder="https://..."></div>
+                <button class="save-btn" onclick="batchRefresh('URL解析')"><i class="fa fa-magic"></i> 解析摘要</button>
+            </div>
+            <div class="card">
+                <h4><i class="fa fa-paste" style="color:#F06292"></i> 模式 ② 纯文本粘贴总结</h4>
+                <div class="form-item"><label>粘贴大段文本（社群 / 帖子 / 文章）</label><textarea style="min-height:100px" placeholder="粘贴在这里..."></textarea></div>
+                <button class="save-btn" onclick="batchRefresh('文本总结')"><i class="fa fa-magic"></i> 总结文本</button>
+            </div>
+            <div class="empty" style="margin-top:14px"><div class="ico"><i class="fa fa-link"></i></div><p>暂无摘要记录</p><p class="sub">回话告诉我"总结这段文本：..."或"解析这个链接：..."，我会手动触发并打标签保存</p></div>
+        </div>
+
+        <!-- 22. 今日待办清单 -->
+        <div class="page" id="page-todo-list">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-thumb-tack ico"></i> 今日待办清单</div>
+                <button class="pill-btn" onclick="toggleForm('form-todo')"><i class="fa fa-plus"></i> 新增待办</button>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 优先级：高 / 中 / 低 · 完成事项归档保存，可回看历史</div>
+            <div class="card form-card hidden" id="form-todo">
+                <h4>新增待办</h4>
+                <div class="form-item"><label>待办事项</label><input type="text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
+                <div class="form-row">
+                    <div class="form-item"><label>优先级</label><select><option>高</option><option>中</option><option>低</option></select></div>
+                    <div class="form-item"><label>截止时间</label><input type="text" placeholder="今天 / 明天 / 具体日期"></div>
+                </div>
+                <button class="save-btn" onclick="submitForm('form-todo','待办已保存')"><i class="fa fa-check"></i> 保存待办</button>
+            </div>
+            <div class="empty" style="margin-top:14px"><div class="ico"><i class="fa fa-check-square-o"></i></div><p>完成项目自动归档，可回看历史</p><p class="sub">不直接删除，回话触发归档</p></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <button class="close" onclick="closeModal()">×</button>
+        <h3 id="modalTitle"></h3>
+        <div class="content" id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 知识库笔记数据（localStorage 持久化） =====
+function getKnowledgeList() {
+    return JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+}
+function setKnowledgeList(arr) {
+    localStorage.setItem('knowledgeBase', JSON.stringify(arr));
+}
+var kbFilterCat = 'all';
+
+function saveKnowledge() {
+    var title = document.getElementById('kb-title').value.trim();
+    var category = document.getElementById('kb-category').value;
+    var source = document.getElementById('kb-source').value.trim();
+    var content = document.getElementById('kb-content').value.trim();
+    var note = document.getElementById('kb-note').value.trim();
+    if (!title) { showToast('请填写笔记标题'); return; }
+    if (!content) { showToast('请粘贴核心知识点'); return; }
+    var arr = getKnowledgeList();
+    arr.unshift({
+        title: title, category: category, source: source,
+        content: content, note: note,
+        date: new Date().toISOString().slice(0,10)
+    });
+    setKnowledgeList(arr);
+    document.getElementById('kb-title').value = '';
+    document.getElementById('kb-source').value = '';
+    document.getElementById('kb-content').value = '';
+    document.getElementById('kb-note').value = '';
+    document.getElementById('form-knowledge').classList.add('hidden');
+    showToast('知识库笔记已保存');
+    renderKnowledgeBase();
+}
+
+function filterKnowledge(cat, el) {
+    kbFilterCat = cat;
+    document.querySelectorAll('#kb-filter .filter-chip').forEach(function(c){c.classList.remove('sel');});
+    if (el) el.classList.add('sel');
+    renderKnowledgeBase();
+}
+
+function renderKnowledgeBase() {
+    var arr = getKnowledgeList();
+    if (kbFilterCat !== 'all') {
+        arr = arr.filter(function(item){ return item.category === kbFilterCat; });
+    }
+    var wrap = document.getElementById('knowledgeList');
+    if (arr.length === 0) {
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-book"></i></div><p>暂无知识库笔记</p><p class="sub">点「新增笔记」把刷到的干货粘贴保存 · 数据存本地浏览器</p></div>';
+        return;
+    }
+    var html = '';
+    arr.forEach(function(item, i){
+        var sourceHtml = item.source ? '<div class="n-link">📎 原文链接：<a href="'+item.source+'" target="_blank" rel="noopener">'+item.source+'</a></div>' : '';
+        var noteHtml = item.note ? '\n\n💡 我的理解：\n' + item.note : '';
+        var fullContent = '分类：' + item.category + '\n\n📚 核心知识点：\n' + item.content + noteHtml;
+        html += '<div class="news-card" data-title="'+item.title+'" data-content="'+fullContent.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'" data-date="'+item.date+'">'+
+            '<div class="n-title">'+item.title+' <span class="source-tag">'+item.category+'</span></div>'+
+            sourceHtml+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>记录时间：'+item.date+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();deleteKnowledge('+i+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    wrap.innerHTML = html;
+    truncateAllNews();
+}
+
+function deleteKnowledge(idx) {
+    if (!confirm('确定删除这条笔记？')) return;
+    var arr = getKnowledgeList();
+    if (kbFilterCat !== 'all') {
+        // 找到原始数组中的索引
+        var filtered = arr.filter(function(item){ return item.category === kbFilterCat; });
+        var realItem = filtered[idx];
+        var realIdx = arr.indexOf(realItem);
+        if (realIdx >= 0) arr.splice(realIdx, 1);
+    } else {
+        arr.splice(idx, 1);
+    }
+    setKnowledgeList(arr);
+    showToast('已删除');
+    renderKnowledgeBase();
+}
+
+// ===== 运营思路&选题素材库（AI 抓取演示） =====
+var operationIdeasData = [
+    {title:"小白可用运营方法论：账号定位三步法", content:"账号定位方法：①先定赛道（兴趣+变现+擅长三角取交集）②再定人设（年龄/身份/表达方式）③最后定形式（图文/口播/剧情）。避免一开始就找爆款模仿，先有清晰人设再考虑流量问题。", url:"https://www.douyin.com/operate/positioning", date:"2026-08-01"},
+    {title:"0基础起步避坑清单：新号不要做的7件事", content:"新号禁忌：①不要带购物车 ②不要发长视频 ③不要刷数据 ④不要频繁删除作品 ⑤不要用同一WiFi登多账号 ⑥不要搬运未改原素材 ⑦不要一机多卡。前30天专注垂直内容质量，权重自然起来再考虑转化。", url:"https://www.douyin.com/learn/avoid-pitfalls", date:"2026-08-01"},
+    {title:"爆款内容模板：3秒钩子+痛点+解决方案+CTA", content:"通用爆款公式：①前3秒用反常识/悬念/数据/冲突抓住注意力 ②15秒内说清痛点 ③展示解决方案/过程 ④结尾加明确CTA（点赞/评论/收藏引导）。结构稳定后填充差异化内容，爆款率明显提升。", url:"https://www.douyin.com/operate/viral-template", date:"2026-08-01"},
+    {title:"选题库建设：从评论区和对标账号挖掘", content:"选题不靠灵感靠挖：①去对标账号评论区看高频提问 ②去搜索下拉框看用户真实搜索词 ③去小红书/知乎交叉验证 ④建立选题表每周更新。持续1-2个月你会发现选题根本用不完，质量比数量重要。", url:"https://www.douyin.com/strategy/topics-mining", date:"2026-08-01"},
+    {title:"直接模仿思路 vs 需要改良 vs 不适合自己", content:"对标账号思路分三类处理：①结构/形式可全盘模仿（钩子/节奏/分镜）②内容方向需改良（结合自己人设调整）③人设/赛道完全不适合（只看方法论不抄选题）。盲目全盘照搬是限流主因之一。", url:"https://www.douyin.com/learn/benchmark-analysis", date:"2026-08-01"},
+    {title:"更新节奏与发布时间：什么时段发最稳", content:"通用发布时间参考：工作日12:00-13:30 / 18:00-20:00 / 21:30-23:00；周末10:00-12:00 / 15:00-17:00 / 20:00-23:00。但最优时段因账号而异，发布后2小时看流量曲线，找到自己的\"黄金时段\"再固定。", url:"https://www.douyin.com/operate/posting-time", date:"2026-08-01"},
+    {title:"AI辅助创作：3类工具的实际用法", content:"3类AI工具搭配用：①文案类（豆包/ChatGPT）写脚本钩子+口播稿 ②绘图类（即梦/Midjourney）生成场景图+人物图 ③剪辑类（剪映AI）一键成片+智能字幕+画面增强。AI是提效工具不是替代，核心创意和判断仍要自己做。", url:"https://www.douyin.com/learn/ai-tools-2026", date:"2026-08-01"}
+];
+
+function refreshOperationIdeas() {
+    showToast('运营思路&选题素材已刷新（抓取 '+operationIdeasData.length+' 条）');
+    renderOperationIdeas();
+}
+
+function renderOperationIdeas() {
+    var html = '';
+    operationIdeasData.forEach(function(item, i){
+        var fullContent = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
+        html += '<div class="news-card" data-title="'+item.title+'" data-content="'+fullContent.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'" data-date="'+item.date+'">'+
+            '<div class="n-title">'+item.title+'</div>'+
+            '<div class="n-link">📎 原文：<a href="'+item.url+'" target="_blank" rel="noopener">'+item.url+'</a></div>'+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>AI 抓取时间：'+item.date+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
+            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    document.getElementById('operationIdeasList').innerHTML = html;
+    truncateAllNews();
+}
+
+// ===== 对标账号观测（localStorage 持久化） =====
+function getAccountList() { return JSON.parse(localStorage.getItem('accountObserve') || '[]'); }
+function setAccountList(arr) { localStorage.setItem('accountObserve', JSON.stringify(arr)); }
+
+function saveAccountObserve() {
+    var form = document.getElementById('form-account');
+    var inputs = form.querySelectorAll('input');
+    var textareas = form.querySelectorAll('textarea');
+    var name = inputs[0].value.trim();
+    var track = inputs[1].value.trim();
+    if (!name) { showToast('请填写账号名称'); return; }
+    var item = {
+        name: name, track: track,
+        hotVideo: textareas[0].value.trim(),
+        hook: inputs[2].value.trim(),
+        structure: textareas[1].value.trim(),
+        updateFreq: inputs[3].value.trim(),
+        postTime: inputs[4].value.trim(),
+        learn: textareas[2].value.trim(),
+        avoid: textareas[3].value.trim(),
+        date: new Date().toISOString().slice(0,10)
+    };
+    var arr = getAccountList();
+    arr.unshift(item);
+    setAccountList(arr);
+    inputs.forEach(function(i){i.value='';});
+    textareas.forEach(function(t){t.value='';});
+    form.classList.add('hidden');
+    showToast('对标账号观测已保存');
+    renderAccountObserve();
+}
+
+function renderAccountObserve() {
+    var arr = getAccountList();
+    var wrap = document.getElementById('accountObserveList');
+    if (arr.length === 0) {
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-binoculars"></i></div><p>暂无对标账号</p><p class="sub">点「新增对标账号」开始记录你的标杆账号</p></div>';
+        return;
+    }
+    var html = '';
+    arr.forEach(function(item, i){
+        var full = '账号：' + item.name + '\n赛道：' + (item.track||'未填') + '\n记录日期：' + item.date +
+            '\n\n🔥 爆款视频要点：\n' + (item.hotVideo||'-') +
+            '\n\n🎣 开头钩子：\n' + (item.hook||'-') +
+            '\n\n🎬 视频结构：\n' + (item.structure||'-') +
+            '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') +
+            '\n⏰ 发布时间：' + (item.postTime||'-') +
+            '\n\n✅ 我可以借鉴：\n' + (item.learn||'-') +
+            '\n\n❌ 不要照搬：\n' + (item.avoid||'-');
+        html += '<div class="news-card" data-title="'+item.name+'" data-content="'+full.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'">'+
+            '<div class="n-title">'+item.name+' <span class="source-tag">'+item.track+'</span></div>'+
+            '<div class="n-content"><b>钩子：</b>'+(item.hook||'-')+'</div>'+
+            '<div class="n-foot"><span>记录日期：'+item.date+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();deleteAccount('+i+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    wrap.innerHTML = html;
+    truncateAllNews();
+}
+
+function deleteAccount(idx) {
+    if (!confirm('确定删除？')) return;
+    var arr = getAccountList();
+    arr.splice(idx, 1);
+    setAccountList(arr);
+    showToast('已删除');
+    renderAccountObserve();
+}
+
+// ===== 作品复盘记录（localStorage 持久化） =====
+function getWorkList() { return JSON.parse(localStorage.getItem('workReview') || '[]'); }
+function setWorkList(arr) { localStorage.setItem('workReview', JSON.stringify(arr)); }
+
+function saveWorkReview() {
+    var form = document.getElementById('form-work');
+    var inputs = form.querySelectorAll('input');
+    var select = form.querySelector('select');
+    var textarea = form.querySelector('textarea');
+    var title = inputs[0].value.trim();
+    if (!title) { showToast('请填写视频标题'); return; }
+    var item = {
+        title: title,
+        postTime: inputs[1].value.trim(),
+        play: inputs[2].value.trim(),
+        finish: inputs[3].value.trim(),
+        fav: inputs[4].value.trim(),
+        comment: inputs[5].value.trim(),
+        issue: select.value,
+        optimize: textarea.value.trim(),
+        date: new Date().toISOString().slice(0,10)
+    };
+    var arr = getWorkList();
+    arr.unshift(item);
+    setWorkList(arr);
+    inputs.forEach(function(i){i.value='';});
+    textarea.value='';
+    form.classList.add('hidden');
+    showToast('作品复盘已保存');
+    renderWorkReview();
+}
+
+function renderWorkReview() {
+    var arr = getWorkList();
+    var wrap = document.getElementById('workReviewList');
+    if (arr.length === 0) {
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-pie-chart"></i></div><p>暂无作品复盘</p><p class="sub">点「新增复盘」开始记录每条视频的数据和问题判断</p></div>';
+        return;
+    }
+    var html = '';
+    arr.forEach(function(item, i){
+        var full = '视频标题：' + item.title +
+            '\n发布时间：' + (item.postTime||'-') +
+            '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
+            '\n\n⚠️ 问题判断：' + item.issue +
+            '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
+        html += '<div class="news-card" data-title="'+item.title+'" data-content="'+full.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'">'+
+            '<div class="n-title">'+item.title+' <span class="source-tag">'+item.issue+'</span></div>'+
+            '<div class="n-content"><b>播放：</b>'+(item.play||'-')+' · <b>完播：</b>'+(item.finish||'-')+' · <b>收藏：</b>'+(item.fav||'-')+' · <b>评论：</b>'+(item.comment||'-')+'</div>'+
+            '<div class="n-foot"><span>发布：'+item.postTime+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();deleteWork('+i+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    wrap.innerHTML = html;
+    truncateAllNews();
+}
+
+function deleteWork(idx) {
+    if (!confirm('确定删除？')) return;
+    var arr = getWorkList();
+    arr.splice(idx, 1);
+    setWorkList(arr);
+    showToast('已删除');
+    renderWorkReview();
+}
+
+// ===== 理财新知数据（AI 抓取，每条带原文链接） =====
+var financeNewsData = [
+    {title:"美联储7月议息会议纪要：年内降息预期升温", content:"美联储7月议息会议纪要显示，多数与会者认为通胀正在接近2%目标，年内降息预期升温。市场对9月降息25个基点的概率押注已升至85%以上。黄金和纳斯达克相关基金可能受到利率路径变化的直接影响。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", date:"2026-08-01"},
+    {title:"国内AI半导体板块持续活跃，科技主题基金表现亮眼", content:"近期国内半导体、AI芯片相关板块持续活跃，政策面持续支持科技自主创新。多只科技主题ETF和QDII科技基金近期净值上涨。关注国产替代主线和AI算力产业链相关基金的中长期配置机会。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"http://www.csrc.gov.cn/", date:"2026-08-01"},
+    {title:"央行MLF操作利率维持不变，LPR报价保持稳定", content:"中国人民银行本月MLF操作利率维持不变，LPR报价保持稳定。货币政策维持稳健偏宽松基调，市场流动性合理充裕。对红利低波策略和债券型基金构成相对有利环境，但需关注后续政策边际变化。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"http://www.pbc.gov.cn/", date:"2026-08-01"},
+    {title:"美国6月CPI同比3.0%，低于市场预期", content:"美国劳工部数据：美国6月CPI同比3.0%，低于市场预期3.1%；核心CPI同比3.3%，同样低于预期。通胀压力持续缓解，为美联储降息打开空间。黄金价格在数据公布后有所上行。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.bls.gov/cpi/", date:"2026-08-01"},
+    {title:"黄金价格创新高后回调，实际利率走势成关键变量", content:"国际金价在前期创新高后出现技术性回调，当前实际利率走势仍是黄金定价的关键变量。若美联储开启降息周期，实际利率下行有望支撑黄金中长期表现。华夏黄金ETF-A等相关产品需关注溢价率和场内折溢价情况。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.kitco.com/", date:"2026-08-01"},
+    {title:"纳斯达克100指数PE处于历史高位区间，估值分位超80%", content:"纳斯达克100指数当前PE约35倍，处于近10年历史估值分位80%以上区间。科技巨头集中度较高，AI叙事支撑估值但需警惕回调风险。QDII纳斯达克100基金需关注汇率影响和限购状态。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.nasdaq.com/", date:"2026-08-01"},
+    {title:"国家发改委：加大稳投资力度，新型基础设施成重点", content:"国家发改委近期表态，将加大稳投资力度，新型基础设施（5G/数据中心/算力中心等）成为重点支持方向。基建主题和数字经济主题基金可能受益于政策红利，关注相关板块的中长期机会。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.ndrc.gov.cn/", date:"2026-08-01"}
+];
+
+// ===== 选题灵感库数据 =====
+var ideaLibData = [
+    {title:"AI少女风穿搭：夏日防晒穿搭指南", content:"用AI生成模特+实拍场景结合的方式，做一期夏季防晒穿搭选题。重点展示防晒衣+阔腿裤+配饰搭配，适合黄黑皮女生。脚本钩子：「黄黑皮女孩夏天怎么穿才显白？这3套防晒穿搭绝了」。关联提示词：少女风户外场景。", status:"pending"},
+    {title:"微胖女生显瘦穿搭技巧：高腰线是关键", content:"针对微胖身材的显瘦穿搭选题，重点讲高腰线、A字版型、深色系视觉收缩原理。脚本钩子：「微胖女孩穿对了真的瘦10斤」。适合休闲和通勤两个场景切换展示。", status:"pending"},
+    {title:"通勤穿搭：一周不重样穿搭挑战", content:"做7天通勤穿搭合集，每天一套不同风格，从周一正式到周五休闲，展示混搭技巧。可拆分为7条短视频发布，最后做一期合集长视频。适合批量产出内容。", status:"done"},
+    {title:"复古风格：90年代港风回潮", content:"90年代港风穿搭回潮选题，参考王祖贤、张曼玉经典造型，用AI生成复古港风场景图配合实拍。脚本钩子：「2026年了港风穿搭还是这么绝」。当前搁置原因：复古选品库存不足，需先补充选品。", status:"hold"},
+    {title:"学生党平价穿搭合集：百元内搞定整套", content:"针对学生党的平价穿搭选题，整套搭配控制在100元以内，展示高性价比选品能力。脚本钩子：「100块钱穿出500块的效果」。适合在开学季集中投放，转化率预期较高。", status:"pending"},
+    {title:"换季穿搭：夏季到秋季过渡搭配指南", content:"夏秋换季过渡穿搭选题，讲如何用夏季单品叠穿过渡到秋天，展示一件多穿技巧。脚本钩子：「别急着收夏装！这样叠穿还能再穿一个月」。适合8月底9月初发布。", status:"pending"}
+];
+
+// ===== 指数跟踪数据 =====
+var indexTrackData = [
+    {name:"黄金", icon:"circle", color:"#FFD700", rows:[
+        {label:"金价", val:"545.2 元/克"},
+        {label:"实际利率", val:"2.1%"},
+        {label:"估值区间", val:"中位"}
+    ], level:"mid", note:"金价高位回调后企稳，实际利率仍有下行空间。华夏黄金ETF-A场内溢价需关注。个人判断：中期偏乐观，短期注意波动。"},
+    {name:"纳斯达克100", icon:"circle", color:"#1976D2", rows:[
+        {label:"当前PE", val:"35.2"},
+        {label:"历史估值分位", val:"82%"},
+        {label:"估值区间", val:"高位"}
+    ], level:"high", note:"PE处于历史高位区间，AI叙事支撑估值但集中度风险高。QDII限购状态下溢价买入需谨慎。个人判断：短期谨慎，长期看好科技方向。"},
+    {name:"红利低波", icon:"circle", color:"#388E3C", rows:[
+        {label:"股息率", val:"5.8%"},
+        {label:"估值分位", val:"35%"},
+        {label:"估值区间", val:"低位"}
+    ], level:"low", note:"股息率5.8%处于较有吸引力水平，估值分位偏低。适合作为底仓配置。个人判断：性价比较高，适合长期持有。"},
+    {name:"QDII基金", icon:"circle", color:"#7B1FA2", rows:[
+        {label:"底层标的", val:"纳斯达克100/标普500"},
+        {label:"溢价率", val:"3.2%"},
+        {label:"限购状态", val:"限额"},
+        {label:"汇率影响", val:"人民币贬值利好"}
+    ], level:"mid", note:"QDII限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"}
+];
+
+// ===== 切换分组 =====
+function toggleGroup(id) {
+    var g = document.querySelector('[data-group="'+id+'"]');
+    if (g) g.classList.toggle('collapsed');
+}
+
+// ===== 移动端侧边栏开关（默认显示，点击按钮可关闭/打开）=====
+function toggleSidebar() {
+    var sb = document.getElementById('sidebar');
+    var btn = document.getElementById('menuIcon');
+    sb.classList.toggle('collapsed');
+    // SVG 图标切换：收起状态显示汉堡（≡），展开状态显示双箭头（«）
+    if (sb.classList.contains('collapsed')) {
+        btn.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
+    } else {
+        btn.innerHTML = '<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>';
+    }
+}
+
+// ===== 切换页面 =====
+function showPage(pageId, el) {
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('.sub-item').forEach(function(s){s.classList.remove('active');});
+    var page = document.getElementById('page-'+pageId);
+    if (page) page.classList.add('active');
+    if (el) el.classList.add('active');
+    // 重置主内容区与窗口的滚动位置，确保切换页面后从顶部显示
+    var mainEl = document.getElementById('main');
+    if (mainEl) mainEl.scrollTop = 0;
+    truncateAllNews();
+    window.scrollTo(0, 0);
+}
+
+// ===== 内容截断 >100字 =====
+function truncateAllNews() {
+    document.querySelectorAll('.news-card').forEach(function(card){
+        var full = card.dataset.content;
+        var display = card.querySelector('.n-content');
+        if (!full || !display) return;
+        if (full.length > 100) {
+            display.textContent = full.substring(0, 100) + '...';
+        } else {
+            display.textContent = full;
+        }
+    });
+}
+
+// ===== MCP 开关 =====
+function toggleMCP() {
+    document.getElementById('mcpSwitch').classList.toggle('on');
+    var on = document.getElementById('mcpSwitch').classList.contains('on');
+    showToast(on ? 'MCP 总开关已开启' : 'MCP 总开关已关闭，自动联网已停止');
+}
+
+// ===== 弹窗（支持显示链接） =====
+function openNewsModal(el) {
+    var card = el.closest('.news-card');
+    var title = card.dataset.title || (card.querySelector('.n-title') && card.querySelector('.n-title').textContent) || '';
+    var content = card.dataset.content || '';
+    var url = card.dataset.url || '';
+    document.getElementById('modalTitle').textContent = title;
+    var contentHtml = escapeHtml(content);
+    if (url) {
+        contentHtml += '<br><br>📎 <a href="'+url+'" target="_blank" rel="noopener">查看原文：'+url+'</a>';
+    }
+    document.getElementById('modalContent').innerHTML = contentHtml;
+    document.getElementById('modalOverlay').classList.add('show');
+}
+function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ===== 全局搜索 =====
+function doSearch(q) {
+    if (!q) return;
+    var map = {
+        '知识库':'knowledge-base','笔记':'knowledge-base','干货':'knowledge-base',
+        '运营':'operation-ideas','选题':'operation-ideas','素材':'operation-ideas',
+        '对标':'account-observe','账号':'account-observe','观测':'account-observe',
+        '复盘':'work-review','作品':'work-review',
+        '选品':'product-lib',
+        '灵感':'idea-lib',
+        '脚本':'script-lib',
+        '提示词':'prompt-lib','素材':'prompt-lib',
+        '发布':'record-review',
+        '脑洞':'side-idea','副业':'side-idea',
+        '评估':'project-eval','项目':'project-eval',
+        '测试':'project-test',
+        '归档':'project-archive',
+        '理财':'finance-news','新知':'finance-news','美联储':'finance-news','CPI':'finance-news','科技':'finance-news',
+        '持仓':'asset-account','台账':'asset-account',
+        '指数':'index-track','估值':'index-track',
+        '调仓':'rebalance','再平衡':'rebalance',
+        '打卡':'health-checkin','睡眠':'health-checkin','瑜伽':'health-checkin',
+        '汇总':'checkin-history','历史':'checkin-history',
+        '身体':'body-note','备忘录':'body-note',
+        '摘要':'web-summary','网页':'web-summary','链接':'web-summary',
+        '待办':'todo-list'
+    };
+    for (var key in map) {
+        if (q.indexOf(key) >= 0) {
+            var target = document.querySelector('[data-page="'+map[key]+'"]');
+            if (target) showPage(map[key], target);
+            return;
+        }
+    }
+}
+
+// ===== Toast 通知 =====
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+// ===== 表单切换 =====
+function toggleForm(formId) {
+    var form = document.getElementById(formId);
+    if (form) form.classList.toggle('hidden');
+}
+function submitForm(formId, msg) {
+    if (formId) {
+        var form = document.getElementById(formId);
+        if (form) form.classList.add('hidden');
+    }
+    showToast(msg);
+}
+
+// ===== 标签切换 =====
+function toggleTag(el) {
+    el.classList.toggle('sel');
+}
+
+// ===== 搬运到灵感脑洞库 =====
+function transportToSideIdea(cardEl) {
+    var card = cardEl.closest('.news-card');
+    if (!card) return;
+    var title = card.dataset.title || '';
+    var content = card.dataset.content || '';
+    var date = card.dataset.date || new Date().toISOString().slice(0,10);
+    var item = {title:title, content:content, date:date, source:'AI抓取搬运', block:false};
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    arr.unshift(item);
+    localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    showToast('已搬运到灵感脑洞库');
+    renderSideIdeas();
+}
+
+// ===== 灵感脑洞库：保存手动录入 =====
+function saveSideIdea() {
+    var form = document.getElementById('form-sideidea');
+    var desc = form.querySelector('textarea').value.trim();
+    var block = form.querySelectorAll('input')[0].value.trim();
+    if (!desc) { showToast('请填写想法描述'); return; }
+    var item = {title:desc, content:'阻碍初步预判：' + (block || '未填写'), date:new Date().toISOString().slice(0,10), source:'手动录入', block:true};
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    arr.unshift(item);
+    localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    form.querySelector('textarea').value = '';
+    form.querySelectorAll('input')[0].value = '';
+    form.classList.add('hidden');
+    showToast('脑洞已保存');
+    renderSideIdeas();
+}
+
+// ===== 灵感脑洞库：渲染列表 =====
+function renderSideIdeas() {
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    var wrap = document.getElementById('sideIdeaList');
+    if (arr.length === 0) {
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-flask"></i></div><p>暂无灵感记录</p><p class="sub">点击「新增脑洞」手动录入，或在AI抓取板块点「搬运」推送过来</p></div>';
+        return;
+    }
+    var html = '';
+    arr.forEach(function(item, i){
+        var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
+        html += '<div class="news-card" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-content="'+item.content.replace(/"/g,'&quot;')+'">'+
+            '<div class="n-title">'+item.title+sourceTag+'</div>'+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>记录时间：'+item.date+'</span>'+
+            '<div class="right"><span class="actions"><span onclick="event.stopPropagation();deleteSideIdea('+i+');" style="color:#F06292;cursor:pointer;">✕ 删除</span></span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+    });
+    wrap.innerHTML = html;
+    truncateAllNews();
+}
+
+// ===== 删除灵感脑洞 =====
+function deleteSideIdea(idx) {
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    arr.splice(idx, 1);
+    localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    showToast('已删除');
+    renderSideIdeas();
+}
+
+// ===== 渲染理财新知 =====
+function renderFinanceNews() {
+    var html = '';
+    financeNewsData.forEach(function(item){
+        var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
+        html += '<div class="news-card" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-content="'+full.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'" data-date="'+item.date+'" data-url="'+item.url+'">'+
+            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+item.title+'</div>'+
+            '<div class="n-link">📎 原文：<a href="'+item.url+'" target="_blank" rel="noopener">'+item.url+'</a></div>'+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>AI 抓取时间：'+item.date+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
+            '<span onclick="event.stopPropagation();this.closest(\'.news-card\').style.opacity=\'0.5\';showToast(\'已标已读\');">✓ 已读</span>'+
+            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    document.getElementById('financeNewsList').innerHTML = html;
+    truncateAllNews();
+}
+
+// ===== 渲染选题灵感库 =====
+function renderIdeaLib() {
+    var html = '';
+    ideaLibData.forEach(function(item, i){
+        var statusClass = item.status === 'pending' ? 's-pending' : (item.status === 'done' ? 's-done' : 's-hold');
+        var statusText = item.status === 'pending' ? '待使用' : (item.status === 'done' ? '已制作' : '暂搁置');
+        var statusLabel = '<span class="status-pill '+statusClass+'" onclick="cycleIdeaStatus('+i+')" style="cursor:pointer;" title="点击切换状态">'+statusText+'</span>';
+        var holdNote = item.status === 'hold' ? ' <span style="font-size:11px;color:#E65100;">🔒 刷新时保留</span>' : '';
+        html += '<div class="news-card" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-content="'+item.content.replace(/"/g,'&quot;')+'">'+
+            '<div class="n-title">'+item.title+' '+statusLabel+holdNote+'</div>'+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>AI 抓取时间：2026-08-01</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
+            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    document.getElementById('ideaLibList').innerHTML = html;
+    truncateAllNews();
+}
+
+// ===== 切换选题状态 =====
+function cycleIdeaStatus(idx) {
+    var order = ['pending','done','hold'];
+    var cur = ideaLibData[idx].status;
+    var next = order[(order.indexOf(cur)+1) % 3];
+    ideaLibData[idx].status = next;
+    renderIdeaLib();
+    showToast('状态已切换为：' + (next==='pending'?'待使用':(next==='done'?'已制作':'暂搁置')));
+}
+
+// ===== 刷新选题灵感库（保留暂搁置） =====
+function refreshIdeaLib() {
+    showToast('选题灵感已刷新（暂搁置选题已保留）');
+}
+
+// ===== 刷新指数跟踪 =====
+function refreshIndexTrack() {
+    var html = '';
+    indexTrackData.forEach(function(item){
+        var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
+        var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
+        var rowsHtml = '';
+        item.rows.forEach(function(r){
+            rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>';
+        });
+        html += '<div class="idx-card">'+
+            '<div class="idx-head">'+
+            '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
+            '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
+            '</div>'+
+            '<div class="idx-rows">'+rowsHtml+'</div>'+
+            '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
+            '</div>';
+    });
+    document.getElementById('indexTrackList').innerHTML = html;
+    showToast('4类资产估值已刷新');
+}
+
+// ===== AI 抓取按钮 =====
+function batchRefresh(name) {
+    var on = document.getElementById('mcpSwitch').classList.contains('on');
+    if (!on) {
+        showToast('MCP总开关已关闭，请在对话中手动触发');
+    } else {
+        showToast('【'+name+'】请在对话中告诉我"刷新'+name+'"，我会立即拉取');
+    }
+}
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', function(){
+    renderKnowledgeBase();
+    renderOperationIdeas();
+    renderAccountObserve();
+    renderWorkReview();
+    renderFinanceNews();
+    renderIdeaLib();
+    renderSideIdeas();
+});
+</script>
+
+</body>
+</html>
