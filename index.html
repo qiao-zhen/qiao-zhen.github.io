@@ -852,8 +852,7 @@ var operationIdeasData = [
 ];
 
 function refreshOperationIdeas() {
-    showToast('运营思路&选题素材已刷新（抓取 '+operationIdeasData.length+' 条）');
-    renderOperationIdeas();
+    loadRemoteData();
 }
 
 function renderOperationIdeas() {
@@ -1319,17 +1318,19 @@ function cycleIdeaStatus(idx) {
     var cur = ideaLibData[idx].status;
     var next = order[(order.indexOf(cur)+1) % 3];
     ideaLibData[idx].status = next;
+    ideaStatusOverride[ideaLibData[idx].title] = next;
+    try { localStorage.setItem('ideaStatusOverride', JSON.stringify(ideaStatusOverride)); } catch(e){}
     renderIdeaLib();
     showToast('状态已切换为：' + (next==='pending'?'待使用':(next==='done'?'已制作':'暂搁置')));
 }
 
-// ===== 刷新选题灵感库（保留暂搁置） =====
+// ===== 刷新选题灵感库（保留暂搁置，方案B：从服务器拉取最新）=====
 function refreshIdeaLib() {
-    showToast('选题灵感已刷新（暂搁置选题已保留）');
+    loadRemoteData();
 }
 
-// ===== 刷新指数跟踪 =====
-function refreshIndexTrack() {
+// ===== 渲染指数跟踪 =====
+function renderIndexTrack() {
     var html = '';
     indexTrackData.forEach(function(item){
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
@@ -1348,28 +1349,66 @@ function refreshIndexTrack() {
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
-    showToast('4类资产估值已刷新');
 }
 
-// ===== AI 抓取按钮 =====
+// ===== 刷新指数跟踪（方案B：从服务器拉取最新）=====
+function refreshIndexTrack() {
+    loadRemoteData();
+}
+
+// ===== AI 抓取按钮（方案B：从服务器拉取最新）=====
 function batchRefresh(name) {
     var on = document.getElementById('mcpSwitch').classList.contains('on');
     if (!on) {
         showToast('MCP总开关已关闭，请在对话中手动触发');
     } else {
-        showToast('【'+name+'】请在对话中告诉我"刷新'+name+'"，我会立即拉取');
+        loadRemoteData();
     }
+}
+
+// ===== 方案B：从 data.json 加载 AI 抓取内容 =====
+// data.json 由对话触发 AI 抓取后推送更新；页面每次打开自动拉取最新
+var ideaStatusOverride = {};
+try { ideaStatusOverride = JSON.parse(localStorage.getItem('ideaStatusOverride') || '{}'); } catch(e){}
+
+function applyIdeaStatus() {
+    ideaLibData.forEach(function(item){
+        if (ideaStatusOverride[item.title] !== undefined) item.status = ideaStatusOverride[item.title];
+    });
+}
+
+function loadRemoteData() {
+    fetch('./data.json?t=' + Date.now(), {cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw new Error('net'); return r.json(); })
+        .then(function(d){
+            if (d.financeNews) financeNewsData = d.financeNews;
+            if (d.operationIdeas) operationIdeasData = d.operationIdeas;
+            if (d.ideaLib) ideaLibData = d.ideaLib;
+            if (d.indexTrack) indexTrackData = d.indexTrack;
+            applyIdeaStatus();
+            renderFinanceNews();
+            renderOperationIdeas();
+            renderIdeaLib();
+            renderIndexTrack();
+            showToast('已拉取最新 AI 内容');
+        })
+        .catch(function(){
+            applyIdeaStatus();
+            renderFinanceNews();
+            renderOperationIdeas();
+            renderIdeaLib();
+            renderIndexTrack();
+            showToast('本地数据（未连接服务器）');
+        });
 }
 
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', function(){
     renderKnowledgeBase();
-    renderOperationIdeas();
     renderAccountObserve();
     renderWorkReview();
-    renderFinanceNews();
-    renderIdeaLib();
     renderSideIdeas();
+    loadRemoteData();
 });
 </script>
 
