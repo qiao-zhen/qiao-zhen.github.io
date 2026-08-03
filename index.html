@@ -289,6 +289,8 @@
 /* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
 .form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
 .form-backdrop.hidden{display:none;}
+#formMask{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:870;display:none;}
+.form-card:not(.hidden){position:relative;z-index:900;}
 #form-asset{position:relative;z-index:900;}
 .asset-actions input[type=file]{display:none !important;}
 .form-card h4{position:relative;padding-right:30px;}
@@ -729,6 +731,7 @@
             <div id="ocrStatus" class="ocr-status hidden"></div>
             <div id="ocrResult"></div>
             <div class="form-backdrop hidden" id="formBackdrop" onclick="closeFormAsset()"></div>
+            <div id="formMask" onclick="closeAllForms()"></div>
             <div class="card form-card hidden" id="form-asset">
                 <h4>新增持仓<button type="button" class="form-close" onclick="closeFormAsset()" aria-label="关闭">×</button></h4>
                 <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」即可，名称与跌涨自动补全。<b>成本金额</b>是你买入花的总本金（公开接口查不到，需自己填，或直接发基金App持仓截图给我全自动录入）</p>
@@ -2444,8 +2447,26 @@ function downloadExportMD(){
 // ===================== 表单切换 / 标签 =====================
 function toggleForm(formId){
     var form = document.getElementById(formId);
-    if (form) form.classList.toggle('hidden');
+    if (!form) return;
+    var willShow = form.classList.contains('hidden');
+    form.classList.toggle('hidden');
+    if (willShow){
+        var mask = document.getElementById('formMask');
+        if (mask) mask.style.display = 'block';
+        setTimeout(function(){ try{ form.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){} }, 60);
+    } else {
+        if (!document.querySelector('.form-card:not(.hidden)')){
+            var mask2 = document.getElementById('formMask');
+            if (mask2) mask2.style.display = 'none';
+        }
+    }
 }
+function closeAllForms(){
+    document.querySelectorAll('.form-card:not(.hidden)').forEach(function(f){ f.classList.add('hidden'); });
+    var m = document.getElementById('formMask'); if (m) m.style.display = 'none';
+    var fb = document.getElementById('formBackdrop'); if (fb) fb.classList.add('hidden');
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAllForms(); });
 function toggleTag(el){ el.classList.toggle('sel'); }
 
 // ===================== AI 抓取按钮 =====================
