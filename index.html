@@ -289,12 +289,8 @@
 .asset-act{border:1px solid #F3C0CC;background:#fff;border-radius:16px;color:#E91E63;font-size:12px;padding:5px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
 .asset-act:active{background:#FCE4EC;}
 .asset-btns{display:flex;gap:8px;align-items:center;}
-/* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
-.form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
-.form-backdrop.hidden{display:none;}
-#formMask{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:870;display:none;}
-.form-card:not(.hidden){position:relative;z-index:900;}
-#form-asset{position:relative;z-index:900;}
+/* 新增表单：右上角关闭 ×（纯表单，无遮罩） */
+.form-card{position:relative;}
 .asset-actions input[type=file]{display:none !important;}
 .form-card h4{position:relative;padding-right:30px;}
 .form-close{position:absolute;right:10px;top:2px;width:26px;height:26px;border:none;background:#FCE4EC;border-radius:50%;color:#C2185B;font-size:17px;line-height:1;cursor:pointer;}
@@ -720,7 +716,7 @@
         <div class="page" id="page-asset-account">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
-                <button class="pill-btn" onclick="openFormAsset()"><i class="fa fa-plus"></i> 新增持仓</button>
+                <button class="pill-btn" onclick="toggleForm('form-asset')"><i class="fa fa-plus"></i> 新增持仓</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 输代码自动识别导入持仓 · 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
@@ -733,10 +729,8 @@
             </div>
             <div id="ocrStatus" class="ocr-status hidden"></div>
             <div id="ocrResult"></div>
-            <div class="form-backdrop hidden" id="formBackdrop" onclick="closeFormAsset()"></div>
-            <div id="formMask" onclick="closeAllForms()"></div>
             <div class="card form-card hidden" id="form-asset">
-                <h4>新增持仓<button type="button" class="form-close" onclick="closeFormAsset()" aria-label="关闭">×</button></h4>
+                <h4>新增持仓<button type="button" class="form-close" onclick="toggleForm('form-asset')" aria-label="关闭">×</button></h4>
                 <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」即可，名称与跌涨自动补全。<b>成本金额</b>是你买入花的总本金（公开接口查不到，需自己填，或直接发基金App持仓截图给我全自动录入）</p>
                 <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000216" onblur="autoFillFundName()" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) autoFillFundName()"></div>
                 <div class="form-hint" id="as-quote" style="display:none;margin:-4px 0 6px"></div>
@@ -760,7 +754,7 @@
                 <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
                 <div class="form-btn-row">
                     <button class="save-btn" onclick="saveAsset()"><i class="fa fa-check"></i> 保存持仓</button>
-                    <button type="button" class="cancel-btn" onclick="closeFormAsset()">取消</button>
+                    <button type="button" class="cancel-btn" onclick="toggleForm('form-asset')">取消</button>
                 </div>
             </div>
             <div id="assetList"></div>
@@ -1558,14 +1552,6 @@ window.jsonpgz = function(d){
         }
     }
 };
-function openFormAsset(){
-    document.getElementById('form-asset').classList.remove('hidden');
-    document.getElementById('formBackdrop').classList.remove('hidden');
-}
-function closeFormAsset(){
-    document.getElementById('form-asset').classList.add('hidden');
-    document.getElementById('formBackdrop').classList.add('hidden');
-}
 var _autoFillTimer = null;
 function autoFillFundName(){
     var code = (document.getElementById('as-code').value||'').trim();
@@ -1602,7 +1588,7 @@ function autoFillFundName(){
     document.body.appendChild(s);
     _autoFillTimer = setTimeout(function(){ if(!nm.value.trim()&&!triedFallback) doFallback(); }, 4000);
 }
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var f=document.getElementById('form-asset'); if(f && !f.classList.contains('hidden')) closeFormAsset(); } });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ hideAllForms(); } });
 
 function fmt(n){ n = parseFloat(n)||0; return n.toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function dateDiff(a,b){ try{ var x=new Date(a.replace(/-/g,'/')), y=new Date(b.replace(/-/g,'/')); return Math.max(0, Math.round((y-x)/86400000)); }catch(e){ return 0; } }
@@ -1628,7 +1614,7 @@ function saveAsset(){
     });
     storeSet('assetList', arr);
     ['as-name','as-code','as-amount','as-plan','as-judge','as-type','as-cost'].forEach(function(id){ document.getElementById(id).value=''; });
-    closeFormAsset();
+    toggleForm('form-asset');
     showToast('持仓已保存');
     renderAsset();
 }
@@ -2457,25 +2443,25 @@ function downloadExportMD(){
 function toggleForm(formId){
     var form = document.getElementById(formId);
     if (!form) return;
-    var willShow = form.classList.contains('hidden');
     form.classList.toggle('hidden');
-    if (willShow){
-        var mask = document.getElementById('formMask');
-        if (mask) mask.style.display = 'block';
-        setTimeout(function(){ try{ form.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){} }, 60);
-    } else {
-        if (!document.querySelector('.form-card:not(.hidden)')){
-            var mask2 = document.getElementById('formMask');
-            if (mask2) mask2.style.display = 'none';
-        }
-    }
 }
-function closeAllForms(){
+function hideAllForms(){
     document.querySelectorAll('.form-card:not(.hidden)').forEach(function(f){ f.classList.add('hidden'); });
-    var m = document.getElementById('formMask'); if (m) m.style.display = 'none';
-    var fb = document.getElementById('formBackdrop'); if (fb) fb.classList.add('hidden');
 }
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAllForms(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideAllForms(); });
+function injectFormCloseButtons(){
+    document.querySelectorAll('.form-card').forEach(function(card){
+        if (card.querySelector('.form-close')) return; // 已有×的跳过（如持仓表单）
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'form-close';
+        btn.setAttribute('aria-label','关闭');
+        btn.textContent = '×';
+        btn.onclick = function(e){ e.stopPropagation(); toggleForm(card.id); };
+        card.insertBefore(btn, card.firstChild);
+    });
+}
+injectFormCloseButtons();
 function toggleTag(el){ el.classList.toggle('sel'); }
 
 // ===================== AI 抓取按钮 =====================
