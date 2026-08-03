@@ -225,9 +225,9 @@
             .checkin-table { display:block; overflow-x:auto; white-space:nowrap; }
             .form-row { flex-direction:column; gap:0; }
             .page-header { gap:6px; flex-wrap:wrap; }
-            .search-center { order:3; flex-basis:100%; justify-content:flex-start; }
-            .search-box { max-width:180px; padding:5px 12px; font-size:13px; }
-            .search-btn { padding:5px 10px; font-size:12px; }
+            .search-center { order:3; flex-basis:auto; justify-content:flex-start; max-width:220px; }
+            .search-box { max-width:140px; padding:5px 10px; font-size:12px; }
+            .search-btn { padding:5px 8px; font-size:11px; }
             .top-bar { flex-wrap:wrap; padding:8px 10px; gap:8px; }
             .brand { font-size:14px; }
             .brand .dot { width:8px; height:8px; }
@@ -592,7 +592,7 @@
         <div class="page" id="page-idea-lib">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 选题灵感库</div>
-                <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI抓取选题灵感</button>
+                <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI刷新抓取</button>
                 <button class="pill-btn ghost" onclick="exportSectionMD('idea-lib')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业（短视频运营）/ 副业（AI服装带货）/ 兴趣背景抓取选题 · 标记「暂搁置」的选题刷新时保留不删除</div>
@@ -731,7 +731,7 @@
         <div class="page" id="page-finance-news">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 理财每日新知</div>
-                <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-refresh"></i> AI抓取今日新知</button>
+                <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-magic"></i> AI刷新抓取</button>
                 <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：2026-08-01 · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
@@ -847,7 +847,7 @@
         <div class="page" id="page-index-track">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-area-chart ico"></i> 指数跟踪面板</div>
-                <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-refresh"></i> 刷新估值</button>
+                <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-magic"></i> AI刷新抓取</button>
                 <button class="pill-btn ghost" onclick="exportSectionMD('index-track')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 实时估值（每行"实时估值"行）打开即自动更新 · 绿色=低位 / 橙色=中位 / 红色=高位 · PE/估值分位/个人判断为策展内容，需在电脑端发「刷新」指令由电脑版更新</div>
