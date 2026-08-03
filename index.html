@@ -526,11 +526,12 @@
             </div>
             <div class="tip"><i class="fa fa-filter"></i> 按 风格 / 季节 / 价位 标签筛选过滤选品</div>
             <div class="card">
-                <div class="form-item"><label>筛选标签（点击切换）</label>
-                    <div class="tag-row">
-                        <span onclick="toggleTag(this)">韩系</span><span onclick="toggleTag(this)">休闲</span><span onclick="toggleTag(this)">通勤</span><span onclick="toggleTag(this)">学院</span><span onclick="toggleTag(this)">复古</span>
-                        <span onclick="toggleTag(this)">春</span><span onclick="toggleTag(this)">夏</span><span onclick="toggleTag(this)">秋</span><span onclick="toggleTag(this)">冬</span>
-                        <span onclick="toggleTag(this)">低价位</span><span onclick="toggleTag(this)">中价位</span><span onclick="toggleTag(this)">高价位</span>
+                <div class="form-item"><label>筛选标签（点击切换，可多选）</label>
+                    <div class="tag-row" id="prod-filter">
+                        <span class="filter-reset" onclick="resetProductFilter()">全部</span>
+                        <span onclick="toggleProductFilter(this)">韩系</span><span onclick="toggleProductFilter(this)">休闲</span><span onclick="toggleProductFilter(this)">通勤</span><span onclick="toggleProductFilter(this)">学院</span><span onclick="toggleProductFilter(this)">复古</span>
+                        <span onclick="toggleProductFilter(this)">春</span><span onclick="toggleProductFilter(this)">夏</span><span onclick="toggleProductFilter(this)">秋</span><span onclick="toggleProductFilter(this)">冬</span>
+                        <span onclick="toggleProductFilter(this)">低价位</span><span onclick="toggleProductFilter(this)">中价位</span><span onclick="toggleProductFilter(this)">高价位</span>
                     </div>
                 </div>
             </div>
@@ -1199,8 +1200,24 @@ function saveProduct(){
 function renderProduct(){
     RENDER_MAP['productList'] = renderProduct;
     var arr = storeGet('productList');
+    var sel = [];
+    var fEl = document.getElementById('prod-filter');
+    if (fEl) fEl.querySelectorAll('.sel').forEach(function(t){ sel.push(t.textContent); });
+    if (sel.length){
+        arr = arr.filter(function(it){
+            var style = it.style||''; var season = it.season||''; var price = it.price||'';
+            return sel.some(function(tag){
+                if (['韩系','休闲','通勤','学院','复古'].indexOf(tag)>=0) return style===tag;
+                if (['春','夏','秋','冬'].indexOf(tag)>=0) return season===tag;
+                if (tag==='低价位') return price.indexOf('低')>=0;
+                if (tag==='中价位') return price.indexOf('中')>=0;
+                if (tag==='高价位') return price.indexOf('高')>=0;
+                return false;
+            });
+        });
+    }
     var wrap = document.getElementById('productList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-shopping-bag"></i></div><p>暂无选品</p><p class="sub">点「新增选品」开始积累你的选品库</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-shopping-bag"></i></div><p>'+(sel.length?'没有符合筛选条件的选品':'暂无选品')+'</p><p class="sub">点「新增选品」开始积累你的选品库</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
         var full = '商品：' + item.info + '\n风格：' + item.style + '\n季节：' + item.season + '\n价位：' + item.price;
@@ -1208,6 +1225,15 @@ function renderProduct(){
     });
     wrap.innerHTML = html;
     truncateAllNews();
+}
+function toggleProductFilter(el){
+    el.classList.toggle('sel');
+    renderProduct();
+}
+function resetProductFilter(){
+    var fEl = document.getElementById('prod-filter');
+    if (fEl) fEl.querySelectorAll('.sel').forEach(function(t){ t.classList.remove('sel'); });
+    renderProduct();
 }
 
 // ===================== 6. 选题灵感库（AI 抓取） =====================
@@ -1798,7 +1824,7 @@ function quickFallbackFill(code){
 }
 function afterQuickFill(code){
     var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || '';
-    if (!name){ showToast('识别失败，可手动新增'); document.getElementById('quickCode').value=''; return; }
+    if (!name){ quickFallbackFill(code); return; }
     doQuickAdd(code);
 }
 function doQuickAdd(code){
