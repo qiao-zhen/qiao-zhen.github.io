@@ -224,11 +224,25 @@
             .sub-item span:last-child { word-break:break-word; }
             .checkin-table { display:block; overflow-x:auto; white-space:nowrap; }
             .form-row { flex-direction:column; gap:0; }
-            .page-header { gap:8px; }
+            .page-header { gap:6px; flex-wrap:wrap; }
             .search-center { order:3; flex-basis:100%; justify-content:flex-start; }
-            .search-box { max-width:220px; padding:6px 14px; font-size:13px; }
-            .search-btn { padding:6px 12px; font-size:13px; }
-            .top-bar { flex-wrap:wrap; }
+            .search-box { max-width:180px; padding:5px 12px; font-size:13px; }
+            .search-btn { padding:5px 10px; font-size:12px; }
+            .top-bar { flex-wrap:wrap; padding:8px 10px; gap:8px; }
+            .brand { font-size:14px; }
+            .brand .dot { width:8px; height:8px; }
+            .filter-row { gap:5px; margin-bottom:8px; }
+            .filter-chip { padding:3px 10px; font-size:11px; border-radius:12px; }
+            .pill-btn { padding:5px 11px; font-size:12px; }
+            .pill-btn.ghost { padding:4px 9px; font-size:11px; }
+            .page-title { font-size:15px; }
+            .tip { font-size:12px; margin:2px 0 10px; }
+            .news-card { padding:10px; margin-bottom:8px; }
+            .news-card .n-title { font-size:13px; }
+            .news-card .n-content { font-size:12px; }
+            .form-card { padding:12px; }
+            .form-item label { font-size:12px; }
+            .form-item input, .form-item select, .form-item textarea { font-size:13px; }
             .news-card .n-foot .actions { opacity:1; }
             .group-title, .sub-item, .menu-btn, .pill-btn, .filter-chip, .search-btn, .export-btn, .done-pill { touch-action:manipulation; }
         }
@@ -1060,13 +1074,12 @@ function saveKnowledge(){
     var note = document.getElementById('kb-note').value.trim();
     if (!title) { showToast('请填写笔记标题'); return; }
     if (!content) { showToast('请粘贴核心知识点'); return; }
-    var arr = getKnowledgeList();
-    arr.unshift({ title:title, category:category, source:source, content:content, note:note, date:todayStr() });
-    setKnowledgeList(arr);
+    var item = { title:title, category:category, source:source, content:content, note:note, date:todayStr() };
+    editOrInsert('knowledgeBase', item);
     document.getElementById('kb-title').value=''; document.getElementById('kb-source').value='';
     document.getElementById('kb-content').value=''; document.getElementById('kb-note').value='';
     document.getElementById('form-knowledge').classList.add('hidden');
-    showToast('知识库笔记已保存');
+    showToast(_editState.key?'笔记已更新':'知识库笔记已保存');
     renderKnowledgeBase();
 }
 function filterKnowledge(cat, el){
@@ -1084,7 +1097,7 @@ function renderKnowledgeBase(){
     arr.forEach(function(item, i){
         var full = '分类：' + item.category + '\n\n📚 核心知识点：\n' + item.content + (item.note ? '\n\n💡 我的理解：\n' + item.note : '');
         var srcHtml = item.source ? '<div class="n-link">📎 原文链接：<a href="'+escAttr(item.source)+'" target="_blank" rel="noopener">'+escHtml(item.source)+'</a></div>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:'openEdit(\'knowledgeBase\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1147,10 +1160,10 @@ function saveAccountObserve(){
         updateFreq:ins[3].value.trim(), postTime:ins[4].value.trim(),
         learn:tas[2].value.trim(), avoid:tas[3].value.trim(), date:todayStr()
     };
-    var arr = getAccountList(); arr.unshift(item); setAccountList(arr);
+    editOrInsert('accountObserve', item);
     ins.forEach(function(i){i.value='';}); tas.forEach(function(t){t.value='';});
     f.classList.add('hidden');
-    showToast('对标账号观测已保存');
+    showToast(_editState.key?'观测记录已更新':'对标账号观测已保存');
     renderAccountObserve();
 }
 function renderAccountObserve(){
@@ -1163,7 +1176,7 @@ function renderAccountObserve(){
             '\n\n🔥 爆款视频要点：\n' + (item.hotVideo||'-') + '\n\n🎣 开头钩子：\n' + (item.hook||'-') +
             '\n\n🎬 视频结构：\n' + (item.structure||'-') + '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') + '\n⏰ 发布时间：' + (item.postTime||'-') +
             '\n\n✅ 我可以借鉴：\n' + (item.learn||'-') + '\n\n❌ 不要照搬：\n' + (item.avoid||'-');
-        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date });
+        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date, editAction:'openEdit(\'accountObserve\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1185,10 +1198,10 @@ function saveWorkReview(){
     var title = ins[0].value.trim();
     if (!title){ showToast('请填写视频标题'); return; }
     var item = { title:title, postTime:ins[1].value.trim(), play:ins[2].value.trim(), finish:ins[3].value.trim(), fav:ins[4].value.trim(), comment:ins[5].value.trim(), issue:sel.value, optimize:ta.value.trim(), date:todayStr() };
-    var arr = getWorkList(); arr.unshift(item); setWorkList(arr);
+    editOrInsert('workReview', item);
     ins.forEach(function(i){i.value='';}); ta.value='';
     f.classList.add('hidden');
-    showToast('作品复盘已保存');
+    showToast(_editState.key?'复盘已更新':'作品复盘已保存');
     renderWorkReview();
 }
 function renderWorkReview(){
@@ -1200,7 +1213,7 @@ function renderWorkReview(){
         var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
             '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
             '\n\n⚠️ 问题判断：' + item.issue + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
-        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date });
+        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:'openEdit(\'workReview\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1224,10 +1237,10 @@ function saveProduct(){
         price:document.getElementById('prod-price').value,
         date:todayStr(), done:false
     };
-    var arr = storeGet('productList'); arr.unshift(item); storeSet('productList', arr);
+    editOrInsert('productList', item);
     infoInput.value='';
     document.getElementById('form-product').classList.add('hidden');
-    showToast('选品已保存');
+    showToast(_editState.key?'选品已更新':'选品已保存');
     renderProduct();
 }
 function renderProduct(){
@@ -1254,7 +1267,7 @@ function renderProduct(){
     var html='';
     arr.forEach(function(item, i){
         var full = '商品：' + item.info + '\n风格：' + item.style + '\n季节：' + item.season + '\n价位：' + item.price;
-        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date });
+        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date, editAction:'openEdit(\'productList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1318,10 +1331,10 @@ function saveScript(){
     if (!title){ showToast('请填写脚本标题'); return; }
     if (!content){ showToast('请填写脚本内容'); return; }
     var item = { title:title, content:content, promptId:pid, date:todayStr(), done:false };
-    var arr = storeGet('scriptList'); arr.unshift(item); storeSet('scriptList', arr);
+    editOrInsert('scriptList', item);
     document.getElementById('scr-title').value=''; document.getElementById('scr-content').value=''; document.getElementById('scr-prompt').value='';
     document.getElementById('form-script').classList.add('hidden');
-    showToast('脚本已保存');
+    showToast(_editState.key?'脚本已更新':'脚本已保存');
     renderScript();
 }
 function renderScript(){
@@ -1332,7 +1345,7 @@ function renderScript(){
     var html='';
     arr.forEach(function(item, i){
         var full = '脚本标题：' + item.title + (item.promptId ? '\n关联提示词ID：' + item.promptId : '') + '\n\n📝 内容：\n' + item.content;
-        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date });
+        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:'openEdit(\'scriptList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1347,11 +1360,11 @@ function savePrompt(){
     var tags = [];
     document.querySelectorAll('#pr-tags .sel').forEach(function(t){ tags.push(t.textContent); });
     var item = { title:title, content:content, tags:tags, date:todayStr(), done:false };
-    var arr = storeGet('promptList'); arr.unshift(item); storeSet('promptList', arr);
+    editOrInsert('promptList', item);
     document.getElementById('pr-title').value=''; document.getElementById('pr-content').value='';
     document.querySelectorAll('#pr-tags span').forEach(function(t){ t.classList.remove('sel'); });
     document.getElementById('form-prompt').classList.add('hidden');
-    showToast('提示词已保存');
+    showToast(_editState.key?'提示词已更新':'提示词已保存');
     renderPrompt();
 }
 function renderPrompt(){
@@ -1362,7 +1375,7 @@ function renderPrompt(){
     var html='';
     arr.forEach(function(item, i){
         var full = '提示词标题：' + item.title + (item.tags&&item.tags.length?('\n风格标签：'+item.tags.join('/')):'') + '\n\n🎨 内容：\n' + item.content;
-        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date });
+        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:'openEdit(\'promptList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1377,10 +1390,10 @@ function saveRecord(){
         ctr:document.getElementById('rec-ctr').value.trim(), deal:document.getElementById('rec-deal').value.trim(),
         analysis:document.getElementById('rec-analysis').value.trim(), date:todayStr(), done:false
     };
-    var arr = storeGet('recordList'); arr.unshift(item); storeSet('recordList', arr);
+    editOrInsert('recordList', item);
     ['rec-title','rec-play','rec-like','rec-ctr','rec-deal','rec-analysis'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-record').classList.add('hidden');
-    showToast('发布记录已保存');
+    showToast(_editState.key?'记录已更新':'发布记录已保存');
     renderRecord();
 }
 function renderRecord(){
@@ -1393,7 +1406,7 @@ function renderRecord(){
         var full = '视频标题：' + item.title + '\n播放：' + (item.play||'-') + '  点赞：' + (item.like||'-') +
             '\n挂车点击率：' + (item.ctr||'-') + '  成交单数：' + (item.deal||'-') +
             '\n\n📋 复盘分析：\n' + (item.analysis||'-');
-        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date });
+        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date, editAction:'openEdit(\'recordList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1407,7 +1420,12 @@ function saveSideIdea(){
     if (!desc){ showToast('请填写想法描述'); return; }
     var item = { title:desc, content:'阻碍初步预判：' + (block||'未填写'), date:todayStr(), source:'手动录入', block:true, done:false };
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
-    arr.unshift(item); localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    if (_editState.key === 'sideIdeas' && _editState.idx != null && arr[_editState.idx]){
+        item.source = arr[_editState.idx].source || item.source;
+        arr[_editState.idx] = item;
+    } else { arr.unshift(item); }
+    localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    _editState.key = null; _editState.idx = null;
     f.querySelector('textarea').value=''; f.querySelectorAll('input')[0].value='';
     f.classList.add('hidden');
     showToast('脑洞已保存');
@@ -1420,7 +1438,7 @@ function renderSideIdeas(){
     var html='';
     arr.forEach(function(item, i){
         var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
-        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date });
+        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:'openEdit(\'sideIdeas\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1436,10 +1454,10 @@ function saveEval(){
     var info = document.getElementById('ev-info').value.trim();
     if (!info){ showToast('请填写项目信息'); return; }
     var item = { info:info, case:document.getElementById('ev-case').value.trim(), link:document.getElementById('ev-link').value.trim(), date:todayStr(), done:false };
-    var arr = storeGet('evalList'); arr.unshift(item); storeSet('evalList', arr);
+    editOrInsert('evalList', item);
     ['ev-info','ev-case','ev-link'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-eval').classList.add('hidden');
-    showToast('项目已保存');
+    showToast(_editState.key?'项目已更新':'项目已保存');
     renderEval();
 }
 function renderEval(){
@@ -1450,7 +1468,7 @@ function renderEval(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.info + (item.link?('\n参考链接：'+item.link):'') + '\n\n🔍 对标案例：\n' + (item.case||'-');
-        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link });
+        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:'openEdit(\'evalList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1461,10 +1479,10 @@ function saveTest(){
     var name = document.getElementById('te-name').value.trim();
     if (!name){ showToast('请填写测试项目'); return; }
     var item = { name:name, process:document.getElementById('te-process').value.trim(), feedback:document.getElementById('te-feedback').value.trim(), date:todayStr(), done:false };
-    var arr = storeGet('testList'); arr.unshift(item); storeSet('testList', arr);
+    editOrInsert('testList', item);
     ['te-name','te-process','te-feedback'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-test').classList.add('hidden');
-    showToast('测试记录已保存');
+    showToast(_editState.key?'测试记录已更新':'测试记录已保存');
     renderTest();
 }
 function renderTest(){
@@ -1475,7 +1493,7 @@ function renderTest(){
     var html='';
     arr.forEach(function(item, i){
         var full = '测试项目：' + item.name + '\n\n🔬 过程/现象：\n' + (item.process||'-') + '\n\n💬 用户反馈：\n' + (item.feedback||'-');
-        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date });
+        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'testList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1486,10 +1504,10 @@ function saveArchive(){
     var name = document.getElementById('ar-name').value.trim();
     if (!name){ showToast('请填写归档项目名称'); return; }
     var item = { name:name, review:document.getElementById('ar-review').value.trim(), date:todayStr(), done:false };
-    var arr = storeGet('archiveList'); arr.unshift(item); storeSet('archiveList', arr);
+    editOrInsert('archiveList', item);
     document.getElementById('ar-name').value=''; document.getElementById('ar-review').value='';
     document.getElementById('form-archive').classList.add('hidden');
-    showToast('归档已保存');
+    showToast(_editState.key?'归档已更新':'归档已保存');
     renderArchive();
 }
 function renderArchive(){
@@ -1500,7 +1518,7 @@ function renderArchive(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.name + '\n\n📦 复盘得失：\n' + (item.review||'-');
-        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date });
+        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'archiveList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2033,10 +2051,10 @@ function saveRebalance(){
         reason:document.getElementById('rb-reason').value, logic:document.getElementById('rb-logic').value.trim(),
         date:todayStr(), done:false
     };
-    var arr = storeGet('rebalanceList'); arr.unshift(item); storeSet('rebalanceList', arr);
+    editOrInsert('rebalanceList', item);
     ['rb-target','rb-time','rb-share','rb-logic'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-rebalance').classList.add('hidden');
-    showToast('调仓记录已保存');
+    showToast(_editState.key?'调仓记录已更新':'调仓记录已保存');
     renderRebalance();
 }
 function renderRebalance(){
@@ -2048,7 +2066,7 @@ function renderRebalance(){
     arr.forEach(function(item, i){
         var full = '标的：' + item.target + '\n时间：' + (item.time||'-') + '\n操作：' + item.action + '  份额：' + (item.share||'-') +
             '\n理由：' + item.reason + '\n\n🧠 判断逻辑：\n' + (item.logic||'-');
-        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date });
+        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date, editAction:'openEdit(\'rebalanceList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2105,10 +2123,10 @@ function saveBodyNote(){
     var content = document.getElementById('bn-content').value.trim();
     if (!content){ showToast('请填写观察内容'); return; }
     var item = { date:date||todayStr(), content:content, done:false };
-    var arr = storeGet('bodyNoteList'); arr.unshift(item); storeSet('bodyNoteList', arr);
+    editOrInsert('bodyNoteList', item);
     document.getElementById('bn-date').value=''; document.getElementById('bn-content').value='';
     document.getElementById('form-bodynote').classList.add('hidden');
-    showToast('观察记录已保存');
+    showToast(_editState.key?'记录已更新':'观察记录已保存');
     renderBodyNote();
 }
 function renderBodyNote(){
@@ -2118,7 +2136,7 @@ function renderBodyNote(){
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-sticky-note-o"></i></div><p>暂无观察记录</p><p class="sub">点「新增记录」随手记录身体观察</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
-        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date });
+        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date, editAction:'openEdit(\'bodyNoteList\','+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2494,6 +2512,101 @@ function injectFormCloseButtons(){
     });
 }
 injectFormCloseButtons();
+
+// ===================== 通用编辑系统 =====================
+var _editState = { key:null, idx:null };
+var EDIT_CONFIG = {
+    knowledgeBase:{ f:'form-knowledge', t:'编辑笔记', g:getKnowledgeList, s:setKnowledgeList,
+        fld:[['kb-title','title'],['kb-category','category'],['kb-source','source'],['kb-content','content'],['kb-note','note']] },
+    accountObserve:{ f:'form-account', t:'编辑对标账号', g:getAccountList, s:setAccountList,
+        q:true, // 用 querySelectorAll 按顺序
+        props:['name','track','hotVideo','hook','structure','updateFreq','postTime','learn','avoid'] },
+    workReview:{ f:'form-work', t:'编辑复盘',
+        q:true, props:['title','pubTime','playRate','finishRate','favCount','commentCount','issue'] },
+    productList:{ f:'form-product', t:'编辑选品',
+        q:true, props:['info','style','season','price'] },
+    scriptList:{ f:'form-script', t:'编辑脚本',
+        fld:[['scr-title','title'],['scr-content','content'],['scr-prompt','promptId']] },
+    promptList:{ f:'form-prompt', t:'编辑提示词',
+        fld:[['pr-title','title'],['pr-content','content']] },
+    recordList:{ f:'form-record', t:'编辑发布记录',
+        fld:[['rec-title','title'],['rec-play','play'],['rec-like','like'],['rec-ctr','ctr'],['rec-deal','deal'],['rec-analysis','analysis']] },
+    sideIdeas:{ f:'form-sideidea', t:'编辑脑洞',
+        fld:[['si-desc','title'],['si-block','source']] },
+    evalList:{ f:'form-eval', t:'编辑项目评估',
+        q:true, props:['info','link','pros','cons','score','nextStep'] },
+    testList:{ f:'form-test', t:'编辑测试记录',
+        q:true, props:['name','result','lesson'] },
+    archiveList:{ f:'form-archive', t:'编辑归档项目',
+        q:true, props:['name','reason','takeaway'] },
+    rebalanceList:{ f:'form-rebalance', t:'编辑调仓记录',
+        q:true, props:['target','action','reason','result'] },
+    bodyNoteList:{ f:'form-bodynote', t:'编辑身体记录',
+        fld:[['bn-date','date'],['bn-content','content']] }
+};
+function _getStore(key){
+    var c = EDIT_CONFIG[key]; if(!c) return storeGet(key);
+    if(c.g) return c.g();
+    return storeGet(key);
+}
+function _setStore(key, arr){
+    var c = EDIT_CONFIG[key]; if(!c){ storeSet(key,arr); return; }
+    if(c.s) return c.s(arr);
+    storeSet(key, arr);
+}
+function openEdit(key, idx){
+    var c = EDIT_CONFIG[key]; if(!c) return;
+    var arr = _getStore(key); var it = arr[idx]; if(!it) return;
+    _editState.key = key; _editState.idx = idx;
+    var form = document.getElementById(c.f); if(!form) return;
+    // 预填字段
+    if(c.fld){
+        c.fld.forEach(function(pair){
+            var el = document.getElementById(pair[0]);
+            if(el && it[pair[1]]!=null) el.value = it[pair[1]];
+        });
+    } else if(c.q){
+        var ins = form.querySelectorAll('input:not([type=hidden])');
+        var sel = form.querySelectorAll('select');
+        var tas = form.querySelectorAll('textarea');
+        var allEls = []; ins.forEach(function(e){allEls.push(e);}); sel.forEach(function(e){allEls.push(e);}); tas.forEach(function(e){allEls.push(e);});
+        c.props.forEach(function(p, n){
+            if(allEls[n] && it[p]!=null) allEls[n].value = it[p];
+        });
+    }
+    // 改标题
+    var h4 = form.querySelector('h4'); if(h4) h4.textContent = c.t;
+    form.classList.remove('hidden');
+    try{ form.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+}
+function openNewForm(key){
+    var c = EDIT_CONFIG[key]; if(!c) return;
+    _editState.key = null; _editState.idx = null;
+    var form = document.getElementById(c.f); if(!form) return;
+    // 清空
+    form.querySelectorAll('input').forEach(function(e){if(e.type!=='hidden')e.value='';});
+    form.querySelectorAll('select').forEach(function(e){e.selectedIndex=0;});
+    form.querySelectorAll('textarea').forEach(function(e){e.value='';});
+    var h4 = form.querySelector('h4'); if(h4) h4.textContent = h4.textContent.replace(/^编辑/,'新增');
+    form.classList.remove('hidden');
+}
+function editOrInsert(key, item){
+    var arr = _getStore(key);
+    if(_editState.key === key && _editState.idx != null && arr[_editState.idx]){
+        var old = arr[_editState.idx];
+        // 保留不应被覆盖的字段
+        if(old.date && !item.date) item.date = old.date;
+        if(old.done != null && item.done == null) item.done = old.done;
+        if(old.source && !item.source && key==='sideIdeas') item.source = old.source;
+        arr[_editState.idx] = item;
+    } else {
+        arr.unshift(item);
+    }
+    _setStore(key, arr);
+    _editState.key = null; _editState.idx = null;
+    return arr;
+}
+
 function toggleTag(el){ el.classList.toggle('sel'); }
 
 // ===================== AI 抓取按钮 =====================
