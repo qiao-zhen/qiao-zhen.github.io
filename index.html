@@ -1961,8 +1961,25 @@ function loadRemoteData(){
             if (d.operationIdeas) operationIdeasData = d.operationIdeas;
             if (d.ideaLib) ideaLibData = d.ideaLib;
             if (d.indexTrack) indexTrackData = d.indexTrack;
+            // 对话录入的持仓自动合并到本地台账（按基金代码去重，有则更新金额）
+            if (d.holdings && d.holdings.length > 0){
+                var arr = storeGet('assetList');
+                var codeMap = {};
+                arr.forEach(function(it){ if(it.code) codeMap[it.code] = true; });
+                d.holdings.forEach(function(h){
+                    var code = (h.code||'').trim();
+                    if (!code || !h.name || !(h.amount > 0)) return; // 跳过无效行
+                    if (codeMap[code]){
+                        for(var i=0;i<arr.length;i++){ if(arr[i].code === code){ arr[i].amount = h.amount; arr[i].name = h.name; break; } }
+                    } else {
+                        arr.unshift({name:h.name, code:code, amount:h.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false});
+                        codeMap[code] = true;
+                    }
+                });
+                storeSet('assetList', arr);
+            }
             applyIdeaStatus();
-            renderFinanceNews(); renderOperationIdeas(); renderIdeaLib(); renderIndexTrack();
+            renderFinanceNews(); renderOperationIdeas(); renderIdeaLib(); renderIndexTrack(); renderAsset();
             showToast('已拉取最新 AI 内容');
         })
         .catch(function(){
