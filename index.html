@@ -1067,8 +1067,8 @@ function buildCard(o){
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
         '<div class="right">'+
         (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
-        '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
-        '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>'+
+        '<span class="actions"><span onclick="event.stopPropagation();deleteItem('+o.key+','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
+        '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone('+o.key+','+o.idx+');">✓ 已完成</span>'+
         (o.readMore!==false?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
         '</div></div></div>';
 }
@@ -1134,7 +1134,7 @@ function renderKnowledgeBase(){
     arr.forEach(function(item, i){
         var full = '分类：' + item.category + '\n\n📚 核心知识点：\n' + item.content + (item.note ? '\n\n💡 我的理解：\n' + item.note : '');
         var srcHtml = item.source ? '<div class="n-link">📎 原文链接：<a href="'+escAttr(item.source)+'" target="_blank" rel="noopener">'+escHtml(item.source)+'</a></div>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:'openEdit(\'knowledgeBase\','+i+')' });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:'openEdit(\'knowledgeBase\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1169,14 +1169,14 @@ function renderOperationIdeas(){
     operationIdeasData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card"+(isRead("ops",item.title)?" read":"")+" data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+        html += '<div class="news-card"'+(isRead("ops",item.title)?" read":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
             '<div class="n-title">'+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-<div class="right"><span class="actions">'+
-<span class="'+(isFav("ops",item.title)?"faved":"")+'" data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("ops",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
-<span class="'+(isRead("ops",item.title)?"read-flag":"")+'" data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("ops",item.title)?"■ 已读":"✓ 已读")+'</span>'+
-<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
+'<div class="right"><span class="actions">'+
+'<span class="'+(isFav("ops",item.title)?"faved":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("ops",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
+'<span class="'+(isRead("ops",item.title)?"read-flag":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("ops",item.title)?"■ 已读":"✓ 已读")+'</span>'+
+'<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
@@ -1214,7 +1214,7 @@ function renderAccountObserve(){
             '\n\n🔥 爆款视频要点：\n' + (item.hotVideo||'-') + '\n\n🎣 开头钩子：\n' + (item.hook||'-') +
             '\n\n🎬 视频结构：\n' + (item.structure||'-') + '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') + '\n⏰ 发布时间：' + (item.postTime||'-') +
             '\n\n✅ 我可以借鉴：\n' + (item.learn||'-') + '\n\n❌ 不要照搬：\n' + (item.avoid||'-');
-        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date, editAction:'openEdit(\'accountObserve\','+i+')' });
+        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date, editAction:'openEdit(\'accountObserve\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1251,7 +1251,7 @@ function renderWorkReview(){
         var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
             '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
             '\n\n⚠️ 问题判断：' + item.issue + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
-        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:'openEdit(\'workReview\','+i+')' });
+        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:'openEdit(\'workReview\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1305,7 +1305,7 @@ function renderProduct(){
     var html='';
     arr.forEach(function(item, i){
         var full = '商品：' + item.info + '\n风格：' + item.style + '\n季节：' + item.season + '\n价位：' + item.price;
-        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date, editAction:'openEdit(\'productList\','+i+')' });
+        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date, editAction:'openEdit(\'productList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1383,7 +1383,7 @@ function renderScript(){
     var html='';
     arr.forEach(function(item, i){
         var full = '脚本标题：' + item.title + (item.promptId ? '\n关联提示词ID：' + item.promptId : '') + '\n\n📝 内容：\n' + item.content;
-        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:'openEdit(\'scriptList\','+i+')' });
+        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:'openEdit(\'scriptList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1413,7 +1413,7 @@ function renderPrompt(){
     var html='';
     arr.forEach(function(item, i){
         var full = '提示词标题：' + item.title + (item.tags&&item.tags.length?('\n风格标签：'+item.tags.join('/')):'') + '\n\n🎨 内容：\n' + item.content;
-        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:'openEdit(\'promptList\','+i+')' });
+        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:'openEdit(\'promptList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1444,7 +1444,7 @@ function renderRecord(){
         var full = '视频标题：' + item.title + '\n播放：' + (item.play||'-') + '  点赞：' + (item.like||'-') +
             '\n挂车点击率：' + (item.ctr||'-') + '  成交单数：' + (item.deal||'-') +
             '\n\n📋 复盘分析：\n' + (item.analysis||'-');
-        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date, editAction:'openEdit(\'recordList\','+i+')' });
+        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date, editAction:'openEdit(\'recordList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1476,7 +1476,7 @@ function renderSideIdeas(){
     var html='';
     arr.forEach(function(item, i){
         var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
-        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:'openEdit(\'sideIdeas\','+i+')' });
+        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:'openEdit(\'sideIdeas\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1506,7 +1506,7 @@ function renderEval(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.info + (item.link?('\n参考链接：'+item.link):'') + '\n\n🔍 对标案例：\n' + (item.case||'-');
-        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:'openEdit(\'evalList\','+i+')' });
+        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:'openEdit(\'evalList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1531,7 +1531,7 @@ function renderTest(){
     var html='';
     arr.forEach(function(item, i){
         var full = '测试项目：' + item.name + '\n\n🔬 过程/现象：\n' + (item.process||'-') + '\n\n💬 用户反馈：\n' + (item.feedback||'-');
-        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'testList\','+i+')' });
+        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'testList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1556,7 +1556,7 @@ function renderArchive(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.name + '\n\n📦 复盘得失：\n' + (item.review||'-');
-        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'archiveList\','+i+')' });
+        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'archiveList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1577,14 +1577,14 @@ function renderFinanceNews(){
     financeNewsData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card"+(isRead("finance",item.title)?" read":"")+" data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+        html += '<div class="news-card"'+(isRead("finance",item.title)?" read":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
             '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-<div class="right"><span class="actions">'+
-<span class="'+(isFav("finance",item.title)?"faved":"")+'" data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("finance",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
-<span class="'+(isRead("finance",item.title)?"read-flag":"")+'" data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("finance",item.title)?"■ 已读":"✓ 已读")+'</span>'+
-<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
+'<div class="right"><span class="actions">'+
+'<span class="'+(isFav("finance",item.title)?"faved":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("finance",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
+'<span class="'+(isRead("finance",item.title)?"read-flag":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("finance",item.title)?"■ 已读":"✓ 已读")+'</span>'+
+'<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('financeNewsList').innerHTML = html;
@@ -2074,7 +2074,7 @@ function renderIndexTrack(){
         }
         var rowsHtml = '';
         item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
-        html += '<div class="idx-card'+(isRead('index',item.name)?' read':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'">'+
+        html += '<div class="idx-card'+(isRead('index',item.name)?' read':'')+' data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
             '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
@@ -2082,8 +2082,8 @@ function renderIndexTrack(){
             '<div class="idx-rows">'+liveRow+rowsHtml+'</div>'+
             '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
             '<div class="idx-actions">'+
-            '<span class="'+(isFav('index',item.name)?'faved':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav('index',item.name)?'★ 已收藏':'☆ 收藏')+'</span>'+
-            '<span class="'+(isRead('index',item.name)?'read-flag':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead('index',item.name)?'■ 已读':'✓ 已读')+'</span>'+
+            '<span class="'+(isFav('index',item.name)?'faved':'')+' data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav('index',item.name)?'★ 已收藏':'☆ 收藏')+'</span>'+
+            '<span class="'+(isRead('index',item.name)?'read-flag':'')+' data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead('index',item.name)?'■ 已读':'✓ 已读')+'</span>'+
             '</div>'+
             '</div>';
     });
@@ -2141,7 +2141,7 @@ function renderRebalance(){
     arr.forEach(function(item, i){
         var full = '标的：' + item.target + '\n时间：' + (item.time||'-') + '\n操作：' + item.action + '  份额：' + (item.share||'-') +
             '\n理由：' + item.reason + '\n\n🧠 判断逻辑：\n' + (item.logic||'-');
-        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date, editAction:'openEdit(\'rebalanceList\','+i+')' });
+        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date, editAction:'openEdit(\'rebalanceList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2211,7 +2211,7 @@ function renderBodyNote(){
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-sticky-note-o"></i></div><p>暂无观察记录</p><p class="sub">点「新增记录」随手记录身体观察</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
-        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date, editAction:'openEdit(\'bodyNoteList\','+i+')' });
+        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date, editAction:'openEdit(\'bodyNoteList\',\'+i+\')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
