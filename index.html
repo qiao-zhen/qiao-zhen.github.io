@@ -286,6 +286,9 @@
 .asset-foot-hint{font-size:11px;color:#C0A8B4;}
 .asset-del{border:1px solid #F3C0CC;background:#fff;border-radius:16px;color:#E53935;font-size:12px;padding:5px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
 .asset-del:active{background:#FCE4EC;}
+.asset-act{border:1px solid #F3C0CC;background:#fff;border-radius:16px;color:#E91E63;font-size:12px;padding:5px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.asset-act:active{background:#FCE4EC;}
+.asset-btns{display:flex;gap:8px;align-items:center;}
 /* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
 .form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
 .form-backdrop.hidden{display:none;}
@@ -1724,8 +1727,12 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             + '</div>'
-            + '<div class="asset-foot"><span class="asset-foot-hint">长按：定投 / 编辑</span>'
-            + '<button type="button" class="asset-del" onclick="event.stopPropagation();deleteAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-trash"></i> 删除</button></div>'
+            + '<div class="asset-foot"><span class="asset-foot-hint">点按钮操作</span>'
+            + '<div class="asset-btns">'
+            + '<button type="button" class="asset-act" onclick="event.stopPropagation();openDCA('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-repeat"></i> 定投</button>'
+            + '<button type="button" class="asset-act" onclick="event.stopPropagation();openEditAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-pencil"></i> 编辑</button>'
+            + '<button type="button" class="asset-del" onclick="event.stopPropagation();deleteAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-trash"></i> 删除</button>'
+            + '</div></div>'
             + '</div>';
     });
     wrap.innerHTML = html;
@@ -1774,6 +1781,7 @@ function deleteAsset(idx){
 
 // ===== 定投弹窗 =====
 function openDCA(idx){
+    _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     document.getElementById('dcaName').textContent = it.name + (it.code?('（'+it.code+'）'):'');
     document.getElementById('dcaInput').value = (it.dca && it.dca.daily) || 0;
@@ -1794,6 +1802,7 @@ function saveDCAFromModal(){
 }
 // ===== 编辑弹窗 =====
 function openEditAsset(idx){
+    _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     document.getElementById('ed-name').value = it.name||'';
     document.getElementById('ed-code').value = it.code||'';
