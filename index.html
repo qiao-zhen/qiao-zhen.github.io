@@ -269,6 +269,8 @@
 /* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
 .form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
 .form-backdrop.hidden{display:none;}
+#form-asset{position:relative;z-index:900;}
+.asset-actions input[type=file]{display:none !important;}
 .form-card h4{position:relative;padding-right:30px;}
 .form-close{position:absolute;right:10px;top:2px;width:26px;height:26px;border:none;background:#FCE4EC;border-radius:50%;color:#C2185B;font-size:17px;line-height:1;cursor:pointer;}
 .form-close:active{background:#F8BBD0;}
@@ -281,6 +283,7 @@
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
 .long-menu-mask.show{display:flex;}
 .long-menu{background:#fff;width:100%;max-width:420px;border-radius:16px 16px 0 0;overflow:hidden;animation:slideUp .2s ease;}
+.long-menu-danger{color:#E53935 !important;}
 @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
 .long-menu-item{padding:15px 18px;font-size:15px;color:#5A3346;text-align:center;border-bottom:1px solid #F2E8EE;cursor:pointer;}
 .long-menu-item:active{background:#FFF0F5;}
@@ -694,7 +697,7 @@
             <div class="summary-bar" id="assetSummary"></div>
             <div class="asset-actions">
                 <button class="pill-btn" onclick="document.getElementById('ocrFile').click()"><i class="fa fa-camera"></i> 截图识别导入</button>
-                <input type="file" id="ocrFile" accept="image/*" class="hidden" onchange="handleOCRFile(this)">
+                <input type="file" id="ocrFile" accept="image/*" style="display:none" onchange="handleOCRFile(this)">
                 <button class="pill-btn" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新每日涨跌</button>
             </div>
             <div id="ocrStatus" class="ocr-status hidden"></div>
@@ -734,6 +737,7 @@
                 <div class="long-menu">
                     <div class="long-menu-item" onclick="assetMenuAction('dca')"><i class="fa fa-repeat"></i> 定投设置</div>
                     <div class="long-menu-item" onclick="assetMenuAction('edit')"><i class="fa fa-pencil"></i> 编辑基金（调仓 / 更新数据）</div>
+                    <div class="long-menu-item long-menu-danger" onclick="assetMenuAction('delete')"><i class="fa fa-trash"></i> 删除基金</div>
                     <div class="long-menu-item long-menu-cancel" onclick="hideAssetMenu()">取消</div>
                 </div>
             </div>
@@ -1481,17 +1485,25 @@ function closeFormAsset(){
     document.getElementById('form-asset').classList.add('hidden');
     document.getElementById('formBackdrop').classList.add('hidden');
 }
+var _autoFillTimer = null;
 function autoFillFundName(){
     var code = (document.getElementById('as-code').value||'').trim();
     if (!/^\d{6}$/.test(code)) return;
-    if (fundQuote[code] && fundQuote[code].name && !document.getElementById('as-name').value.trim()){
-        document.getElementById('as-name').value = fundQuote[code].name; return;
+    var nm = document.getElementById('as-name');
+    if (fundQuote[code] && fundQuote[code].name && !nm.value.trim()){
+        nm.value = fundQuote[code].name; return;
     }
+    if (_autoFillTimer) clearTimeout(_autoFillTimer);
     var s=document.createElement('script');
-    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js?rt='+Math.random();
+    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
     s.onload=function(){ s.remove(); };
     s.onerror=function(){ s.remove(); showToast('自动识别失败，可手动填写名称'); };
     document.body.appendChild(s);
+    _autoFillTimer = setTimeout(function(){
+        if (!(fundQuote[code] && fundQuote[code].name) && !nm.value.trim()){
+            showToast('自动识别失败，可手动填写名称');
+        }
+    }, 4000);
 }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var f=document.getElementById('form-asset'); if(f && !f.classList.contains('hidden')) closeFormAsset(); } });
 
@@ -1653,7 +1665,15 @@ function bindAssetLongPress(wrap){
 }
 function showAssetMenu(idx){ _assetMenuIdx = idx; var o=document.getElementById('assetMenu'); if(o) o.classList.add('show'); }
 function hideAssetMenu(){ var o=document.getElementById('assetMenu'); if(o) o.classList.remove('show'); }
-function assetMenuAction(act){ var idx=_assetMenuIdx; hideAssetMenu(); if(idx<0) return; if(act==='dca') openDCA(idx); else if(act==='edit') openEditAsset(idx); }
+function assetMenuAction(act){ var idx=_assetMenuIdx; hideAssetMenu(); if(idx<0) return; if(act==='dca') openDCA(idx); else if(act==='edit') openEditAsset(idx); else if(act==='delete') deleteAsset(idx); }
+function deleteAsset(idx){
+    var arr = storeGet('assetList'); if(!arr[idx]) return;
+    if (!confirm('确定删除「'+arr[idx].name+'」？此操作不可恢复')) return;
+    arr.splice(idx,1);
+    storeSet('assetList', arr);
+    showToast('已删除');
+    renderAsset();
+}
 
 // ===== 定投弹窗 =====
 function openDCA(idx){
