@@ -940,7 +940,7 @@
                 <div class="page-title"><i class="fa fa-thumb-tack ico"></i> 今日待办清单</div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="export-btn" onclick="exportTodoMD()"><i class="fa fa-download"></i> 导出(MD)</button>
-                    <button class="pill-btn" onclick="toggleForm('form-todo')"><i class="fa fa-plus"></i> 新增待办</button>
+                    <button class="pill-btn" onclick="openNewTodo()"><i class="fa fa-plus"></i> 新增待办</button>
                 </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 优先级：高 / 中 / 低 · 完成事项可点「✓ 已完成」标记 · 数据存本地浏览器</div>
@@ -1015,6 +1015,7 @@ function buildCard(o){
         '<div class="n-content"></div>'+
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
         '<div class="right">'+
+        (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>'+
         (o.readMore!==false?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
@@ -2124,6 +2125,25 @@ function renderBodyNote(){
 }
 
 // ===================== 20. 今日待办清单（localStorage + 导出） =====================
+var _todoEditIdx = null;
+function openNewTodo(){
+    _todoEditIdx = null;
+    document.getElementById('td-text').value='';
+    document.getElementById('td-due').value='';
+    document.getElementById('td-prio').selectedIndex = 1;
+    var h = document.querySelector('#form-todo h4'); if (h) h.textContent = '新增待办';
+    document.getElementById('form-todo').classList.remove('hidden');
+}
+function editTodo(idx){
+    var arr = storeGet('todoList'); var it = arr[idx]; if (!it) return;
+    _todoEditIdx = idx;
+    document.getElementById('td-text').value = it.text || '';
+    document.getElementById('td-due').value = it.due || '';
+    var sel = document.getElementById('td-prio');
+    for (var k=0;k<sel.options.length;k++){ if (sel.options[k].value === it.prio){ sel.selectedIndex = k; break; } }
+    var h = document.querySelector('#form-todo h4'); if (h) h.textContent = '编辑待办';
+    document.getElementById('form-todo').classList.remove('hidden');
+}
 function saveTodo(){
     var text = document.getElementById('td-text').value.trim();
     if (!text){ showToast('请填写待办事项'); return; }
@@ -2131,8 +2151,18 @@ function saveTodo(){
         text:text, prio:document.getElementById('td-prio').value, due:document.getElementById('td-due').value.trim(),
         date:todayStr(), done:false
     };
-    var arr = storeGet('todoList'); arr.unshift(item); storeSet('todoList', arr);
+    var arr = storeGet('todoList');
+    if (_todoEditIdx != null && arr[_todoEditIdx]){
+        var old = arr[_todoEditIdx];
+        item.done = !!old.done;
+        item.date = old.date || item.date;
+        arr[_todoEditIdx] = item;
+    } else {
+        arr.unshift(item);
+    }
+    storeSet('todoList', arr);
     document.getElementById('td-text').value=''; document.getElementById('td-due').value='';
+    _todoEditIdx = null;
     document.getElementById('form-todo').classList.add('hidden');
     showToast('待办已保存');
     renderTodo();
@@ -2146,7 +2176,7 @@ function renderTodo(){
     arr.forEach(function(item, i){
         var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
-        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', subClass:prioCls, content:full, date:item.date });
+        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', subClass:prioCls, content:full, date:item.date, editAction:'editTodo('+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
