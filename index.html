@@ -228,6 +228,14 @@
 .summary-bar{background:#FFF7FA;border:1px solid #F3D9E4;border-radius:14px;padding:10px 14px;margin:10px 0;font-size:13px;color:#7A4A5E;}
 .summary-bar b{color:#E91E63;font-size:15px;}
 .asset-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
+.asset-quick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px;}
+.asset-quick .quick-add{display:flex;gap:6px;flex:1;min-width:150px;}
+.quick-input{flex:1;min-width:0;border:1px solid #EADFE6;border-radius:18px;padding:8px 12px;font-size:13px;outline:none;background:#fff;}
+.quick-input:focus{border-color:#F06292;}
+.mini-btn{border:none;background:#F06292;color:#fff;border-radius:18px;padding:8px 12px;font-size:13px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.mini-btn:active{background:#E91E63;}
+.mini-btn.ghost{background:#FCE4EC;color:#E91E63;}
+.mini-btn.ghost:active{background:#F8D3E0;}
 .ocr-status{background:#EAF4FF;border:1px solid #BBD4F2;border-radius:10px;padding:8px 12px;margin:6px 0;font-size:13px;color:#2B5C92;}
 .pct-row{display:flex;align-items:center;gap:8px;margin:6px 0 2px;}
 .pct-bar{flex:1;height:8px;background:#F0E6EC;border-radius:6px;overflow:hidden;}
@@ -693,12 +701,14 @@
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
                 <button class="pill-btn" onclick="openFormAsset()"><i class="fa fa-plus"></i> 新增持仓</button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 截图识别导入持仓 · 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 输代码自动识别导入持仓 · 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
-            <div class="asset-actions">
-                <button class="pill-btn" onclick="document.getElementById('ocrFile').click()"><i class="fa fa-camera"></i> 截图识别导入</button>
-                <input type="file" id="ocrFile" accept="image/*" style="display:none" onchange="handleOCRFile(this)">
-                <button class="pill-btn" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新每日涨跌</button>
+            <div class="asset-actions asset-quick">
+                <div class="quick-add">
+                    <input type="text" id="quickCode" class="quick-input" placeholder="输入6位代码" maxlength="6" inputmode="numeric" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) quickAddByCode()">
+                    <button class="mini-btn" onclick="quickAddByCode()"><i class="fa fa-magic"></i> 识别导入</button>
+                </div>
+                <button class="mini-btn ghost" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新涨跌</button>
             </div>
             <div id="ocrStatus" class="ocr-status hidden"></div>
             <div id="ocrResult"></div>
@@ -1618,7 +1628,7 @@ function renderAsset(){
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
     var wrap = document.getElementById('assetList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点「新增持仓」或「截图识别导入」</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点「新增持仓」或在上方输入基金代码识别导入</p></div>'; return; }
     var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'QDII', other:'其它基金'};
     var html='';
     arr.forEach(function(item, i){
@@ -1627,7 +1637,8 @@ function renderAsset(){
         var cost = (item.cost!==undefined && item.cost!==null && item.cost!=='') ? parseFloat(item.cost) : amt;
         var totalProfit = amt - cost;
         var q = (item.code && fundQuote[item.code]) ? fundQuote[item.code] : null;
-        var z = q ? parseFloat(q.gszzl) : null;
+        var gz = q ? q.gszzl : null;
+        var z = (gz!==undefined && gz!==null && gz!=='' && !isNaN(parseFloat(gz))) ? parseFloat(gz) : null;
         var zCls = (z===null)?'flat':(z>0?'up':(z<0?'down':'flat'));
         var zSign = (z===null)?'':(z>0?'+':'');
         var zTxt = (z===null)?'—':(zSign+z.toFixed(2)+'%');
@@ -1764,6 +1775,41 @@ function refreshFundQuotes(silent){
         s.onerror=function(){ done++; if(done>=codes.length){ renderAsset(); showToast('部分基金抓取失败'); } s.remove(); };
         document.body.appendChild(s);
     });
+}
+
+// 输代码快速导入：自动识别名称+净值，直接加一条持仓（金额0，长按编辑补）
+function quickAddByCode(){
+    var code = (document.getElementById('quickCode').value||'').trim();
+    if (!/^\d{6}$/.test(code)){ showToast('请输入6位基金代码'); return; }
+    if (fundQuote[code] && fundQuote[code].name){ doQuickAdd(code); return; }
+    showToast('识别中…');
+    var s=document.createElement('script');
+    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
+    s.onload=function(){ s.remove(); setTimeout(function(){ afterQuickFill(code); }, 300); };
+    s.onerror=function(){ s.remove(); quickFallbackFill(code); };
+    document.body.appendChild(s);
+}
+function quickFallbackFill(code){
+    var s2=document.createElement('script');
+    s2.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+    s2.onload=function(){ s2.remove(); afterQuickFill(code); };
+    s2.onerror=function(){ s2.remove(); showToast('识别失败，可手动新增'); };
+    document.body.appendChild(s2);
+}
+function afterQuickFill(code){
+    var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || '';
+    if (!name){ showToast('识别失败，可手动新增'); document.getElementById('quickCode').value=''; return; }
+    doQuickAdd(code);
+}
+function doQuickAdd(code){
+    var arr = storeGet('assetList', []);
+    for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); document.getElementById('quickCode').value=''; return; } }
+    var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || ('基金 '+code);
+    arr.push({ code:code, name:name, amount:0, cost:0, type:'other', plan:'', judge:'', dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()} });
+    storeSet('assetList', arr);
+    document.getElementById('quickCode').value='';
+    renderAsset();
+    showToast('已导入「'+name+'」，请长按编辑持仓金额');
 }
 
 // ---- 截图 OCR 识别导入 ----
