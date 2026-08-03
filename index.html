@@ -245,12 +245,9 @@
     <!-- 侧边栏 -->
     <div class="sidebar" id="sidebar">
         <div class="group" data-group="1">
-            <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-rocket"></i><span>AI新账号运营</span></div>
+            <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-film"></i><span>短视频运营</span></div>
             <div class="sub-list">
-                <div class="sub-item active" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
-                <div class="sub-item" data-page="operation-ideas" onclick="showPage('operation-ideas',this)"><span class="ico"><i class="fa fa-lightbulb-o"></i></span><span>运营思路&选题素材库</span></div>
-                <div class="sub-item" data-page="account-observe" onclick="showPage('account-observe',this)"><span class="ico"><i class="fa fa-binoculars"></i></span><span>对标账号观测记录</span></div>
-                <div class="sub-item" data-page="work-review" onclick="showPage('work-review',this)"><span class="ico"><i class="fa fa-pie-chart"></i></span><span>作品复盘记录表</span></div>
+                <div class="sub-item active" data-page="cloth-news" onclick="showPage('cloth-news',this)"><span class="ico"><i class="fa fa-newspaper-o"></i></span><span>服装带货每日行业资讯</span></div>
             </div>
         </div>
         <div class="group" data-group="2">
@@ -301,114 +298,14 @@
     <!-- 主内容 -->
     <div class="main" id="main">
 
-        <!-- 1. 知识库笔记（手记+粘贴保存） -->
-        <div class="page active" id="page-knowledge-base">
+        <!-- 1. 服装带货每日行业资讯（AI 抓取 + 本地标记/搬运） -->
+        <div class="page active" id="page-cloth-news">
             <div class="page-header">
-                <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
-                <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-plus"></i> 新增笔记</button>
+                <div class="page-title"><i class="fa fa-newspaper-o ico"></i> 服装带货每日行业资讯</div>
+                <button class="pill-btn" onclick="refreshClothNews()"><i class="fa fa-refresh"></i> AI抓取行业资讯</button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 手动记录抖音底层逻辑、流量池闯关、3秒钩子等干货文章/知识点 · 不自动抓取，纯本地保存</div>
-            <div class="card form-card hidden" id="form-knowledge">
-                <h4>新增知识库笔记</h4>
-                <div class="form-item"><label>笔记标题</label><input type="text" id="kb-title" placeholder="例如：抖音流量池闯关规则"></div>
-                <div class="form-item"><label>分类</label>
-                    <select id="kb-category">
-                        <option>流量逻辑</option>
-                        <option>钩子设计</option>
-                        <option>算法机制</option>
-                        <option>账号权重</option>
-                        <option>运营方法论</option>
-                        <option>其他干货</option>
-                    </select>
-                </div>
-                <div class="form-item"><label>来源链接（可选）</label><input type="text" id="kb-source" placeholder="https://...（看到的原文链接）"></div>
-                <div class="form-item"><label>核心知识点（粘贴大段内容）</label><textarea id="kb-content" style="min-height:120px" placeholder="把刷到的干货文章/知识点粘贴到这里..."></textarea></div>
-                <div class="form-item"><label>我的理解 / 应用场景</label><textarea id="kb-note" placeholder="我看完之后的理解，或者能怎么用"></textarea></div>
-                <button class="save-btn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 保存笔记</button>
-            </div>
-            <div class="filter-row" id="kb-filter">
-                <span class="filter-chip sel" data-cat="all" onclick="filterKnowledge('all',this)">全部</span>
-                <span class="filter-chip" data-cat="流量逻辑" onclick="filterKnowledge('流量逻辑',this)">流量逻辑</span>
-                <span class="filter-chip" data-cat="钩子设计" onclick="filterKnowledge('钩子设计',this)">钩子设计</span>
-                <span class="filter-chip" data-cat="算法机制" onclick="filterKnowledge('算法机制',this)">算法机制</span>
-                <span class="filter-chip" data-cat="账号权重" onclick="filterKnowledge('账号权重',this)">账号权重</span>
-                <span class="filter-chip" data-cat="运营方法论" onclick="filterKnowledge('运营方法论',this)">运营方法论</span>
-                <span class="filter-chip" data-cat="其他干货" onclick="filterKnowledge('其他干货',this)">其他干货</span>
-            </div>
-            <div id="knowledgeList"></div>
-        </div>
-
-        <!-- 2. 运营思路&选题素材库（AI抓取+刷新） -->
-        <div class="page" id="page-operation-ideas">
-            <div class="page-header">
-                <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 运营思路&选题素材库</div>
-                <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
-            </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业/副业/兴趣背景抓取运营方法论+爆款内容模板 · 每条带原文链接，点「查看全文 ›」可看完整内容</div>
-            <div id="operationIdeasList"></div>
-        </div>
-
-        <!-- 3. 对标账号观测记录（手记） -->
-        <div class="page" id="page-account-observe">
-            <div class="page-header">
-                <div class="page-title"><i class="fa fa-binoculars ico"></i> 对标账号观测记录</div>
-                <button class="pill-btn" onclick="toggleForm('form-account')"><i class="fa fa-plus"></i> 新增对标账号</button>
-            </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、赛道、爆款视频要点、开头钩子、视频结构、更新节奏、发布时间 · 写下可以借鉴什么、哪些不要照搬</div>
-            <div class="card form-card hidden" id="form-account">
-                <h4>新增对标账号</h4>
-                <div class="form-row">
-                    <div class="form-item"><label>账号名称</label><input type="text" placeholder="对方账号昵称"></div>
-                    <div class="form-item"><label>所属赛道</label><input type="text" placeholder="例如 少女风 / 护肤 / 母婴"></div>
-                </div>
-                <div class="form-item"><label>爆款视频要点</label><textarea placeholder="对方爆款视频讲了什么、拍什么"></textarea></div>
-                <div class="form-item"><label>开头钩子</label><input type="text" placeholder="前3秒用了什么钩子"></div>
-                <div class="form-item"><label>视频结构</label><textarea placeholder="视频整体结构：开头/中间/结尾分别怎么安排"></textarea></div>
-                <div class="form-row">
-                    <div class="form-item"><label>更新节奏</label><input type="text" placeholder="例如 日更 / 周更3条"></div>
-                    <div class="form-item"><label>发布时间</label><input type="text" placeholder="通常几点发布"></div>
-                </div>
-                <div class="form-item"><label>我可以借鉴什么</label><textarea placeholder="对自己有用的点"></textarea></div>
-                <div class="form-item"><label>哪些不要照搬</label><textarea placeholder="不适合自己的点，避免照搬"></textarea></div>
-                <button class="save-btn" onclick="saveAccountObserve()"><i class="fa fa-check"></i> 保存观测</button>
-            </div>
-            <div id="accountObserveList"></div>
-        </div>
-
-        <!-- 4. 作品复盘记录表（手记） -->
-        <div class="page" id="page-work-review">
-            <div class="page-header">
-                <div class="page-title"><i class="fa fa-pie-chart ico"></i> 作品复盘记录表</div>
-                <button class="pill-btn" onclick="toggleForm('form-work')"><i class="fa fa-plus"></i> 新增复盘</button>
-            </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 每发布完视频后填写 · 判断是钩子不行 / 选题不行 / 内容价值不足 · 写下一次优化调整点</div>
-            <div class="card form-card hidden" id="form-work">
-                <h4>新增作品复盘</h4>
-                <div class="form-row">
-                    <div class="form-item"><label>视频标题</label><input type="text" placeholder="视频标题"></div>
-                    <div class="form-item"><label>发布时间</label><input type="text" placeholder="yyyy/mm/dd HH:MM"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-item"><label>播放量</label><input type="text" placeholder="例如 12.3w"></div>
-                    <div class="form-item"><label>完播率</label><input type="text" placeholder="例如 35%"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-item"><label>收藏数</label><input type="text" placeholder="例如 3200"></div>
-                    <div class="form-item"><label>评论数</label><input type="text" placeholder="例如 280"></div>
-                </div>
-                <div class="form-item"><label>问题判断</label>
-                    <select>
-                        <option>钩子不行</option>
-                        <option>选题不行</option>
-                        <option>内容价值不足</option>
-                        <option>节奏拖沓</option>
-                        <option>其他</option>
-                    </select>
-                </div>
-                <div class="form-item"><label>下一次优化调整点</label><textarea style="min-height:100px" placeholder="具体下次要怎么改"></textarea></div>
-                <button class="save-btn" onclick="saveWorkReview()"><i class="fa fa-check"></i> 保存复盘</button>
-            </div>
-            <div id="workReviewList"></div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 拉取服装带货行业资讯 · 支持标记已读/收藏 · 资讯片段可一键搬运到【灵感脑洞库】或【选题灵感库】 · 受 MCP 总开关控制，不会自动消耗积分</div>
+            <div id="clothNewsList"></div>
         </div>
 
         <!-- 5. 选品库管理 -->
@@ -1019,6 +916,85 @@ function deleteWork(idx) {
     renderWorkReview();
 }
 
+// ===== 服装带货每日行业资讯（方案B：data.json 拉取 + 本地已读/收藏/搬运） =====
+var clothNewsData = [];
+var clothReadSet = {};
+var clothFavSet = {};
+try { clothReadSet = JSON.parse(localStorage.getItem('clothReadSet') || '{}'); } catch(e){}
+try { clothFavSet = JSON.parse(localStorage.getItem('clothFavSet') || '{}'); } catch(e){}
+
+function refreshClothNews() {
+    var on = document.getElementById('mcpSwitch').classList.contains('on');
+    if (!on) { showToast('MCP总开关已关闭，请在对话中手动触发'); return; }
+    loadRemoteData();
+}
+
+function renderClothNews() {
+    var wrap = document.getElementById('clothNewsList');
+    if (!wrap) return;
+    if (!clothNewsData || clothNewsData.length === 0) {
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-newspaper-o"></i></div><p>暂无行业资讯</p><p class="sub">开启 MCP 总开关后点「AI抓取行业资讯」，或回话让我刷新</p></div>';
+        return;
+    }
+    var html = '';
+    clothNewsData.forEach(function(item, i){
+        var t = item.title;
+        var read = clothReadSet[t];
+        var fav = clothFavSet[t];
+        var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
+        var readBadge = read ? ' <span class="source-tag" style="background:#E8F5E9;color:#2E7D32;">已读</span>' : '';
+        var favBadge = fav ? ' <span class="source-tag" style="background:#FFF3E0;color:#E65100;">★收藏</span>' : '';
+        html += '<div class="news-card" data-title="'+t.replace(/"/g,'&quot;')+'" data-content="'+full.replace(/"/g,'&quot;').replace(/'/g,'&#39;')+'" data-date="'+item.date+'" data-url="'+item.url+'">'+
+            '<div class="n-title">'+t+readBadge+favBadge+'</div>'+
+            (item.url ? '<div class="n-link">📎 原文：<a href="'+item.url+'" target="_blank" rel="noopener">'+item.url+'</a></div>' : '')+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>抓取时间：'+item.date+'</span>'+
+            '<div class="right">'+
+            '<span class="actions">'+
+            '<span onclick="event.stopPropagation();toggleClothRead('+i+');">✓ '+(read?'取消已读':'标记已读')+'</span>'+
+            '<span onclick="event.stopPropagation();toggleClothFav('+i+');">★ '+(fav?'取消收藏':'收藏')+'</span>'+
+            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 灵感库</span>'+
+            '<span onclick="event.stopPropagation();transportToIdeaLib(this);">🎯 选题库</span>'+
+            '</span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+            '</div></div></div>';
+    });
+    wrap.innerHTML = html;
+    truncateAllNews();
+}
+
+function toggleClothRead(i) {
+    var t = clothNewsData[i].title;
+    if (clothReadSet[t]) delete clothReadSet[t]; else clothReadSet[t] = true;
+    localStorage.setItem('clothReadSet', JSON.stringify(clothReadSet));
+    renderClothNews();
+}
+function toggleClothFav(i) {
+    var t = clothNewsData[i].title;
+    if (clothFavSet[t]) delete clothFavSet[t]; else clothFavSet[t] = true;
+    localStorage.setItem('clothFavSet', JSON.stringify(clothFavSet));
+    renderClothNews();
+}
+
+// 搬运到选题灵感库（Group 2）
+function transportToIdeaLib(cardEl) {
+    var card = cardEl.closest('.news-card');
+    if (!card) return;
+    var title = card.dataset.title || '';
+    var content = card.dataset.content || '';
+    var date = card.dataset.date || new Date().toISOString().slice(0,10);
+    var item = {title:title, content:content, date:date, status:'pending', source:'服装资讯搬运'};
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem('ideaLibCarry') || '[]'); } catch(e){}
+    arr.unshift(item);
+    localStorage.setItem('ideaLibCarry', JSON.stringify(arr));
+    showToast('已搬运到选题灵感库');
+    if (typeof ideaLibData !== 'undefined') {
+        var exists = ideaLibData.some(function(x){return x.title===title;});
+        if (!exists) { ideaLibData.unshift(item); renderIdeaLib(); }
+    }
+}
+
 // ===== 理财新知数据（AI 抓取，每条带原文链接） =====
 var financeNewsData = [
     {title:"美联储7月议息会议纪要：年内降息预期升温", content:"美联储7月议息会议纪要显示，多数与会者认为通胀正在接近2%目标，年内降息预期升温。市场对9月降息25个基点的概率押注已升至85%以上。黄金和纳斯达克相关基金可能受到利率路径变化的直接影响。\n\n⚠️ 仅作为知识点记录，不构成任何投资建议。", url:"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm", date:"2026-08-01"},
@@ -1144,10 +1120,7 @@ function closeModal() {
 function doSearch(q) {
     if (!q) return;
     var map = {
-        '知识库':'knowledge-base','笔记':'knowledge-base','干货':'knowledge-base',
-        '运营':'operation-ideas','选题':'operation-ideas','素材':'operation-ideas',
-        '对标':'account-observe','账号':'account-observe','观测':'account-observe',
-        '复盘':'work-review','作品':'work-review',
+        '服装':'cloth-news','行业':'cloth-news','带货':'cloth-news','资讯':'cloth-news','选题':'idea-lib',
         '选品':'product-lib',
         '灵感':'idea-lib',
         '脚本':'script-lib',
@@ -1289,8 +1262,28 @@ function renderFinanceNews() {
 }
 
 // ===== 渲染选题灵感库 =====
+function deleteCarryIdea(idx) {
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem('ideaLibCarry') || '[]'); } catch(e){}
+    arr.splice(idx, 1);
+    localStorage.setItem('ideaLibCarry', JSON.stringify(arr));
+    showToast('已删除');
+    renderIdeaLib();
+}
+
 function renderIdeaLib() {
+    var carry = [];
+    try { carry = JSON.parse(localStorage.getItem('ideaLibCarry') || '[]'); } catch(e){}
     var html = '';
+    carry.forEach(function(item, i){
+        var statusLabel = '<span class="status-pill s-pending" title="来自服装资讯搬运">搬运待整理</span>';
+        html += '<div class="news-card" data-title="'+item.title.replace(/"/g,'&quot;')+'" data-content="'+item.content.replace(/"/g,'&quot;')+'">'+
+            '<div class="n-title">'+item.title+' <span class="source-tag">来自服装资讯</span> '+statusLabel+'</div>'+
+            '<div class="n-content"></div>'+
+            '<div class="n-foot"><span>搬运时间：'+item.date+'</span>'+
+            '<div class="right"><span class="actions"><span onclick="event.stopPropagation();deleteCarryIdea('+i+');" style="color:#F06292;cursor:pointer;">✕ 删除</span></span>'+
+            '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+    });
     ideaLibData.forEach(function(item, i){
         var statusClass = item.status === 'pending' ? 's-pending' : (item.status === 'done' ? 's-done' : 's-hold');
         var statusText = item.status === 'pending' ? '待使用' : (item.status === 'done' ? '已制作' : '暂搁置');
@@ -1382,12 +1375,12 @@ function loadRemoteData() {
         .then(function(r){ if(!r.ok) throw new Error('net'); return r.json(); })
         .then(function(d){
             if (d.financeNews) financeNewsData = d.financeNews;
-            if (d.operationIdeas) operationIdeasData = d.operationIdeas;
+            if (d.clothNews) clothNewsData = d.clothNews;
             if (d.ideaLib) ideaLibData = d.ideaLib;
             if (d.indexTrack) indexTrackData = d.indexTrack;
             applyIdeaStatus();
             renderFinanceNews();
-            renderOperationIdeas();
+            renderClothNews();
             renderIdeaLib();
             renderIndexTrack();
             showToast('已拉取最新 AI 内容');
@@ -1395,7 +1388,7 @@ function loadRemoteData() {
         .catch(function(){
             applyIdeaStatus();
             renderFinanceNews();
-            renderOperationIdeas();
+            renderClothNews();
             renderIdeaLib();
             renderIndexTrack();
             showToast('本地数据（未连接服务器）');
@@ -1404,9 +1397,6 @@ function loadRemoteData() {
 
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', function(){
-    renderKnowledgeBase();
-    renderAccountObserve();
-    renderWorkReview();
     renderSideIdeas();
     loadRemoteData();
 });
