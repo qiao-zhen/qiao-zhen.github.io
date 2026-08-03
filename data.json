@@ -1,5 +1,38 @@
 {
-  "holdings": [],
+  "holdings": [
+    {
+      "name": "易方达中证红利低波动ETF联接发起式A",
+      "code": "020602",
+      "amount": 2294.19,
+      "type": "dividend",
+      "cost": 2220.00,
+      "dca": {"enabled": false, "daily": 0, "lastDate": "2026-08-04", "acc": 0}
+    },
+    {
+      "name": "摩根标普500指数(QDII)A",
+      "code": "017641",
+      "amount": 300.21,
+      "type": "qdii",
+      "cost": 300.00,
+      "dca": {"enabled": true, "daily": 10, "lastDate": "2026-08-04", "acc": 0}
+    },
+    {
+      "name": "华夏黄金ETF联接A",
+      "code": "000217",
+      "amount": 259.20,
+      "type": "gold",
+      "cost": 261.65,
+      "dca": {"enabled": true, "daily": 10, "lastDate": "2026-08-04", "acc": 0}
+    },
+    {
+      "name": "南方纳斯达克100ETF发起联接(QDII)A人民币",
+      "code": "016452",
+      "amount": 787.49,
+      "type": "nasdaq",
+      "cost": 804.23,
+      "dca": {"enabled": true, "daily": 60, "lastDate": "2026-08-04", "acc": 0}
+    }
+  ],
   "financeNews": [
     {
       "title": "现货黄金8月3日回落：伦敦金跌至4030美元附近，沪金主连884元/克",
