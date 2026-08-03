@@ -260,7 +260,17 @@
 .mini-btn:active{background:#E91E63;}
 .mini-btn.ghost{background:#FCE4EC;color:#E91E63;}
 .mini-btn.ghost:active{background:#F8D3E0;}
-.ocr-status{background:#EAF4FF;border:1px solid #BBD4F2;border-radius:10px;padding:8px 12px;margin:6px 0;font-size:13px;color:#2B5C92;}
+/* +号弹出菜单 */
+.asset-add-menu{display:flex;flex-direction:column;gap:0;border:1px solid #F3D9E4;border-radius:14px;overflow:hidden;margin:6px 0 8px;background:#fff;box-shadow:0 2px 8px rgba(233,30,99,.08);}
+.asset-add-option{padding:12px 16px;font-size:14px;color:#5A3A4E;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #FFF0F5;}
+.asset-add-option:last-child{border-bottom:none;}
+.asset-add-option:active{background:#FCE4EC;}
+.asset-add-option i{color:#E91E63;font-size:15px;width:20px;text-align:center;}
+/* 快速代码输入栏 */
+.quick-code-bar{display:flex;gap:6px;align-items:center;margin:6px 0 8px;padding:10px 12px;background:#FFFAFC;border:1px solid #F3D9E4;border-radius:14px;}
+.quick-code-bar .quick-input{flex:1;}
+.ocr-status{background:#FFF0F5;border:1px solid #F3D9E4;border-radius:10px;padding:8px 12px;margin:6px 0;font-size:13px;color:#7A4A5E;}
+.ocr-status.hidden{display:none !important;}
 .pct-row{display:flex;align-items:center;gap:8px;margin:6px 0 2px;}
 .pct-bar{flex:1;height:8px;background:#F0E6EC;border-radius:6px;overflow:hidden;}
 .pct-bar i{display:block;height:100%;background:linear-gradient(90deg,#FFB6C1,#7FB5E6);}
@@ -732,18 +742,25 @@
         <div class="page" id="page-asset-account">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
-                <button class="pill-btn" onclick="toggleForm('form-asset')"><i class="fa fa-plus"></i> 新增持仓</button>
+                <button class="pill-btn" onclick="showAssetAddMenu()"><i class="fa fa-plus"></i></button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 输代码自动识别导入持仓 · 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
-            <div class="asset-actions asset-quick">
-                <div class="quick-add">
-                    <input type="text" id="quickCode" class="quick-input" placeholder="输入6位代码" maxlength="6" inputmode="numeric" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) quickAddByCode()">
-                    <button class="mini-btn" onclick="quickAddByCode()"><i class="fa fa-magic"></i> 识别导入</button>
-                </div>
+            <div class="asset-actions">
                 <button class="mini-btn ghost" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新涨跌</button>
             </div>
-            <div id="ocrStatus" class="ocr-status hidden"></div>
+            <!-- +号菜单 -->
+            <div class="asset-add-menu hidden" id="assetAddMenu">
+                <div class="asset-add-option" onclick="hideAssetAddMenu();toggleForm('form-asset')"><i class="fa fa-plus-circle"></i> 手动新增持仓</div>
+                <div class="asset-add-option" onclick="hideAssetAddMenu();showQuickCodeInput()"><i class="fa fa-magic"></i> 输入代码识别导入</div>
+            </div>
+            <!-- 代码快速输入（默认隐藏，点"识别导入"后显示） -->
+            <div class="quick-code-bar hidden" id="quickCodeBar">
+                <input type="text" id="quickCode" class="quick-input" placeholder="输入6位代码" maxlength="6" inputmode="numeric" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) quickAddByCode()">
+                <button class="mini-btn" onclick="quickAddByCode()"><i class="fa fa-magic"></i> 识别导入</button>
+                <button class="mini-btn ghost" onclick="document.getElementById('quickCodeBar').classList.add('hidden');document.getElementById('quickCode').value=''">×</button>
+            </div>
+            <div id="ocrStatus" class="hidden"></div>
             <div id="ocrResult"></div>
             <div class="card form-card hidden" id="form-asset">
                 <h4>新增持仓<button type="button" class="form-close" onclick="toggleForm('form-asset')" aria-label="关闭">×</button></h4>
@@ -799,9 +816,10 @@
                 <div class="modal">
                     <button class="close" onclick="document.getElementById('editModal').style.display='none'">×</button>
                     <h4>编辑基金</h4>
-                    <div class="form-item"><label>基金名称</label><input type="text" id="ed-name"></div>
+                    <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
+                    <div id="ed-quote-hint" style="display:none;margin:-6px 0 6px;font-size:12px;color:#E91E63;"></div>
                     <div class="form-row">
-                        <div class="form-item"><label>代码</label><input type="text" id="ed-code"></div>
+                        <div class="form-item"><label>代码</label><input type="text" id="ed-code" placeholder="6位基金代码"></div>
                         <div class="form-item"><label>类型</label>
                             <select id="ed-type">
                                 <option value="gold">黄金</option>
@@ -813,12 +831,12 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-item"><label>持仓金额</label><input type="text" id="ed-amount"></div>
-                        <div class="form-item"><label>成本金额</label><input type="text" id="ed-cost"></div>
+                        <div class="form-item"><label>持仓金额（当前市值）</label><input type="text" id="ed-amount" placeholder="例如 5000"></div>
+                        <div class="form-item"><label>成本金额（买入总本金）</label><input type="text" id="ed-cost" placeholder="不填=持仓额，用于算总盈亏"></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-item"><label>计划仓位</label><input type="text" id="ed-plan"></div>
-                        <div class="form-item"><label>判断</label><input type="text" id="ed-judge"></div>
+                        <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="ed-plan" placeholder="例如 30%"></div>
+                        <div class="form-item"><label>超配/低配判断</label><input type="text" id="ed-judge" placeholder="高抛低吸 / 长期持有 等"></div>
                     </div>
                     <button class="save-btn" onclick="saveEditAsset()"><i class="fa fa-check"></i> 保存修改</button>
                 </div>
@@ -1697,7 +1715,7 @@ function renderAsset(){
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
     var wrap = document.getElementById('assetList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点「新增持仓」或在上方输入基金代码识别导入</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点右上角 <b>＋</b> 新增或输入代码识别导入</p></div>'; return; }
     var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'QDII', other:'其它基金'};
     var html='';
     arr.forEach(function(item, i){
@@ -1818,6 +1836,16 @@ function openEditAsset(idx){
     document.getElementById('ed-cost').value = (it.cost!==undefined && it.cost!=='') ? it.cost : (it.amount||'');
     document.getElementById('ed-plan').value = it.plan||'';
     document.getElementById('ed-judge').value = it.judge||'';
+    // 显示最新净值（从缓存或接口）
+    var qh = document.getElementById('ed-quote-hint');
+    if (it.code && fundQuote[it.code]){
+        var fq = fundQuote[it.code];
+        qh.innerHTML = '💡 最新净值 <b>'+fq.dwjz+'</b>（'+fq.gztime+'）· 估算涨跌 <b style="color:'+(parseFloat(fq.gszzl)>=0?'#E53935':'#2E9E5B')+'">'+(fq.gszzl||'—')+'%</b>';
+        qh.style.display='block';
+    } else {
+        qh.innerHTML = '💡 暂无估值数据，点「刷新涨跌」后可查看净值';
+        qh.style.display='block';
+    }
     document.getElementById('editModal').style.display='flex';
 }
 function saveEditAsset(){
@@ -1835,6 +1863,29 @@ function saveEditAsset(){
     document.getElementById('editModal').style.display='none';
     showToast('已更新');
     renderAsset();
+}
+
+// ---- 持仓 +号菜单 ----
+function showAssetAddMenu(){
+    var m = document.getElementById('assetAddMenu');
+    m.classList.toggle('hidden');
+    // 点击页面其他地方关闭
+    if (!m.classList.contains('hidden')){
+        setTimeout(function(){
+            document.addEventListener('click', function __close__(e){
+                if (!m.contains(e.target) && !e.target.closest('.pill-btn')){
+                    m.classList.add('hidden');
+                    document.removeEventListener('click', __close__);
+                }
+            });
+        }, 10);
+    }
+}
+function hideAssetAddMenu(){ document.getElementById('assetAddMenu').classList.add('hidden'); }
+function showQuickCodeInput(){
+    var bar = document.getElementById('quickCodeBar');
+    bar.classList.remove('hidden');
+    setTimeout(function(){ document.getElementById('quickCode').focus(); }, 100);
 }
 
 // 抓取每日涨跌（客户端直接调天天基金估值接口，按持仓代码拉取）
