@@ -187,6 +187,11 @@
         .modal .content a { color:#1976D2; word-break:break-all; }
         .modal .close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:4px 8px; }
         .modal .close:hover { color:#E91E63; }
+        .modal .export-sub { font-size:12px; color:#AD1457; margin:-4px 0 10px; line-height:1.5; }
+        .modal .export-textarea { width:100%; height:42vh; border:1px solid #F8BBD0; border-radius:8px; padding:10px; font-size:12px; line-height:1.5; font-family:Consolas,Menlo,monospace; resize:none; box-sizing:border-box; color:#333; background:#FFF8FB; }
+        .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+        .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
+        .pill-btn.ghost:hover { background:#FCE4EC; }
 
         /* ===== Toast 通知 ===== */
         .toast {
@@ -450,6 +455,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 运营思路&选题素材库</div>
                 <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
+                <button class="pill-btn ghost" onclick="exportSectionMD('operation-ideas')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业/副业/兴趣背景抓取运营方法论+爆款内容模板 · 每条带原文链接，点「查看全文 ›」可看完整内容</div>
             <div id="operationIdeasList"></div>
@@ -553,6 +559,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 选题灵感库</div>
                 <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI抓取选题灵感</button>
+                <button class="pill-btn ghost" onclick="exportSectionMD('idea-lib')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业（短视频运营）/ 副业（AI服装带货）/ 兴趣背景抓取选题 · 标记「暂搁置」的选题刷新时保留不删除</div>
             <div id="ideaLibList"></div>
@@ -691,6 +698,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 理财每日新知</div>
                 <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-refresh"></i> AI抓取今日新知</button>
+                <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：2026-08-01 · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
             <div id="financeNewsList"></div>
@@ -800,6 +808,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-area-chart ico"></i> 指数跟踪面板</div>
                 <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-refresh"></i> 刷新估值</button>
+                <button class="pill-btn ghost" onclick="exportSectionMD('index-track')"><i class="fa fa-download"></i> 导出MD</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 实时估值（每行"实时估值"行）打开即自动更新 · 绿色=低位 / 橙色=中位 / 红色=高位 · PE/估值分位/个人判断为策展内容，需在电脑端发「刷新」指令由电脑版更新</div>
             <div id="indexTrackList">
@@ -948,6 +957,21 @@
         <button class="close" onclick="closeModal()">×</button>
         <h3 id="modalTitle"></h3>
         <div class="content" id="modalContent"></div>
+    </div>
+</div>
+
+<!-- 导出 Markdown 弹窗 -->
+<div class="modal-overlay" id="exportModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal">
+        <button class="close" onclick="document.getElementById('exportModal').style.display='none'">×</button>
+        <h3 id="exportTitle">导出 Markdown</h3>
+        <p class="export-sub" id="exportSub"></p>
+        <textarea class="export-textarea" id="exportText" readonly></textarea>
+        <div class="export-actions">
+            <button class="pill-btn" onclick="copyExportMD()"><i class="fa fa-clipboard"></i> 复制</button>
+            <button class="pill-btn" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
+            <button class="pill-btn ghost" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
+        </div>
     </div>
 </div>
 
@@ -2297,6 +2321,92 @@ function showToast(msg){
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+// ===================== 导出 Markdown（AI 抓取板块） =====================
+var _exportMD = '';
+var _exportFilename = '';
+function exportSectionMD(key){
+    var title = '', md = '';
+    if (key === 'operation-ideas'){
+        title = '运营思路与选题素材库';
+        md = '# ' + title + '\n\n> 导出时间：' + todayStr() + ' · 数据来源：桥桥工作台（AI 抓取）\n\n';
+        operationIdeasData.forEach(function(it, i){
+            md += '## ' + (i+1) + '. ' + it.title + '\n';
+            if (it.date) md += '> 抓取时间：' + it.date + '\n\n';
+            md += it.content + '\n';
+            if (it.url) md += '\n📎 原文链接：' + it.url + '\n';
+            md += '\n---\n\n';
+        });
+    } else if (key === 'idea-lib'){
+        title = '选题灵感库';
+        md = '# ' + title + '\n\n> 导出时间：' + todayStr() + ' · 数据来源：桥桥工作台（AI 抓取）\n\n';
+        ideaLibData.forEach(function(it, i){
+            var st = it.status === 'done' ? '已制作' : (it.status === 'hold' ? '暂搁置' : '待使用');
+            md += '## ' + (i+1) + '. ' + it.title + '\n';
+            md += '> 状态：' + st + '\n\n';
+            md += it.content + '\n\n---\n\n';
+        });
+    } else if (key === 'finance-news'){
+        title = '理财每日新知';
+        md = '# ' + title + '\n\n> 导出时间：' + todayStr() + ' · 数据来源：桥桥工作台（AI 抓取，仅供学习记录，不构成投资建议）\n\n';
+        financeNewsData.forEach(function(it, i){
+            md += '## ' + (i+1) + '. ' + it.title + '\n';
+            if (it.date) md += '> 抓取时间：' + it.date + '\n\n';
+            md += it.content + '\n';
+            if (it.url) md += '\n📎 原文链接：' + it.url + '\n';
+            md += '\n---\n\n';
+        });
+    } else if (key === 'index-track'){
+        title = '指数跟踪面板';
+        md = '# ' + title + '\n\n> 导出时间：' + todayStr() + ' · 数据来源：桥桥工作台（AI 抓取 + 实时估值）\n\n';
+        indexTrackData.forEach(function(it){
+            var lt = it.level === 'low' ? '低位' : (it.level === 'mid' ? '中位' : '高位');
+            md += '## ' + it.name + '\n';
+            md += '> 估值区间：' + lt + '\n\n';
+            it.rows.forEach(function(r){ md += '- **' + r.label + '**：' + r.val + '\n'; });
+            var fcode = (typeof INDEX_FUND_MAP !== 'undefined') ? INDEX_FUND_MAP[it.name] : null;
+            if (fcode && fundQuote[fcode]){
+                var q = fundQuote[fcode];
+                var z = parseFloat(q.gszzl); if (isNaN(z)) z = 0;
+                md += '- **实时估值**：' + (q.name || it.name) + ' 净值 ' + q.gsz + '，今日 ' + (z>0?'+':'') + z + '%（' + (q.gztime||'') + '）\n';
+            }
+            md += '\n> 个人判断：' + it.note + '\n\n---\n\n';
+        });
+    } else {
+        showToast('该板块暂不支持导出');
+        return;
+    }
+    _exportMD = md.trim() + '\n';
+    _exportFilename = title + '_' + todayStr() + '.md';
+    document.getElementById('exportTitle').textContent = '导出 · ' + title;
+    document.getElementById('exportSub').textContent = '已生成 ' + md.split('\n').length + ' 行 Markdown，可复制或下载保存为记录';
+    document.getElementById('exportText').value = _exportMD;
+    document.getElementById('exportModal').style.display = 'flex';
+}
+function copyExportMD(){
+    var t = document.getElementById('exportText');
+    t.focus(); t.select();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(_exportMD).then(function(){ showToast('已复制到剪贴板'); }, function(){ fallbackCopy(); });
+    } else { fallbackCopy(); }
+}
+function fallbackCopy(){
+    var t = document.getElementById('exportText');
+    t.focus(); t.select();
+    try { document.execCommand('copy'); showToast('已复制到剪贴板'); }
+    catch(e){ showToast('复制失败，请手动长按选择文本'); }
+}
+function downloadExportMD(){
+    try {
+        var blob = new Blob([_exportMD], {type:'text/markdown;charset=utf-8'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = _exportFilename;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        showToast('已开始下载 ' + _exportFilename);
+    } catch(e){ showToast('下载失败，请改用「复制」'); }
 }
 
 // ===================== 表单切换 / 标签 =====================
