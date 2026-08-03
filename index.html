@@ -1008,8 +1008,8 @@
         <p class="export-sub" id="exportSub"></p>
         <textarea class="export-textarea" id="exportText" readonly></textarea>
         <div class="export-actions">
-            <button class="pill-btn" onclick="copyExportMD()"><i class="fa fa-clipboard"></i> 复制</button>
-            <button class="pill-btn" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
+            <button class="pill-btn ghost" onclick="copyExportMD()"><i class="fa fa-clipboard"></i> 复制</button>
+            <button class="pill-btn ghost" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
             <button class="pill-btn ghost" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
         </div>
     </div>
@@ -2503,15 +2503,12 @@ function exportSectionMD(key){
     document.getElementById('exportModal').style.display = 'flex';
 }
 function copyExportMD(){
-    var t = document.getElementById('exportText');
-    t.focus(); t.select();
     if (navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(_exportMD).then(function(){ showToast('已复制到剪贴板'); }, function(){ fallbackCopy(); });
     } else { fallbackCopy(); }
 }
 function fallbackCopy(){
     var t = document.getElementById('exportText');
-    t.focus(); t.select();
     try { document.execCommand('copy'); showToast('已复制到剪贴板'); }
     catch(e){ showToast('复制失败，请手动长按选择文本'); }
 }
