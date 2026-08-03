@@ -705,8 +705,9 @@
             <div class="form-backdrop hidden" id="formBackdrop" onclick="closeFormAsset()"></div>
             <div class="card form-card hidden" id="form-asset">
                 <h4>新增持仓<button type="button" class="form-close" onclick="closeFormAsset()" aria-label="关闭">×</button></h4>
-                <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」，基金名称与跌涨会自动补全</p>
+                <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」即可，名称与跌涨自动补全。<b>成本金额</b>是你买入花的总本金（公开接口查不到，需自己填，或直接发基金App持仓截图给我全自动录入）</p>
                 <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000216" onblur="autoFillFundName()" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) autoFillFundName()"></div>
+                <div class="form-hint" id="as-quote" style="display:none;margin:-4px 0 6px"></div>
                 <div class="form-item"><label>基金名称（自动补全，可改）</label><input type="text" id="as-name" placeholder="输入代码后自动识别"></div>
                 <div class="form-row">
                     <div class="form-item"><label>实际持仓金额</label><input type="text" id="as-amount" placeholder="元"></div>
@@ -721,7 +722,7 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-item"><label>成本金额（算总收益用）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
+                    <div class="form-item"><label>成本金额（买入总本金·算总收益）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
                     <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="as-plan" placeholder="例如 30%"></div>
                 </div>
                 <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
@@ -1475,6 +1476,14 @@ window.jsonpgz = function(d){
         saveFundCache();
         var nm = document.getElementById('as-name');
         if (nm && !nm.value.trim() && d.name) nm.value = d.name;
+        var q = document.getElementById('as-quote');
+        if (q){
+            var nav = d.gsz || d.dwjz;
+            if (nav){
+                q.style.display='block';
+                q.innerHTML = '最新净值 <b>'+nav+'</b>'+(d.jzrq?' <span style="color:#A0AAB5">（'+d.jzrq+'）</span>':'');
+            }
+        }
     }
 };
 function openFormAsset(){
