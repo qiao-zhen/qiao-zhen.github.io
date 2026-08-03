@@ -757,7 +757,6 @@
             <div class="quick-code-bar" id="quickCodeBar">
                 <input type="text" id="quickCode" class="quick-input" placeholder="输入6位代码" maxlength="6" inputmode="numeric" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) quickAddByCode()">
                 <button class="mini-btn" onclick="quickAddByCode()"><i class="fa fa-magic"></i> 识别导入</button>
-                <button class="mini-btn ghost" onclick="document.getElementById('quickCodeBar').classList.add('hidden');document.getElementById('quickCode').value=''">×</button>
             </div>
             <div id="ocrStatus" class="hidden"></div>
             <div id="ocrResult"></div>
