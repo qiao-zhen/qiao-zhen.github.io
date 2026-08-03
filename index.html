@@ -2090,7 +2090,12 @@ function exportCheckinMD(){
             md += '\n';
         });
     });
-    downloadMD('健康打卡_' + month + '.md', md);
+    md = md.trim() + '\n';
+    _exportMD = md; _exportFilename = '健康打卡_' + month + '.md';
+    document.getElementById('exportTitle').textContent = '导出 · 健康打卡月报';
+    document.getElementById('exportSub').textContent = '已生成 ' + md.split('\n').length + ' 行 Markdown，可复制或下载保存为记录';
+    document.getElementById('exportText').value = _exportMD;
+    document.getElementById('exportModal').style.display = 'flex';
 }
 
 // ===================== 19. 身体观察备忘录（localStorage） =====================
@@ -2149,12 +2154,17 @@ function renderTodo(){
 function exportTodoMD(){
     var arr = storeGet('todoList');
     if (arr.length === 0){ showToast('暂无待办可导出'); return; }
-    var md = '# 今日待办清单 · ' + todayStr() + '\n\n';
+    var md = '# 今日待办清单 · ' + todayStr() + '\n\n> 导出时间：' + todayStr() + ' · 数据来源：桥桥工作台\n\n';
     var order = {高:0,中:1,低:2};
     arr.slice().sort(function(a,b){ return (order[a.prio]||9)-(order[b.prio]||9); }).forEach(function(item, n){
         md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.due?(' · 截止'+item.due):'') + ')_\n';
     });
-    downloadMD('待办清单_' + todayStr() + '.md', md);
+    md = md.trim() + '\n';
+    _exportMD = md; _exportFilename = '待办清单_' + todayStr() + '.md';
+    document.getElementById('exportTitle').textContent = '导出 · 今日待办清单';
+    document.getElementById('exportSub').textContent = '已生成 ' + md.split('\n').length + ' 行 Markdown，可复制或下载保存为记录';
+    document.getElementById('exportText').value = _exportMD;
+    document.getElementById('exportModal').style.display = 'flex';
 }
 
 // ===================== 搬运 / 切换分组 / 侧栏 =====================
@@ -2406,9 +2416,22 @@ function fallbackCopy(){
     try { document.execCommand('copy'); showToast('已复制到剪贴板'); }
     catch(e){ showToast('复制失败，请手动长按选择文本'); }
 }
+function isIOS(){ return /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
 function downloadExportMD(){
     try {
         var blob = new Blob([_exportMD], {type:'text/markdown;charset=utf-8'});
+        // iPhone / iPad Safari：a.download 不生效，改用系统分享面板（可存到「文件」App）
+        if (isIOS()){
+            var file = new File([blob], _exportFilename, {type:'text/markdown'});
+            if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+                navigator.share({ files:[file], title:_exportFilename }).catch(function(){});
+                return;
+            }
+            var url0 = URL.createObjectURL(blob);
+            window.open(url0, '_blank');
+            showToast('已打开预览，请长按并选择「存储到文件」');
+            return;
+        }
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url; a.download = _exportFilename;
