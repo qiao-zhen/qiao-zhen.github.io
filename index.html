@@ -204,6 +204,9 @@
 
         /* ===== 搬运来源标记 ===== */
         .source-tag { font-size:11px; color:#F06292; background:#FCE4EC; padding:1px 8px; border-radius:8px; margin-left:6px; }
+        .prio-high { font-size:11px; color:#fff; background:#E53935; padding:1px 8px; border-radius:8px; margin-left:6px; }
+        .prio-mid { font-size:11px; color:#fff; background:#FB8C00; padding:1px 8px; border-radius:8px; margin-left:6px; }
+        .prio-low { font-size:11px; color:#fff; background:#43A047; padding:1px 8px; border-radius:8px; margin-left:6px; }
 
         /* ===== 移动端 ===== */
         @media (max-width:768px) {
@@ -279,6 +282,10 @@
 .summary-bar .today-profit{color:#E53935;font-weight:700;font-size:15px;}
 .summary-bar .today-profit.neg{color:#2E9E5B;}
 .summary-bar .today-profit.zero{color:#888;}
+.asset-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #F0E1E9;}
+.asset-foot-hint{font-size:11px;color:#C0A8B4;}
+.asset-del{border:1px solid #F3C0CC;background:#fff;border-radius:16px;color:#E53935;font-size:12px;padding:5px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.asset-del:active{background:#FCE4EC;}
 /* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
 .form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
 .form-backdrop.hidden{display:none;}
@@ -757,7 +764,6 @@
                 <div class="long-menu">
                     <div class="long-menu-item" onclick="assetMenuAction('dca')"><i class="fa fa-repeat"></i> 定投设置</div>
                     <div class="long-menu-item" onclick="assetMenuAction('edit')"><i class="fa fa-pencil"></i> 编辑基金（调仓 / 更新数据）</div>
-                    <div class="long-menu-item long-menu-danger" onclick="assetMenuAction('delete')"><i class="fa fa-trash"></i> 删除基金</div>
                     <div class="long-menu-item long-menu-cancel" onclick="hideAssetMenu()">取消</div>
                 </div>
             </div>
@@ -998,7 +1004,7 @@ function buildCard(o){
     var contentAttr = escAttr(o.content || '');
     var dateAttr = escAttr(o.date || '');
     var urlAttr = escAttr(o.url || '');
-    var subHtml = o.sub ? '<span class="source-tag">'+escHtml(o.sub)+'</span>' : '';
+    var subHtml = o.sub ? '<span class="'+(o.subClass||'source-tag')+'">'+escHtml(o.sub)+'</span>' : '';
     var extraHtml = o.extra || '';
     var titleHtml = escHtml(o.title);
     return '<div class="news-card'+(done?' done':'')+'" data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
@@ -1715,6 +1721,8 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             + '</div>'
+            + '<div class="asset-foot"><span class="asset-foot-hint">长按：定投 / 编辑</span>'
+            + '<button type="button" class="asset-del" onclick="event.stopPropagation();deleteAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-trash"></i> 删除</button></div>'
             + '</div>';
     });
     wrap.innerHTML = html;
@@ -2132,7 +2140,8 @@ function renderTodo(){
     var html='';
     arr.forEach(function(item, i){
         var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n截止：' + (item.due||'未设');
-        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', content:full, date:item.date });
+        var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
+        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', subClass:prioCls, content:full, date:item.date });
     });
     wrap.innerHTML = html;
     truncateAllNews();
