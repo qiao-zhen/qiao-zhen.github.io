@@ -104,6 +104,13 @@
         .news-card:hover .n-foot .actions { opacity:1; }
         .news-card .n-foot .actions span { cursor:pointer; color:#F06292; }
         .news-card .n-foot .actions span:hover { color:#E91E63; }
+        .news-card.read, .idx-card.read { opacity:0.5; }
+        .news-card .n-foot .actions span.faved { color:#E91E63; font-weight:700; }
+        .news-card .n-foot .actions span.read-flag { color:#43A047; font-weight:700; }
+        .idx-actions { display:flex; gap:14px; margin-top:10px; font-size:12px; }
+        .idx-actions span { cursor:pointer; color:#F06292; }
+        .idx-actions span.faved { color:#E91E63; font-weight:700; }
+        .idx-actions span.read-flag { color:#43A047; font-weight:700; }
         .news-card .n-foot .read-more { color:#F06292; cursor:pointer; white-space:nowrap; }
         .news-card .n-foot .read-more:hover { color:#E91E63; }
         .news-card .n-link { font-size:12px; margin-bottom:6px; }
@@ -1146,13 +1153,14 @@ function renderOperationIdeas(){
     operationIdeasData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+        html += '<div class="news-card"+(isRead("ops",item.title)?" read":"")+" data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
             '<div class="n-title">'+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-            '<div class="right"><span class="actions">'+
-            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
-            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
+<div class="right"><span class="actions">'+
+<span class="'+(isFav("ops",item.title)?"faved":"")+'" data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("ops",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
+<span class="'+(isRead("ops",item.title)?"read-flag":"")+'" data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("ops",item.title)?"■ 已读":"✓ 已读")+'</span>'+
+<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
@@ -1553,14 +1561,14 @@ function renderFinanceNews(){
     financeNewsData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+        html += '<div class="news-card"+(isRead("finance",item.title)?" read":"")+" data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
             '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-            '<div class="right"><span class="actions">'+
-            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
-            '<span onclick="event.stopPropagation();this.closest(\'.news-card\').style.opacity=\'0.5\';showToast(\'已标已读\');">✓ 已读</span>'+
-            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
+<div class="right"><span class="actions">'+
+<span class="'+(isFav("finance",item.title)?"faved":"")+'" data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("finance",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
+<span class="'+(isRead("finance",item.title)?"read-flag":"")+'" data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("finance",item.title)?"■ 已读":"✓ 已读")+'</span>'+
+<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('financeNewsList').innerHTML = html;
@@ -2050,13 +2058,17 @@ function renderIndexTrack(){
         }
         var rowsHtml = '';
         item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
-        html += '<div class="idx-card">'+
+        html += '<div class="idx-card'+(isRead('index',item.name)?' read':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
             '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
             '</div>'+
             '<div class="idx-rows">'+liveRow+rowsHtml+'</div>'+
             '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
+            '<div class="idx-actions">'+
+            '<span class="'+(isFav('index',item.name)?'faved':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav('index',item.name)?'★ 已收藏':'☆ 收藏')+'</span>'+
+            '<span class="'+(isRead('index',item.name)?'read-flag':'')+'" data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead('index',item.name)?'■ 已读':'✓ 已读')+'</span>'+
+            '</div>'+
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
@@ -2302,6 +2314,15 @@ function showPage(pageId, el){
 }
 
 // ===================== 内容截断 >100字 =====================
+// ===== 收藏 / 已读 通用状态（localStorage，按 模块::键 唯一）=====
+function _wbGetSet(k){ try { return JSON.parse(localStorage.getItem(k) || '{}'); } catch(e){ return {}; } }
+function _wbSetSet(k,o){ try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){} }
+var WB_FAV='wb_fav', WB_READ='wb_read';
+function isFav(m,t){ return !!_wbGetSet(WB_FAV)[m+'::'+t]; }
+function isRead(m,t){ return !!_wbGetSet(WB_READ)[m+'::'+t]; }
+function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var s=_wbGetSet(WB_FAV),key=m+'::'+k; if(s[key]) delete s[key]; else s[key]=1; _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); }
+function toggleRead(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var s=_wbGetSet(WB_READ),key=m+'::'+k; if(s[key]) delete s[key]; else s[key]=1; _wbSetSet(WB_READ,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); }
+
 function truncateAllNews(){
     document.querySelectorAll('.news-card').forEach(function(card){
         var full = card.dataset.content;
