@@ -775,7 +775,7 @@
                             <option value="gold">黄金</option>
                             <option value="nasdaq">纳斯达克100</option>
                             <option value="dividend">红利低波</option>
-                            <option value="qdii">QDII基金</option>
+                            <option value="qdii">标普500跟踪摩根</option>
                             <option value="other" selected>其它基金</option>
                         </select>
                     </div>
@@ -825,7 +825,7 @@
                                 <option value="gold">黄金</option>
                                 <option value="nasdaq">纳斯达克100</option>
                                 <option value="dividend">红利低波</option>
-                                <option value="qdii">QDII基金</option>
+                                <option value="qdii">标普500跟踪摩根</option>
                                 <option value="other">其它基金</option>
                             </select>
                         </div>
@@ -852,7 +852,7 @@
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 实时估值（每行"实时估值"行）打开即自动更新 · 绿色=低位 / 橙色=中位 / 红色=高位 · PE/估值分位/个人判断为策展内容，需在电脑端发「刷新」指令由电脑版更新</div>
             <div id="indexTrackList">
-                <div class="empty"><div class="ico"><i class="fa fa-area-chart"></i></div><p>点击右上角「刷新估值」查看最新数据</p><p class="sub">5 类资产：黄金 / 纳斯达克100 / 红利低波 / QDII基金 / 中证500</p></div>
+                <div class="empty"><div class="ico"><i class="fa fa-area-chart"></i></div><p>点击右上角「刷新估值」查看最新数据</p><p class="sub">5 类资产：黄金 / 纳斯达克100 / 红利低波 / 标普500跟踪摩根 / 中证500</p></div>
             </div>
         </div>
 
@@ -1716,7 +1716,7 @@ function renderAsset(){
     }
     var wrap = document.getElementById('assetList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点右上角 <b>＋</b> 新增或输入代码识别导入</p></div>'; return; }
-    var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'QDII', other:'其它基金'};
+    var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'标普500跟踪摩根', other:'其它基金'};
     var html='';
     arr.forEach(function(item, i){
         var amt = parseFloat(item.amount)||0;
@@ -2027,12 +2027,12 @@ var indexTrackData = [
         {label:"估值分位", val:"35%"},
         {label:"估值区间", val:"低位"}
     ], level:"low", note:"股息率5.8%处于较有吸引力水平，估值分位偏低。适合作为底仓配置。个人判断：性价比较高，适合长期持有。"},
-    {name:"QDII基金", icon:"circle", color:"#7B1FA2", rows:[
+    {name:"标普500跟踪摩根", icon:"circle", color:"#7B1FA2", rows:[
         {label:"底层标的", val:"纳斯达克100/标普500"},
         {label:"溢价率", val:"3.2%"},
         {label:"限购状态", val:"限额"},
         {label:"汇率影响", val:"人民币贬值利好"}
-    ], level:"mid", note:"QDII限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"},
+    ], level:"mid", note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"},
     {name:"中证500", icon:"circle", color:"#FB8C00", rows:[
         {label:"当前PE", val:"35.5"},
         {label:"近一年估值分位", val:"52%"},
@@ -2073,7 +2073,7 @@ var INDEX_FUND_MAP = {
     '纳斯达克100':'016452', // 南方纳斯达克100A
     '红利低波':'012709',   // 易方达红利低波ETF联接A
     '中证500':'004345',    // 南方中证500ETF联接A
-    'QDII基金':'017641'    // 摩根标普500指数A
+    '标普500跟踪摩根':'017641'    // 摩根标普500指数A
 };
 var indexQuote = {};
 // 指数跟踪面板：打开页面自动通过天天基金JSONP拉取各指数对应基金的实时估值
