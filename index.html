@@ -204,6 +204,9 @@
         .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
         .pill-btn.ghost:hover { background:#FCE4EC; }
+        /* AI抓取模块：刷新/导出按钮撑满右侧并放大 */
+        .sec-btns { display:flex; gap:10px; flex:1; justify-content:flex-end; min-width:0; }
+        .sec-btns .pill-btn { flex:1 1 0; justify-content:center; padding:9px 16px; font-size:14px; }
 
         /* ===== Toast 通知 ===== */
         .toast {
@@ -261,6 +264,8 @@
             .form-item input, .form-item select, .form-item textarea { font-size:13px; }
             .news-card .n-foot .actions { opacity:1; }
             .group-title, .sub-item, .menu-btn, .pill-btn, .filter-chip, .search-btn, .export-btn, .done-pill { touch-action:manipulation; }
+            .sec-btns { gap:8px; }
+            .sec-btns .pill-btn { flex:1 1 0; justify-content:center; padding:8px 12px; font-size:13px; }
         }
     </style>
 <style>
@@ -506,7 +511,7 @@
         <div class="page" id="page-operation-ideas">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 运营思路&选题素材库</div>
-                <div style="display:flex;gap:8px;">
+                <div class="sec-btns">
                     <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
                     <button class="pill-btn ghost" onclick="exportSectionMD('operation-ideas')"><i class="fa fa-download"></i> 导出MD</button>
                 </div>
@@ -612,7 +617,7 @@
         <div class="page" id="page-idea-lib">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 选题灵感库</div>
-                <div style="display:flex;gap:8px;">
+                <div class="sec-btns">
                     <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI刷新抓取</button>
                     <button class="pill-btn ghost" onclick="exportSectionMD('idea-lib')"><i class="fa fa-download"></i> 导出MD</button>
                 </div>
@@ -753,7 +758,7 @@
         <div class="page" id="page-finance-news">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 理财每日新知</div>
-                <div style="display:flex;gap:8px;">
+                <div class="sec-btns">
                     <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-magic"></i> AI刷新抓取</button>
                     <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
                 </div>
@@ -864,7 +869,7 @@
         <div class="page" id="page-index-track">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-area-chart ico"></i> 指数跟踪面板</div>
-                <div style="display:flex;gap:8px;">
+                <div class="sec-btns">
                     <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-magic"></i> AI刷新抓取</button>
                     <button class="pill-btn ghost" onclick="exportSectionMD('index-track')"><i class="fa fa-download"></i> 导出MD</button>
                 </div>
