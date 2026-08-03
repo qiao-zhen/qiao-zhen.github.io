@@ -745,20 +745,14 @@
         <div class="page" id="page-asset-account">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
-                <button class="pill-btn" onclick="showAssetAddMenu()"><i class="fa fa-plus"></i></button>
+                <button class="pill-btn ghost" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新涨跌</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
             <div class="asset-actions">
-                <button class="mini-btn ghost" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新涨跌</button>
             </div>
-            <!-- +号菜单 -->
-            <div class="asset-add-menu hidden" id="assetAddMenu">
-                <div class="asset-add-option" onclick="hideAssetAddMenu();toggleForm('form-asset')"><i class="fa fa-plus-circle"></i> 手动新增持仓</div>
-                <div class="asset-add-option" onclick="hideAssetAddMenu();showQuickCodeInput()"><i class="fa fa-magic"></i> 输入代码识别导入</div>
-            </div>
-            <!-- 代码快速输入（默认隐藏，点"识别导入"后显示） -->
-            <div class="quick-code-bar hidden" id="quickCodeBar">
+            <!-- 代码快速输入（默认显示） -->
+            <div class="quick-code-bar" id="quickCodeBar">
                 <input type="text" id="quickCode" class="quick-input" placeholder="输入6位代码" maxlength="6" inputmode="numeric" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) quickAddByCode()">
                 <button class="mini-btn" onclick="quickAddByCode()"><i class="fa fa-magic"></i> 识别导入</button>
                 <button class="mini-btn ghost" onclick="document.getElementById('quickCodeBar').classList.add('hidden');document.getElementById('quickCode').value=''">×</button>
@@ -1718,7 +1712,7 @@ function renderAsset(){
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
     var wrap = document.getElementById('assetList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">点右上角 <b>＋</b> 新增或输入代码识别导入</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">在下方输入6位基金代码识别导入</p></div>'; return; }
     var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'标普500跟踪摩根', other:'其它基金'};
     var html='';
     arr.forEach(function(item, i){
