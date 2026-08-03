@@ -192,8 +192,6 @@
         .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
         .pill-btn.ghost:hover { background:#FCE4EC; }
-        .pill-btn.export-close { background:#FFF; color:#999; border:1px solid #E5E5E5; }
-        .pill-btn.export-close:hover { background:#FAFAFA; color:#666; }
 
         /* ===== Toast 通知 ===== */
         .toast {
@@ -1006,9 +1004,9 @@
         <p class="export-sub" id="exportSub"></p>
         <textarea class="export-textarea" id="exportText" readonly></textarea>
         <div class="export-actions">
-            <button class="pill-btn ghost" onclick="copyExportMD()"><i class="fa fa-clipboard"></i> 复制</button>
-            <button class="pill-btn ghost" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
-            <button class="pill-btn export-close" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
+            <button class="pill-btn" onclick="copyExportMD()"><i class="fa fa-clipboard"></i> 复制</button>
+            <button class="pill-btn" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
+            <button class="pill-btn ghost" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
         </div>
     </div>
 </div>
