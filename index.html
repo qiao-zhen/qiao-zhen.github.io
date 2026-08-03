@@ -266,6 +266,17 @@
 .summary-bar .today-profit{color:#E53935;font-weight:700;font-size:15px;}
 .summary-bar .today-profit.neg{color:#2E9E5B;}
 .summary-bar .today-profit.zero{color:#888;}
+/* 新增持仓表单：遮罩 + 关闭 + 提示 + 取消 */
+.form-backdrop{position:fixed;inset:0;background:rgba(60,20,40,.16);z-index:880;display:block;}
+.form-backdrop.hidden{display:none;}
+.form-card h4{position:relative;padding-right:30px;}
+.form-close{position:absolute;right:10px;top:2px;width:26px;height:26px;border:none;background:#FCE4EC;border-radius:50%;color:#C2185B;font-size:17px;line-height:1;cursor:pointer;}
+.form-close:active{background:#F8BBD0;}
+.form-hint{font-size:12px;color:#B07090;background:#FFF4F8;border-radius:8px;padding:7px 10px;margin:0 0 12px;line-height:1.4;}
+.form-hint .fa{color:#E91E63;margin-right:4px;}
+.form-btn-row{display:flex;gap:10px;margin-top:6px;}
+.cancel-btn{flex:1;border:1px solid #F0C9D8;background:#fff;color:#B07090;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;}
+.cancel-btn:active{background:#FFF0F5;}
 /* 长按菜单（底部弹出） */
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
 .long-menu-mask.show{display:flex;}
@@ -677,7 +688,7 @@
         <div class="page" id="page-asset-account">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
-                <button class="pill-btn" onclick="toggleForm('form-asset')"><i class="fa fa-plus"></i> 新增持仓</button>
+                <button class="pill-btn" onclick="openFormAsset()"><i class="fa fa-plus"></i> 新增持仓</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 截图识别导入持仓 · 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
@@ -688,11 +699,14 @@
             </div>
             <div id="ocrStatus" class="ocr-status hidden"></div>
             <div id="ocrResult"></div>
+            <div class="form-backdrop hidden" id="formBackdrop" onclick="closeFormAsset()"></div>
             <div class="card form-card hidden" id="form-asset">
-                <h4>新增持仓</h4>
-                <div class="form-item"><label>基金名称</label><input type="text" id="as-name" placeholder="例如 华夏黄金ETF-A"></div>
+                <h4>新增持仓<button type="button" class="form-close" onclick="closeFormAsset()" aria-label="关闭">×</button></h4>
+                <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」，基金名称与跌涨会自动补全</p>
+                <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000216" onblur="autoFillFundName()" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) autoFillFundName()"></div>
+                <div class="form-item"><label>基金名称（自动补全，可改）</label><input type="text" id="as-name" placeholder="输入代码后自动识别"></div>
                 <div class="form-row">
-                    <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000001"></div>
+                    <div class="form-item"><label>实际持仓金额</label><input type="text" id="as-amount" placeholder="元"></div>
                     <div class="form-item"><label>基金类型</label>
                         <select id="as-type">
                             <option value="gold">黄金</option>
@@ -704,14 +718,14 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-item"><label>实际持仓金额</label><input type="text" id="as-amount" placeholder="元"></div>
                     <div class="form-item"><label>成本金额（算总收益用）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
-                </div>
-                <div class="form-row">
                     <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="as-plan" placeholder="例如 30%"></div>
-                    <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
                 </div>
-                <button class="save-btn" onclick="saveAsset()"><i class="fa fa-check"></i> 保存持仓</button>
+                <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
+                <div class="form-btn-row">
+                    <button class="save-btn" onclick="saveAsset()"><i class="fa fa-check"></i> 保存持仓</button>
+                    <button type="button" class="cancel-btn" onclick="closeFormAsset()">取消</button>
+                </div>
             </div>
             <div id="assetList"></div>
 
@@ -1449,21 +1463,53 @@ function renderFinanceNews(){
 
 // ===================== 15. 持仓台账（localStorage + 识别/定投/占比/涨跌） =====================
 var fundQuote = {};
-window.jsonp = function(d){ if (d && d.fundcode){ fundQuote[d.fundcode] = d; } };
+try { var _fqc = JSON.parse(localStorage.getItem('fundQuoteCache')||'{}'); for (var _k in _fqc){ if(_fqc.hasOwnProperty(_k)) fundQuote[_k]=_fqc[_k]; } } catch(e){}
+function saveFundCache(){ try { localStorage.setItem('fundQuoteCache', JSON.stringify(fundQuote)); } catch(e){} }
+window.jsonpgz = function(d){
+    if (d && d.fundcode){
+        fundQuote[d.fundcode] = d;
+        saveFundCache();
+        var nm = document.getElementById('as-name');
+        if (nm && !nm.value.trim() && d.name) nm.value = d.name;
+    }
+};
+function openFormAsset(){
+    document.getElementById('form-asset').classList.remove('hidden');
+    document.getElementById('formBackdrop').classList.remove('hidden');
+}
+function closeFormAsset(){
+    document.getElementById('form-asset').classList.add('hidden');
+    document.getElementById('formBackdrop').classList.add('hidden');
+}
+function autoFillFundName(){
+    var code = (document.getElementById('as-code').value||'').trim();
+    if (!/^\d{6}$/.test(code)) return;
+    if (fundQuote[code] && fundQuote[code].name && !document.getElementById('as-name').value.trim()){
+        document.getElementById('as-name').value = fundQuote[code].name; return;
+    }
+    var s=document.createElement('script');
+    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js?rt='+Math.random();
+    s.onload=function(){ s.remove(); };
+    s.onerror=function(){ s.remove(); showToast('自动识别失败，可手动填写名称'); };
+    document.body.appendChild(s);
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var f=document.getElementById('form-asset'); if(f && !f.classList.contains('hidden')) closeFormAsset(); } });
 
 function fmt(n){ n = parseFloat(n)||0; return n.toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function dateDiff(a,b){ try{ var x=new Date(a.replace(/-/g,'/')), y=new Date(b.replace(/-/g,'/')); return Math.max(0, Math.round((y-x)/86400000)); }catch(e){ return 0; } }
 
 function saveAsset(){
+    var code = document.getElementById('as-code').value.trim();
     var name = document.getElementById('as-name').value.trim();
-    if (!name){ showToast('请填写基金名称'); return; }
+    if (!code && !name){ showToast('请至少填写基金代码'); return; }
+    if (!name) name = code ? ('基金 '+code) : '未命名基金';
     var amount = parseFloat((document.getElementById('as-amount').value||'0').replace(/[, ¥￥元]/g,'')) || 0;
     var type = document.getElementById('as-type').value.trim();
     var costRaw = document.getElementById('as-cost').value.trim();
     var cost = costRaw==='' ? amount : (parseFloat(costRaw.replace(/[, ¥￥元]/g,''))||0);
     var arr = storeGet('assetList');
     arr.unshift({
-        name:name, code:document.getElementById('as-code').value.trim(),
+        name:name, code:code,
         type:type, cost:cost,
         amount:amount,
         plan:document.getElementById('as-plan').value.trim(),
@@ -1473,7 +1519,7 @@ function saveAsset(){
     });
     storeSet('assetList', arr);
     ['as-name','as-code','as-amount','as-plan','as-judge','as-type','as-cost'].forEach(function(id){ document.getElementById(id).value=''; });
-    document.getElementById('form-asset').classList.add('hidden');
+    closeFormAsset();
     showToast('持仓已保存');
     renderAsset();
 }
@@ -1559,6 +1605,7 @@ function renderAsset(){
         if (item.code) subParts.push(item.code);
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
+        if (item.dca && item.dca.enabled && parseFloat(item.dca.daily)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天');
         var sub = subParts.join(' · ');
         html += '<div class="asset-row" data-idx="'+i+'">'
             + '<div class="asset-top"><span class="asset-name">'+escHtml(item.name)+'</span>'
