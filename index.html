@@ -1494,16 +1494,32 @@ function autoFillFundName(){
         nm.value = fundQuote[code].name; return;
     }
     if (_autoFillTimer) clearTimeout(_autoFillTimer);
+    var triedFallback = false;
+    function doFallback(){
+        if (triedFallback || nm.value.trim()) return;
+        triedFallback = true;
+        var s2=document.createElement('script');
+        s2.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+        s2.onload=function(){
+            s2.remove();
+            if (typeof fS_name!=='undefined' && fS_name && !nm.value.trim()){
+                nm.value = fS_name;
+                if(!fundQuote[code]) fundQuote[code]={};
+                fundQuote[code].name=fS_name; fundQuote[code].fundcode=code;
+                saveFundCache();
+            }else if(!nm.value.trim()){
+                showToast('自动识别失败，可手动填写名称');
+            }
+        };
+        s2.onerror=function(){ s2.remove(); showToast('自动识别失败，可手动填写名称'); };
+        document.body.appendChild(s2);
+    }
     var s=document.createElement('script');
     s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
-    s.onload=function(){ s.remove(); };
-    s.onerror=function(){ s.remove(); showToast('自动识别失败，可手动填写名称'); };
+    s.onload=function(){ s.remove(); setTimeout(function(){ if(!nm.value.trim()) doFallback(); }, 300); };
+    s.onerror=function(){ s.remove(); doFallback(); };
     document.body.appendChild(s);
-    _autoFillTimer = setTimeout(function(){
-        if (!(fundQuote[code] && fundQuote[code].name) && !nm.value.trim()){
-            showToast('自动识别失败，可手动填写名称');
-        }
-    }, 4000);
+    _autoFillTimer = setTimeout(function(){ if(!nm.value.trim()&&!triedFallback) doFallback(); }, 4000);
 }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var f=document.getElementById('form-asset'); if(f && !f.classList.contains('hidden')) closeFormAsset(); } });
 
