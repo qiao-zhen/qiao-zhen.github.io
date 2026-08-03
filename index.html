@@ -25,18 +25,23 @@
         .menu-btn { background:#FFF0F4; border:1px solid #FCE4EC; color:#E91E63; font-size:18px; cursor:pointer; padding:5px 9px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; min-width:32px; min-height:32px; }
         .brand { display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; color:#E91E63; white-space:nowrap; }
         .brand .dot { width:10px; height:10px; background:#F06292; border-radius:50%; display:inline-block; }
-        .search-center { flex:1; display:flex; justify-content:center; gap:6px; }
+        .search-center { flex:1; display:flex; justify-content:center; }
+        .search-wrap {
+            position:relative; width:100%; max-width:420px;
+        }
         .search-box {
-            width:100%; max-width:360px; padding:7px 16px;
-            border:1px solid #F8BBD0; border-radius:20px;
-            font-size:13px; background:#FFF8FA; color:#333;
+            width:100%; padding:7px 38px 7px 16px;
+            border:1px solid #F0DDE4; border-radius:20px;
+            font-size:13px; background:#FEF5F8; color:#555;
         }
-        .search-box:focus { outline:none; border-color:#E91E63; background:#FFF; }
-        .search-btn {
-            background:#F06292; color:#FFF; border:none; padding:7px 16px;
-            border-radius:20px; cursor:pointer; font-size:13px; white-space:nowrap; flex-shrink:0;
+        .search-box:focus { outline:none; border-color:#F8BBD0; background:#FFF; }
+        .search-box::placeholder { color:#C8AABB; }
+        .search-icon-btn {
+            position:absolute; right:4px; top:50%; transform:translateY(-50%);
+            background:none; border:none; color:#D4829F; cursor:pointer;
+            padding:6px 10px; font-size:13px; display:flex; align-items:center;
         }
-        .search-btn:hover { background:#E91E63; }
+        .search-icon-btn:hover { color:#E91E63; }
         .mcp-wrap { display:flex; align-items:center; gap:6px; font-size:13px; color:#AD1457; flex-shrink:0; white-space:nowrap; }
         .mcp-switch { position:relative; width:36px; height:20px; background:#DDD; border-radius:10px; cursor:pointer; transition:background .25s; }
         .mcp-switch.on { background:#F06292; }
@@ -235,9 +240,10 @@
             .top-bar { flex-direction:column; align-items:center; gap:6px; position:relative; padding:10px 12px; }
             .top-left { order:1; width:100%; justify-content:center; position:relative; }
             .menu-btn { position:absolute; left:0; top:50%; transform:translateY(-50%); }
-            .search-center { order:2; width:100%; max-width:none; justify-content:center; }
-            .search-box { max-width:160px; padding:5px 12px; font-size:12px; }
-            .search-btn { padding:5px 10px; font-size:11px; }
+            .search-center { order:2; width:100%; max-width:none; justify-content:center; padding:0 12px; }
+            .search-wrap { max-width:100%; }
+            .search-box { max-width:100%; padding:7px 36px 7px 14px; font-size:13px; border-color:#F0DDE4; background:#FEF5F8; }
+            .search-icon-btn { right:2px; padding:6px 10px; font-size:14px; color:#D4829F; }
             .mcp-wrap { position:absolute; top:10px; right:12px; }
             .brand { font-size:14px; }
             .brand .dot { width:8px; height:8px; }
@@ -384,9 +390,11 @@
             <span>桥桥工作台</span>
         </div>
     </div>
-    <div class="search-center">
-        <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" oninput="liveSearch(this.value)">
-        <button class="search-btn" onclick="triggerSearch()"><i class="fa fa-search"></i> 搜索</button>
+    <div class="search-center" id="searchCenter">
+        <div class="search-wrap">
+            <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" oninput="liveSearch(this.value)">
+            <button class="search-icon-btn" onclick="triggerSearch()" type="button"><i class="fa fa-search"></i></button>
+        </div>
     </div>
     <div class="mcp-wrap">
         <i class="fa fa-power-off"></i>
@@ -498,8 +506,10 @@
         <div class="page" id="page-operation-ideas">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 运营思路&选题素材库</div>
-                <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
-                <button class="pill-btn ghost" onclick="exportSectionMD('operation-ideas')"><i class="fa fa-download"></i> 导出MD</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="pill-btn" onclick="refreshOperationIdeas()"><i class="fa fa-magic"></i> AI刷新抓取</button>
+                    <button class="pill-btn ghost" onclick="exportSectionMD('operation-ideas')"><i class="fa fa-download"></i> 导出MD</button>
+                </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业/副业/兴趣背景抓取运营方法论+爆款内容模板 · 每条带原文链接，点「查看全文 ›」可看完整内容</div>
             <div id="operationIdeasList"></div>
@@ -602,8 +612,10 @@
         <div class="page" id="page-idea-lib">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-lightbulb-o ico"></i> 选题灵感库</div>
-                <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI刷新抓取</button>
-                <button class="pill-btn ghost" onclick="exportSectionMD('idea-lib')"><i class="fa fa-download"></i> 导出MD</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="pill-btn" onclick="refreshIdeaLib()"><i class="fa fa-magic"></i> AI刷新抓取</button>
+                    <button class="pill-btn ghost" onclick="exportSectionMD('idea-lib')"><i class="fa fa-download"></i> 导出MD</button>
+                </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> AI 根据你的职业（短视频运营）/ 副业（AI服装带货）/ 兴趣背景抓取选题 · 标记「暂搁置」的选题刷新时保留不删除</div>
             <div id="ideaLibList"></div>
@@ -741,8 +753,10 @@
         <div class="page" id="page-finance-news">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 理财每日新知</div>
-                <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-magic"></i> AI刷新抓取</button>
-                <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="pill-btn" onclick="batchRefresh('理财每日新知')"><i class="fa fa-magic"></i> AI刷新抓取</button>
+                    <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
+                </div>
             </div>
             <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：2026-08-01 · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
             <div id="financeNewsList"></div>
@@ -850,8 +864,10 @@
         <div class="page" id="page-index-track">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-area-chart ico"></i> 指数跟踪面板</div>
-                <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-magic"></i> AI刷新抓取</button>
-                <button class="pill-btn ghost" onclick="exportSectionMD('index-track')"><i class="fa fa-download"></i> 导出MD</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="pill-btn" onclick="refreshIndexTrack()"><i class="fa fa-magic"></i> AI刷新抓取</button>
+                    <button class="pill-btn ghost" onclick="exportSectionMD('index-track')"><i class="fa fa-download"></i> 导出MD</button>
+                </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 实时估值（每行"实时估值"行）打开即自动更新 · 绿色=低位 / 橙色=中位 / 红色=高位 · PE/估值分位/个人判断为策展内容，需在电脑端发「刷新」指令由电脑版更新</div>
             <div id="indexTrackList">
@@ -888,7 +904,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-check-square-o ico"></i> 今日打卡面板</div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="export-btn" onclick="exportCheckinMD()"><i class="fa fa-download"></i> 导出本月打卡(MD)</button>
+                    <button class="pill-btn ghost" onclick="exportCheckinMD()"><i class="fa fa-download"></i> 导出MD</button>
                     <button class="pill-btn" onclick="saveCheckin()"><i class="fa fa-save"></i> 保存今日打卡</button>
                 </div>
             </div>
@@ -1321,12 +1337,12 @@ function renderIdeaLib(){
         var statusLabel = '<span class="status-pill '+statusClass+'" onclick="cycleIdeaStatus('+i+')" style="cursor:pointer;" title="点击切换状态">'+statusText+'</span>';
         var holdNote = item.status === 'hold' ? ' <span style="font-size:11px;color:#E65100;">🔒 刷新时保留</span>' : '';
         var full = item.content;
-        html += '<div class="news-card" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'">'+
+        html += '<div class="news-card" data-mod="idea" data-idx="'+i+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'">'+
             '<div class="n-title">'+escHtml(item.title)+' '+statusLabel+holdNote+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：2026-08-01</span>'+
             '<div class="right"><span class="actions">'+
-            '<span onclick="event.stopPropagation();showToast(\'已收藏\');">★ 收藏</span>'+
+            '<span onclick="event.stopPropagation();toggleFav(this,\'idea\');" class="fav-btn">☆ 收藏</span>'+
             '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
