@@ -1818,7 +1818,8 @@ function renderAsset(){
     arr.forEach(function(item, i){
         var amt = parseFloat(item.amount)||0;
         var pct = total>0 ? (amt/total*100) : 0;
-        var cost = (item.cost!==undefined && item.cost!==null && item.cost!=='') ? parseFloat(item.cost) : amt;
+        var hasCost = (item.cost!==undefined && item.cost!==null && item.cost!=='');
+        var cost = hasCost ? parseFloat(item.cost) : amt;
         var totalProfit = amt - cost;
         var q = (item.code && fundQuote[item.code]) ? fundQuote[item.code] : null;
         var gz = q ? q.gszzl : null;
@@ -1832,7 +1833,7 @@ function renderAsset(){
         var todayTxt = (todayItem===null)?'—':(todaySign+fmt(todayItem));
         var tpCls2 = (totalProfit>0)?'up':(totalProfit<0?'down':'flat');
         var tpSign2 = (totalProfit>0)?'+':(totalProfit<0?'':'');
-        var tpTxt = tpSign2+fmt(totalProfit);
+        var tpTxt = hasCost ? (tpSign2+fmt(totalProfit)) : '—';
         var subParts = [];
         if (item.code) subParts.push(item.code);
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
@@ -1846,7 +1847,7 @@ function renderAsset(){
             + '<div class="asset-grid">'
             +   '<div class="asset-cell"><span class="lab">跌涨</span><span class="val '+zCls+'">'+zTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">今日收益</span><span class="val '+todayCls+'">'+todayTxt+'</span></div>'
-            +   '<div class="asset-cell"><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
+            +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             + '</div>'
             + '<div class="asset-foot"><span class="asset-foot-hint">点按钮操作</span>'
@@ -2139,26 +2140,25 @@ function confirmOCR(){
 // ===================== 16. 指数跟踪（AI 抓取） =====================
 var indexTrackData = [
     {name:"黄金", icon:"circle", color:"#FFD700", rows:[
-        {label:"金价", val:"545.2 元/克"},
-        {label:"实际利率", val:"2.1%"},
-        {label:"估值区间", val:"中位"}
-    ], level:"mid", note:"金价高位回调后企稳，实际利率仍有下行空间。华夏黄金ETF-A场内溢价需关注。个人判断：中期偏乐观，短期注意波动。"},
-    {name:"纳斯达克100", icon:"circle", color:"#1976D2", rows:[
-        {label:"当前PE", val:"35.2"},
-        {label:"历史估值分位", val:"82%"},
+        {label:"金价", val:"884 元/克"},
+        {label:"美债10Y", val:"4.74%"},
         {label:"估值区间", val:"高位"}
+    ], level:"high", note:"金价自年初高点回撤，仍处历史偏高位；实际利率与美元走势是核心变量。个人判断：中期偏谨慎，等待更优买点。"},
+    {name:"纳斯达克100", icon:"circle", color:"#1976D2", rows:[
+        {label:"美债10Y", val:"4.74%"},
+        {label:"当前PE", val:"35.2"},
+        {label:"历史估值分位", val:"82%"}
     ], level:"high", note:"PE处于历史高位区间，AI叙事支撑估值但集中度风险高。QDII限购状态下溢价买入需谨慎。个人判断：短期谨慎，长期看好科技方向。"},
     {name:"红利低波", icon:"circle", color:"#388E3C", rows:[
+        {label:"美债10Y", val:"4.74%"},
         {label:"股息率", val:"5.8%"},
-        {label:"估值分位", val:"35%"},
-        {label:"估值区间", val:"低位"}
+        {label:"估值分位", val:"35%"}
     ], level:"low", note:"股息率5.8%处于较有吸引力水平，估值分位偏低。适合作为底仓配置。个人判断：性价比较高，适合长期持有。"},
     {name:"标普500跟踪摩根", icon:"circle", color:"#7B1FA2", rows:[
-        {label:"底层标的", val:"纳斯达克100/标普500"},
+        {label:"美债10Y", val:"4.74%"},
         {label:"溢价率", val:"3.2%"},
-        {label:"限购状态", val:"限额"},
-        {label:"汇率影响", val:"人民币贬值利好"}
-    ], level:"mid",         note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"}
+        {label:"限购状态", val:"限额"}
+    ], level:"mid", note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"}
 ];
 function renderIndexTrack(filterKey){
     var html='';
@@ -2166,25 +2166,17 @@ function renderIndexTrack(filterKey){
         if(filterKey && item.name.indexOf(filterKey)===-1 && (item.code||'').indexOf(filterKey)===-1) return;
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
         var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
-        // 只取前2行核心指标（PE/股息率/金价 等），不显示全部 rows
+        // 只取前2行核心指标（利率 + 1个关键指标），不显示全部 rows
         var coreRows = item.rows.slice(0, 2);
         var rowsHtml = '';
         coreRows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
-        // 实时涨跌（简化为一行）
-        var fcode = INDEX_FUND_MAP[item.name];
-        var liveHtml = '';
-        if (fcode && fundQuote[fcode]){
-            var q = fundQuote[fcode];
-            var z = parseFloat(q.gszzl); var cls = z>0?'up':(z<0?'down':'flat'); var sign=z>0?'+':'';
-            liveHtml = '<div class="idx-row">今日 <b class="'+cls+'">'+sign+(isNaN(z)?'—':z.toFixed(2))+'%</b>'+(q.gztime?' <span class="idx-src">['+q.gztime+']</span>':'')+'</div>';
-        }
         html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
             '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
             '</div>'+
-            '<div class="idx-rows">'+liveHtml+rowsHtml+'</div>'+
-            '<div class="idx-src-row"><i class="fa fa-database"></i> 数据来源：东方财富基金净值 · 策展内容需在电脑端发「刷新」指令更新</div>'+
+            '<div class="idx-rows">'+rowsHtml+'</div>'+
+            '<div class="idx-src-row"><i class="fa fa-database"></i> 数据来源：东方财富基金净值 · 利率为美债10Y参考</div>'+
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
