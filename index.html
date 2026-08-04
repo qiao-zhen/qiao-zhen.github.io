@@ -45,9 +45,6 @@
             padding:6px 10px; font-size:13px; display:flex; align-items:center;
         }
         .search-icon-btn:hover { color:#E91E63; }
-        .search-top-row { display:flex; padding:10px 16px; background:#FFFFFF; border-bottom:1px solid #FCE4EC; }
-        .search-top-row .search-center { flex:1; justify-content:flex-start; }
-        .search-top-row .search-wrap { max-width:560px; }
         .mcp-switch { position:relative; width:36px; height:20px; background:#DDD; border-radius:10px; cursor:pointer; transition:background .25s; }
         .mcp-switch.on { background:#F06292; }
         .mcp-switch .handle { position:absolute; top:2px; left:2px; width:16px; height:16px; background:#FFF; border-radius:50%; transition:transform .25s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
@@ -259,18 +256,16 @@
             .checkin-table { display:block; overflow-x:auto; white-space:nowrap; }
             .form-row { flex-direction:column; gap:0; }
             .page-header { gap:6px; flex-wrap:wrap; }
-            .top-bar { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:8px; position:relative; padding:10px 12px; }
+            .top-bar { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:6px; position:relative; padding:8px 10px; }
             .top-left { order:1; width:auto; flex:0 0 auto; justify-content:flex-start; position:relative; }
             .menu-btn { position:static; transform:none; }
-            .mcp-wrap { order:2; width:auto; flex:0 0 auto; justify-content:flex-start; margin-left:0; }
-            .search-top-row { padding:8px 12px; }
-            .search-top-row .search-center { justify-content:flex-start; }
-            .search-top-row .search-wrap { max-width:100%; }
+            .search-center { order:2; flex:1 1 auto; width:auto; max-width:none; justify-content:flex-start; padding:0; margin:0 4px; min-width:60px; }
+            .mcp-wrap { order:3; width:auto; flex:0 0 auto; justify-content:flex-start; margin-left:0; }
             .search-wrap { max-width:100%; }
             .search-box { max-width:100%; padding:7px 36px 7px 14px; font-size:13px; border-color:#F0DDE4; background:#FEF5F8; }
             .search-icon-btn { right:2px; padding:6px 10px; font-size:14px; color:#D4829F; }
-            .brand { font-size:14px; }
-            .brand .dot { width:8px; height:8px; }
+            .brand { font-size:13px; }
+            .brand .dot { width:7px; height:7px; }
             .filter-row { gap:5px; margin-bottom:8px; }
             .filter-chip { padding:3px 10px; font-size:11px; border-radius:12px; }
             .pill-btn { padding:5px 11px; font-size:12px; }
@@ -418,18 +413,16 @@
             <span>桥桥工作台</span>
         </div>
     </div>
-    <div class="mcp-wrap">
-        <i class="fa fa-power-off"></i>
-        <span>MCP</span>
-        <div class="mcp-switch on" id="mcpSwitch" onclick="toggleMCP()"><div class="handle"></div></div>
-    </div>
-</div>
-<div class="search-top-row">
     <div class="search-center" id="searchCenter">
         <div class="search-wrap">
             <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" oninput="liveSearch(this.value)">
             <button class="search-icon-btn" onclick="triggerSearch()" type="button"><i class="fa fa-search"></i></button>
         </div>
+    </div>
+    <div class="mcp-wrap">
+        <i class="fa fa-power-off"></i>
+        <span>MCP</span>
+        <div class="mcp-switch on" id="mcpSwitch" onclick="toggleMCP()"><div class="handle"></div></div>
     </div>
 </div>
 
