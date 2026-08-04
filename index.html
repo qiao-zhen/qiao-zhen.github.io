@@ -46,9 +46,7 @@
         .mcp-switch.on { background:#F06292; }
         .mcp-switch .handle { position:absolute; top:2px; left:2px; width:16px; height:16px; background:#FFF; border-radius:50%; transition:transform .25s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
         .mcp-switch.on .handle { transform:translateX(16px); }
-        .mcp-side { display:flex; align-items:center; gap:8px; padding:12px 16px; font-size:13px; color:#AD1457; border-bottom:1px solid #FCE4EC; background:#FFF5F8; }
-        .mcp-side .lbl { flex:1; display:flex; align-items:center; gap:6px; }
-        .mcp-side .mcp-switch { flex-shrink:0; }
+        .mcp-wrap { display:flex; align-items:center; gap:6px; font-size:13px; color:#AD1457; flex-shrink:0; white-space:nowrap; }
 
         /* ===== 布局 ===== */
         .layout { display:flex; height:calc(100vh - 53px); }
@@ -100,8 +98,8 @@
         /* ===== 资讯 / AI 抓取卡片 ===== */
         .news-card { border:1px solid #FCE4EC; border-radius:6px; padding:12px; margin-bottom:10px; background:#FFFFFF; transition:all .15s; }
         .news-card:hover { box-shadow:0 2px 8px rgba(248,187,208,.4); }
-        .news-card.done { opacity:.55; }
-        .news-card.done .n-title { text-decoration:line-through; }
+        .news-card.done { background:#E8F5E9; border-color:#A5D6A7; }
+        .news-card.done .n-title { text-decoration:line-through; color:#2E7D32; }
         .news-card.hl { box-shadow:0 0 0 3px #F06292; animation:hlPulse 1.2s ease; }
         @keyframes hlPulse { 0%{box-shadow:0 0 0 6px rgba(240,98,146,.5);} 100%{box-shadow:0 0 0 3px #F06292;} }
         .news-card .n-title { font-size:14px; font-weight:bold; color:#E91E63; margin-bottom:4px; }
@@ -113,11 +111,11 @@
         .news-card .n-foot .actions span { cursor:pointer; color:#F06292; }
         .news-card .n-foot .actions span:hover { color:#E91E63; }
         .news-card.read, .idx-card.read { opacity:0.5; }
-        .news-card .n-foot .actions span.faved { color:#E91E63; font-weight:700; }
         .news-card .n-foot .actions span.read-flag { color:#43A047; font-weight:700; }
+        .read-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#43A047; margin-left:6px; vertical-align:middle; flex:0 0 auto; }
+        .idx-name .read-dot { margin-left:6px; }
         .idx-actions { display:flex; gap:14px; margin-top:10px; font-size:12px; }
         .idx-actions span { cursor:pointer; color:#F06292; }
-        .idx-actions span.faved { color:#E91E63; font-weight:700; }
         .idx-actions span.read-flag { color:#43A047; font-weight:700; }
         .news-card .n-foot .read-more { color:#F06292; cursor:pointer; white-space:nowrap; }
         .news-card .n-foot .read-more:hover { color:#E91E63; }
@@ -208,7 +206,7 @@
         .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
         .pill-btn.ghost:hover { background:#FCE4EC; }
         /* AI抓取模块：刷新/导出按钮撑满右侧并放大 */
-        .sec-btns { display:flex; gap:10px; flex:1; justify-content:flex-end; min-width:0; }
+        .sec-btns { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; min-width:0; }
         .sec-btns .pill-btn { flex:1 1 0; justify-content:center; padding:9px 16px; font-size:14px; }
 
         /* ===== Toast 通知 ===== */
@@ -403,15 +401,16 @@
             <button class="search-icon-btn" onclick="triggerSearch()" type="button"><i class="fa fa-search"></i></button>
         </div>
     </div>
+    <div class="mcp-wrap">
+        <i class="fa fa-power-off"></i>
+        <span>MCP</span>
+        <div class="mcp-switch on" id="mcpSwitch" onclick="toggleMCP()"><div class="handle"></div></div>
+    </div>
 </div>
 
 <div class="layout">
     <!-- 侧边栏 -->
         <div class="sidebar" id="sidebar">
-        <div class="mcp-side">
-            <span class="lbl"><i class="fa fa-power-off"></i> MCP 总开关</span>
-            <div class="mcp-switch on" id="mcpSwitch" onclick="toggleMCP()"><div class="handle"></div></div>
-        </div>
         <div class="group" data-group="1">
             <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-rocket"></i><span>AI新账号运营</span></div>
             <div class="sub-list">
@@ -1071,8 +1070,8 @@ function buildCard(o){
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
         '<div class="right">'+
         (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
-        '<span class="actions"><span onclick="event.stopPropagation();deleteItem('+o.key+','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
-        '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone('+o.key+','+o.idx+');">✓ 已完成</span>'+
+        '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
+        (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
         (o.readMore!==false?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
         '</div></div></div>';
 }
@@ -1138,7 +1137,7 @@ function renderKnowledgeBase(){
     arr.forEach(function(item, i){
         var full = '分类：' + item.category + '\n\n📚 核心知识点：\n' + item.content + (item.note ? '\n\n💡 我的理解：\n' + item.note : '');
         var srcHtml = item.source ? '<div class="n-link">📎 原文链接：<a href="'+escAttr(item.source)+'" target="_blank" rel="noopener">'+escHtml(item.source)+'</a></div>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:'openEdit(\'knowledgeBase\',\'+i+\')' });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:"openEdit('knowledgeBase',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1174,11 +1173,10 @@ function renderOperationIdeas(){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
         html += '<div class="news-card"'+(isRead("ops",item.title)?" read":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title">'+escHtml(item.title)+'</div>'+ urlHtml +
+            '<div class="n-title">'+escHtml(item.title)+(isRead("ops",item.title)?'<span class="read-dot"></span>':'')+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
-'<span class="'+(isFav("ops",item.title)?"faved":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("ops",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
 '<span class="'+(isRead("ops",item.title)?"read-flag":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("ops",item.title)?"■ 已读":"✓ 已读")+'</span>'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
@@ -1218,7 +1216,7 @@ function renderAccountObserve(){
             '\n\n🔥 爆款视频要点：\n' + (item.hotVideo||'-') + '\n\n🎣 开头钩子：\n' + (item.hook||'-') +
             '\n\n🎬 视频结构：\n' + (item.structure||'-') + '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') + '\n⏰ 发布时间：' + (item.postTime||'-') +
             '\n\n✅ 我可以借鉴：\n' + (item.learn||'-') + '\n\n❌ 不要照搬：\n' + (item.avoid||'-');
-        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date, editAction:'openEdit(\'accountObserve\',\'+i+\')' });
+        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:item.track, content:full, date:item.date, editAction:"openEdit('accountObserve',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1255,7 +1253,7 @@ function renderWorkReview(){
         var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
             '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
             '\n\n⚠️ 问题判断：' + item.issue + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
-        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:'openEdit(\'workReview\',\'+i+\')' });
+        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:"openEdit('workReview',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1309,7 +1307,7 @@ function renderProduct(){
     var html='';
     arr.forEach(function(item, i){
         var full = '商品：' + item.info + '\n风格：' + item.style + '\n季节：' + item.season + '\n价位：' + item.price;
-        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date, editAction:'openEdit(\'productList\',\'+i+\')' });
+        html += buildCard({ key:'productList', idx:i, title:item.info, sub:item.style+'/'+item.season, content:full, date:item.date, editAction:"openEdit('productList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1344,9 +1342,8 @@ function renderIdeaLib(){
         html += '<div class="news-card" data-mod="idea" data-idx="'+i+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'">'+
             '<div class="n-title">'+escHtml(item.title)+' '+statusLabel+holdNote+'</div>'+
             '<div class="n-content"></div>'+
-            '<div class="n-foot"><span>AI 抓取时间：2026-08-01</span>'+
+            '<div class="n-foot"><span>AI 抓取时间：'+(item.date||'动态更新')+'</span>'+
             '<div class="right"><span class="actions">'+
-            '<span onclick="event.stopPropagation();toggleFav(this,\'idea\');" class="fav-btn">☆ 收藏</span>'+
             '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
@@ -1387,7 +1384,7 @@ function renderScript(){
     var html='';
     arr.forEach(function(item, i){
         var full = '脚本标题：' + item.title + (item.promptId ? '\n关联提示词ID：' + item.promptId : '') + '\n\n📝 内容：\n' + item.content;
-        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:'openEdit(\'scriptList\',\'+i+\')' });
+        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:"openEdit('scriptList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1417,7 +1414,7 @@ function renderPrompt(){
     var html='';
     arr.forEach(function(item, i){
         var full = '提示词标题：' + item.title + (item.tags&&item.tags.length?('\n风格标签：'+item.tags.join('/')):'') + '\n\n🎨 内容：\n' + item.content;
-        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:'openEdit(\'promptList\',\'+i+\')' });
+        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:"openEdit('promptList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1448,7 +1445,7 @@ function renderRecord(){
         var full = '视频标题：' + item.title + '\n播放：' + (item.play||'-') + '  点赞：' + (item.like||'-') +
             '\n挂车点击率：' + (item.ctr||'-') + '  成交单数：' + (item.deal||'-') +
             '\n\n📋 复盘分析：\n' + (item.analysis||'-');
-        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date, editAction:'openEdit(\'recordList\',\'+i+\')' });
+        html += buildCard({ key:'recordList', idx:i, title:item.title, content:full, date:item.date, editAction:"openEdit('recordList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1480,7 +1477,7 @@ function renderSideIdeas(){
     var html='';
     arr.forEach(function(item, i){
         var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
-        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:'openEdit(\'sideIdeas\',\'+i+\')' });
+        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:"openEdit('sideIdeas',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1510,7 +1507,7 @@ function renderEval(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.info + (item.link?('\n参考链接：'+item.link):'') + '\n\n🔍 对标案例：\n' + (item.case||'-');
-        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:'openEdit(\'evalList\',\'+i+\')' });
+        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:"openEdit('evalList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1535,7 +1532,7 @@ function renderTest(){
     var html='';
     arr.forEach(function(item, i){
         var full = '测试项目：' + item.name + '\n\n🔬 过程/现象：\n' + (item.process||'-') + '\n\n💬 用户反馈：\n' + (item.feedback||'-');
-        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'testList\',\'+i+\')' });
+        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:"openEdit('testList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1560,7 +1557,7 @@ function renderArchive(){
     var html='';
     arr.forEach(function(item, i){
         var full = '项目：' + item.name + '\n\n📦 复盘得失：\n' + (item.review||'-');
-        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date, editAction:'openEdit(\'archiveList\',\'+i+\')' });
+        html += buildCard({ key:'archiveList', idx:i, title:item.name, content:full, date:item.date, editAction:"openEdit('archiveList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1582,11 +1579,10 @@ function renderFinanceNews(){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
         html += '<div class="news-card"'+(isRead("finance",item.title)?" read":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+ urlHtml +
+            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+(isRead("finance",item.title)?'<span class="read-dot"></span>':'')+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
-'<span class="'+(isFav("finance",item.title)?"faved":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav("finance",item.title)?"★ 已收藏":"☆ 收藏")+'</span>'+
 '<span class="'+(isRead("finance",item.title)?"read-flag":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("finance",item.title)?"■ 已读":"✓ 已读")+'</span>'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
@@ -1645,9 +1641,9 @@ function autoFillFundName(){
         document.body.appendChild(s2);
     }
     var s=document.createElement('script');
-    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
-    s.onload=function(){ s.remove(); setTimeout(function(){ if(!nm.value.trim()) doFallback(); }, 300); };
-    s.onerror=function(){ s.remove(); doFallback(); };
+    s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+    s.onload=function(){ s.remove(); if(typeof fS_name!=='undefined' && fS_name){ if(!nm.value.trim()) nm.value=fS_name; if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=fS_name; fundQuote[code].fundcode=code; saveFundCache(); } };
+    s.onerror=function(){ s.remove(); showToast('自动识别失败，可手动填写名称'); };
     document.body.appendChild(s);
     _autoFillTimer = setTimeout(function(){ if(!nm.value.trim()&&!triedFallback) doFallback(); }, 4000);
 }
@@ -1913,20 +1909,49 @@ function showQuickCodeInput(){
 }
 
 // 抓取每日涨跌（客户端直接调天天基金估值接口，按持仓代码拉取）
+// 抓取每日涨跌：fundgz 估值接口已失效(返回404)，改用天天基金 pingzhongdata 接口
+function fmtDateValue(ms){
+    try { var d=new Date(ms); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); } catch(e){ return ''; }
+}
+function fillQuoteFromPingzhong(code){
+    try {
+        var trend = window.Data_netWorthTrend;
+        var name = (typeof fS_name!=='undefined') ? fS_name : '';
+        if (trend && trend.length){
+            var last = trend[trend.length-1];
+            if (!fundQuote[code]) fundQuote[code] = {};
+            fundQuote[code].fundcode = code;
+            if (name) fundQuote[code].name = name;
+            fundQuote[code].gszzl = (last.equityReturn!=null ? last.equityReturn : null);
+            fundQuote[code].dwjz = (last.y!=null ? last.y : null);
+            fundQuote[code].gztime = (last.x ? fmtDateValue(last.x) : '');
+            saveFundCache();
+            return true;
+        }
+        if (name){ if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=name; fundQuote[code].fundcode=code; saveFundCache(); }
+    } catch(e){}
+    return false;
+}
 function refreshFundQuotes(silent){
     var arr = storeGet('assetList');
     var codes = []; arr.forEach(function(it){ if(it.code && /^\d{6}$/.test(it.code)) codes.push(it.code); });
     codes = Array.from(new Set(codes));
     if (codes.length===0){ if(!silent) showToast('请先给基金填上 6 位代码'); return; }
     if (!silent) showToast('正在抓取每日涨跌…');
-    var done=0;
-    codes.forEach(function(code){
+    var n=0, got=0;
+    (function next(){
+        if (n>=codes.length){
+            renderAsset();
+            showToast(got>0?('每日涨跌已更新（'+got+'只）'):'接口未返回估值：可能非交易时段或网络受限');
+            return;
+        }
+        var code=codes[n++];
         var s=document.createElement('script');
-        s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
-        s.onload=function(){ done++; if(done>=codes.length){ renderAsset(); showToast('每日涨跌已更新'); } s.remove(); };
-        s.onerror=function(){ done++; if(done>=codes.length){ renderAsset(); showToast('部分基金抓取失败'); } s.remove(); };
+        s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+        s.onload=function(){ if(fillQuoteFromPingzhong(code)) got++; s.remove(); next(); };
+        s.onerror=function(){ s.remove(); next(); };
         document.body.appendChild(s);
-    });
+    })();
 }
 
 // 输代码快速导入：自动识别名称+净值，直接加一条持仓（金额0，长按编辑补）
@@ -1936,9 +1961,9 @@ function quickAddByCode(){
     if (fundQuote[code] && fundQuote[code].name){ doQuickAdd(code); return; }
     showToast('识别中…');
     var s=document.createElement('script');
-    s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
-    s.onload=function(){ s.remove(); setTimeout(function(){ afterQuickFill(code); }, 300); };
-    s.onerror=function(){ s.remove(); quickFallbackFill(code); };
+    s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+    s.onload=function(){ s.remove(); fillQuoteFromPingzhong(code); setTimeout(function(){ afterQuickFill(code); }, 200); };
+    s.onerror=function(){ s.remove(); showToast('识别失败，可手动新增'); };
     document.body.appendChild(s);
 }
 function quickFallbackFill(code){
@@ -2080,13 +2105,12 @@ function renderIndexTrack(){
         item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
         html += '<div class="idx-card'+(isRead('index',item.name)?' read':'')+' data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
-            '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
+            '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+(isRead('index',item.name)?'<span class="read-dot"></span>':'')+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
             '</div>'+
             '<div class="idx-rows">'+liveRow+rowsHtml+'</div>'+
             '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
             '<div class="idx-actions">'+
-            '<span class="'+(isFav('index',item.name)?'faved':'')+' data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleFav(this)">'+(isFav('index',item.name)?'★ 已收藏':'☆ 收藏')+'</span>'+
             '<span class="'+(isRead('index',item.name)?'read-flag':'')+' data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead('index',item.name)?'■ 已读':'✓ 已读')+'</span>'+
             '</div>'+
             '</div>';
@@ -2109,15 +2133,17 @@ function refreshIndexQuotes(silent){
     var codes = [];
     Object.keys(INDEX_FUND_MAP).forEach(function(k){ codes.push(INDEX_FUND_MAP[k]); });
     codes = Array.from(new Set(codes));
-    if (codes.length===0) return;
-    var done=0;
-    codes.forEach(function(code){
+    if (codes.length===0){ if(!silent) showToast('暂无指数基金映射'); return; }
+    var n=0, got=0;
+    (function next(){
+        if (n>=codes.length){ renderIndexTrack(); if(!silent) showToast(got>0?('指数估值已更新（'+got+'只）'):'指数接口未返回数据'); return; }
+        var code=codes[n++];
         var s=document.createElement('script');
-        s.src='https://fundgz.1234567.com.cn/js/'+code+'.js';
-        s.onload=function(){ done++; if(done>=codes.length) renderIndexTrack(); s.remove(); };
-        s.onerror=function(){ done++; if(done>=codes.length) renderIndexTrack(); s.remove(); };
+        s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+        s.onload=function(){ if(fillQuoteFromPingzhong(code)) got++; s.remove(); next(); };
+        s.onerror=function(){ s.remove(); next(); };
         document.body.appendChild(s);
-    });
+    })();
 }
 
 // ===================== 17. 调仓再平衡记录（localStorage） =====================
@@ -2145,7 +2171,7 @@ function renderRebalance(){
     arr.forEach(function(item, i){
         var full = '标的：' + item.target + '\n时间：' + (item.time||'-') + '\n操作：' + item.action + '  份额：' + (item.share||'-') +
             '\n理由：' + item.reason + '\n\n🧠 判断逻辑：\n' + (item.logic||'-');
-        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date, editAction:'openEdit(\'rebalanceList\',\'+i+\')' });
+        html += buildCard({ key:'rebalanceList', idx:i, title:item.target, sub:item.action, content:full, date:item.date, editAction:"openEdit('rebalanceList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2215,7 +2241,7 @@ function renderBodyNote(){
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-sticky-note-o"></i></div><p>暂无观察记录</p><p class="sub">点「新增记录」随手记录身体观察</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
-        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date, editAction:'openEdit(\'bodyNoteList\',\'+i+\')' });
+        html += buildCard({ key:'bodyNoteList', idx:i, title:(item.date||'记录'), content:item.content, date:item.date, editAction:"openEdit('bodyNoteList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2273,7 +2299,7 @@ function renderTodo(){
     arr.forEach(function(item, i){
         var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
-        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', subClass:prioCls, content:full, date:item.date, editAction:'editTodo('+i+')' });
+        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:item.prio+'优先', subClass:prioCls, content:full, date:item.date, showDone:true, editAction:'editTodo('+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
