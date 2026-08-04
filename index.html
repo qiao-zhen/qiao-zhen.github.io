@@ -185,6 +185,16 @@
         .checkin-table td:first-child { font-weight:600; color:#AD1457; width:24%; background:#FFF8FA; }
         .checkin-table input { border:none; background:transparent; width:100%; font-size:14px; font-family:inherit; color:#555; }
         .checkin-table input:focus { outline:1px dashed #F06292; border-radius:3px; }
+        .checkin-cards-title { font-size:14px; font-weight:600; color:#AD1457; margin:18px 0 10px 0; display:flex; align-items:center; gap:6px; }
+        .checkin-cards { display:flex; flex-direction:column; gap:12px; }
+        .checkin-card { background:#FFF; border:1px solid #F8BBD0; border-left:4px solid #F06292; border-radius:10px; padding:12px 14px; box-shadow:0 1px 4px rgba(233,30,99,.08); }
+        .checkin-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .checkin-card-date { font-size:14px; font-weight:700; color:#E91E63; }
+        .checkin-card-del { font-size:12px; color:#B0BEC5; cursor:pointer; padding:2px 8px; border-radius:12px; border:1px solid #ECEFF1; }
+        .checkin-card-del:hover { color:#E91E63; border-color:#F8BBD0; }
+        .checkin-card-sec { font-size:13px; color:#555; margin:6px 0; line-height:1.65; }
+        .checkin-card-sec b { color:#AD1457; margin-right:6px; }
+        .checkin-card-empty { color:#B0BEC5; font-size:13px; padding:8px 0; }
 
         /* ===== 知识库笔记分类筛选 ===== */
         .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
@@ -941,6 +951,8 @@
                 <tr><td>手脚冰凉</td><td><input type="text" data-k="手脚冰凉" placeholder="无 / 轻微 / 明显"></td></tr>
                 <tr><td>其他体感</td><td><input type="text" data-k="其他体感" placeholder="开放记录"></td></tr>
             </tbody></table>
+            <div class="checkin-cards-title"><i class="fa fa-th-list"></i> 已保存的打卡卡片</div>
+            <div id="checkinCards" class="checkin-cards"></div>
         </div>
 
         <!-- 19. 查看历史打卡汇总 -->
@@ -2103,16 +2115,13 @@ function renderIndexTrack(){
         }
         var rowsHtml = '';
         item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
-        html += '<div class="idx-card'+(isRead('index',item.name)?' read':'')+' data-mod="index" data-key="'+escAttr(item.name)+'">'+
+        html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
-            '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+(isRead('index',item.name)?'<span class="read-dot"></span>':'')+'</div>'+
+            '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
             '</div>'+
             '<div class="idx-rows">'+liveRow+rowsHtml+'</div>'+
             '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
-            '<div class="idx-actions">'+
-            '<span class="'+(isRead('index',item.name)?'read-flag':'')+' data-mod="index" data-key="'+escAttr(item.name)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead('index',item.name)?'■ 已读':'✓ 已读')+'</span>'+
-            '</div>'+
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
@@ -2124,7 +2133,6 @@ var INDEX_FUND_MAP = {
     '黄金':'518880',       // 华夏黄金ETF
     '纳斯达克100':'016452', // 南方纳斯达克100A
     '红利低波':'012709',   // 易方达红利低波ETF联接A
-    '中证500':'004345',    // 南方中证500ETF联接A
     '标普500跟踪摩根':'017641'    // 摩根标普500指数A
 };
 var indexQuote = {};
@@ -2190,34 +2198,78 @@ function saveCheckin(){
             if (k) sections[sec][k] = v;
         });
     });
-    var month = todayStr().slice(0,7);
+    var today = todayStr();
+    var month = today.slice(0,7);
     var all = JSON.parse(localStorage.getItem('checkinRecords') || '{}');
     if (!all[month]) all[month] = [];
-    all[month].unshift({ date: todayStr(), data: sections });
+    var recs = all[month];
+    var found = false;
+    for (var i=0;i<recs.length;i++){ if (recs[i].date===today){ recs[i].data = sections; found = true; break; } }
+    if (!found) recs.unshift({ date: today, data: sections });
+    all[month] = recs;
     localStorage.setItem('checkinRecords', JSON.stringify(all));
-    showToast('今日打卡已保存（'+month+'）');
+    renderCheckinCards();
+    showToast('今日打卡已保存（'+today+'）');
+}
+function renderCheckinCards(){
+    var box = document.getElementById('checkinCards');
+    if (!box) return;
+    var all = JSON.parse(localStorage.getItem('checkinRecords') || '{}');
+    var recs = [];
+    Object.keys(all).forEach(function(m){ (all[m]||[]).forEach(function(r){ recs.push(r); }); });
+    recs.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    if (recs.length===0){ box.innerHTML = '<div class="checkin-card-empty">暂无保存的打卡，填写上方表格后点「保存今日打卡」即可生成卡片</div>'; return; }
+    var html='';
+    recs.forEach(function(r){
+        var secs = r.data || {};
+        var body='';
+        Object.keys(secs).forEach(function(sec){
+            var items = secs[sec]; if (!items) return;
+            var parts = Object.keys(items).filter(function(k){ return items[k]; }).map(function(k){ return k+'：'+items[k]; });
+            if (parts.length) body += '<div class="checkin-card-sec"><b>'+sec+'</b>'+parts.join(' · ')+'</div>';
+        });
+        if (!body) body = '<div class="checkin-card-sec">（无填写内容）</div>';
+        html += '<div class="checkin-card">'+
+            '<div class="checkin-card-top"><span class="checkin-card-date">'+escHtml(r.date||'')+'</span>'+
+            '<span class="checkin-card-del" onclick="deleteCheckin(\''+escAttr(r.date||'')+'\')">删除</span></div>'+
+            body+'</div>';
+    });
+    box.innerHTML = html;
+}
+function deleteCheckin(date){
+    if (!confirm('确定删除 '+date+' 的打卡卡片？')) return;
+    var all = JSON.parse(localStorage.getItem('checkinRecords') || '{}');
+    Object.keys(all).forEach(function(m){
+        all[m] = (all[m]||[]).filter(function(r){ return r.date!==date; });
+        if (all[m].length===0) delete all[m];
+    });
+    localStorage.setItem('checkinRecords', JSON.stringify(all));
+    renderCheckinCards();
+    showToast('已删除 '+date+' 打卡');
 }
 function exportCheckinMD(){
-    var month = todayStr().slice(0,7);
     var all = JSON.parse(localStorage.getItem('checkinRecords') || '{}');
-    var recs = all[month] || [];
-    if (recs.length === 0){ showToast('本月暂无打卡数据'); return; }
-    var md = '# 健康打卡月报 · ' + month + '\n\n';
+    var recs = [];
+    Object.keys(all).forEach(function(m){ (all[m]||[]).forEach(function(r){ recs.push(r); }); });
+    recs.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    if (recs.length === 0){ showToast('暂无打卡数据'); return; }
+    var md = '# 健康打卡记录 · 共 ' + recs.length + ' 条\n\n';
     recs.forEach(function(r){
         md += '## ' + (r.date || '') + '\n\n';
         var secs = r.data || {};
         Object.keys(secs).forEach(function(sec){
+            var items = secs[sec]; if (!items) return;
             md += '### ' + sec + '\n';
-            Object.keys(secs[sec]).forEach(function(k){
-                md += '- **' + k + '**：' + (secs[sec][k] || '-') + '\n';
+            Object.keys(items).forEach(function(k){
+                if (items[k]) md += '- **' + k + '**：' + items[k] + '\n';
             });
             md += '\n';
         });
     });
     md = md.trim() + '\n';
-    _exportMD = md; _exportFilename = '健康打卡_' + month + '.md';
-    document.getElementById('exportTitle').textContent = '导出 · 健康打卡月报';
-    document.getElementById('exportSub').textContent = '已生成 ' + md.split('\n').length + ' 行 Markdown，可复制或下载保存为记录';
+    _exportMD = md; _exportFilename = '健康打卡_全部.md';
+    document.getElementById('exportTitle').textContent = '导出 · 健康打卡（全部卡片）';
+    document.getElementById('exportSub').textContent = '已生成 ' + md.split('\n').length + ' 行 Markdown，包含全部 ' + recs.length + ' 张打卡卡片，可复制或下载保存';
     document.getElementById('exportText').value = _exportMD;
     document.getElementById('exportModal').style.display = 'flex';
 }
@@ -2357,6 +2409,7 @@ function showPage(pageId, el){
     if (mainEl) mainEl.scrollTop = 0;
     truncateAllNews();
     window.scrollTo(0, 0);
+    if (pageId === 'health-checkin') renderCheckinCards();
 }
 
 // ===================== 内容截断 >100字 =====================
