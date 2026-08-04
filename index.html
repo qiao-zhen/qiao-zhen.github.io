@@ -338,6 +338,7 @@
 .asset-cell .val.up{color:#E53935;}
 .asset-cell .val.down{color:#2E9E5B;}
 .asset-cell .val.flat{color:#888;}
+.asset-update-time{text-align:right;font-size:11px;color:#B0AAB5;margin-top:6px;padding-top:6px;border-top:1px dashed #F0E1E9;}
 .summary-bar .today-profit{color:#E53935;font-weight:700;font-size:15px;}
 .summary-bar .today-profit.neg{color:#2E9E5B;}
 .summary-bar .today-profit.zero{color:#888;}
@@ -1850,8 +1851,8 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">今日收益</span><span class="val '+todayCls+'">'+todayTxt+'</span></div>'
             +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
-            +   (q ? '<div class="asset-cell"><span class="lab">更新</span><span class="val flat" style="font-size:12px" title="跌涨数据抓取时间">'+escHtml((q.gztime||lastQuoteTime||'已抓取'))+'</span></div>' : '')
             + '</div>'
+            + (q ? '<div class="asset-update-time">更新：'+escHtml((q.gztime||lastQuoteTime||'已抓取'))+'</div>' : '')
             + '</div>';
     });
     wrap.innerHTML = html;
@@ -2163,9 +2164,10 @@ function renderIndexTrack(filterKey){
         if(filterKey && item.name.indexOf(filterKey)===-1 && (item.code||'').indexOf(filterKey)===-1) return;
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
         var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
-        // 显示全部指标行（不截断，与截图对齐）
+        // 只取前2行核心指标（截图红框：金价+利率 / PE+分位 / 股息率+分位 等），不显示估值区间及后续
+        var coreRows = item.rows.slice(0, 2);
         var rowsHtml = '';
-        item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
+        coreRows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
         var noteHtml = item.note ? '<div class="idx-note">💡 '+escHtml(item.note)+'</div>' : '';
         html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
