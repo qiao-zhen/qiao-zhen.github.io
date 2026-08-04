@@ -1849,6 +1849,7 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">今日收益</span><span class="val '+todayCls+'">'+todayTxt+'</span></div>'
             +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
+            +   (q && q.gztime ? '<div class="asset-cell"><span class="lab">更新</span><span class="val flat" style="font-size:12px">'+escHtml(q.gztime)+'</span></div>' : '')
             + '</div>'
             + '<div class="asset-foot"><span class="asset-foot-hint">点按钮操作</span>'
             + '<div class="asset-btns">'
