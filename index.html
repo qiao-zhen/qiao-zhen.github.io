@@ -110,15 +110,16 @@
         .news-card:hover .n-foot .actions { opacity:1; }
         .news-card .n-foot .actions span { cursor:pointer; color:#F06292; }
         .news-card .n-foot .actions span:hover { color:#E91E63; }
-        .news-card.read, .idx-card.read { opacity:0.5; }
-        .news-card .n-foot .actions span.read-flag { color:#43A047; font-weight:700; }
-        .read-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#43A047; margin-left:6px; vertical-align:middle; flex:0 0 auto; }
-        .idx-name .read-dot { margin-left:6px; }
         .idx-actions { display:flex; gap:14px; margin-top:10px; font-size:12px; }
         .idx-actions span { cursor:pointer; color:#F06292; }
-        .idx-actions span.read-flag { color:#43A047; font-weight:700; }
         .news-card .n-foot .read-more { color:#F06292; cursor:pointer; white-space:nowrap; }
         .news-card .n-foot .read-more:hover { color:#E91E63; }
+        .form-sel { width:100%; padding:8px 10px; border:1px solid #f3c5d6; border-radius:6px; font-size:14px; background:#fff; color:#333; box-sizing:border-box; }
+        .prompt-refs { font-size:12px; color:#F06292; cursor:pointer; margin:4px 0 2px; padding:3px 0; }
+        .prompt-refs:hover { color:#E91E63; text-decoration:underline; }
+        .filter-banner { background:#FCE4EC; border:1px solid #F8BBD0; color:#C2185B; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
+        .filter-banner span { float:right; cursor:pointer; font-weight:700; }
+        .filter-banner span:hover { color:#AD1457; }
         .news-card .n-link { font-size:12px; margin-bottom:6px; }
         .news-card .n-link a { color:#1976D2; }
         .news-card .n-link a:hover { color:#E91E63; }
@@ -640,12 +641,12 @@
                 <div class="page-title"><i class="fa fa-file-text-o ico"></i> 短视频脚本库</div>
                 <button class="pill-btn" onclick="toggleForm('form-script')"><i class="fa fa-plus"></i> 新增脚本</button>
             </div>
-            <div class="tip"><i class="fa fa-link"></i> 绑定关联 AI 提示词 ID，实现脚本+素材整套复用</div>
+            <div class="tip"><i class="fa fa-link"></i> 关联 AI 提示词，脚本+素材整套复用（自动带出编号，不用手填）</div>
             <div class="card form-card hidden" id="form-script">
                 <h4>新增脚本</h4>
                 <div class="form-item"><label>脚本标题</label><input type="text" id="scr-title" placeholder="脚本标题"></div>
                 <div class="form-item"><label>脚本内容</label><textarea id="scr-content" style="min-height:120px" placeholder="粘贴或编写完整脚本"></textarea></div>
-                <div class="form-item"><label>关联 AI 提示词 ID</label><input type="text" id="scr-prompt" placeholder="输入配套绘图素材提示词ID"></div>
+                <div class="form-item"><label>关联 AI 提示词</label><select id="scr-prompt" class="form-sel"><option value="">— 不关联 —</option></select></div>
                 <button class="save-btn" onclick="saveScript()"><i class="fa fa-check"></i> 保存脚本</button>
             </div>
             <div id="scriptList"></div>
@@ -1184,12 +1185,11 @@ function renderOperationIdeas(){
     operationIdeasData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card"'+(isRead("ops",item.title)?" read":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title">'+escHtml(item.title)+(isRead("ops",item.title)?'<span class="read-dot"></span>':'')+'</div>'+ urlHtml +
+        html += '<div class="news-card" data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+            '<div class="n-title">'+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
-'<span class="'+(isRead("ops",item.title)?"read-flag":"")+' data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("ops",item.title)?"■ 已读":"✓ 已读")+'</span>'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
@@ -1390,13 +1390,19 @@ function saveScript(){
 }
 function renderScript(){
     RENDER_MAP['scriptList'] = renderScript;
-    var arr = storeGet('scriptList');
+    refreshPromptSelect();
+    var all = storeGet('scriptList');
+    var pmap = promptMap();
+    var ptitle = scriptFilterPid ? (pmap[scriptFilterPid] || scriptFilterPid) : '';
+    var banner = scriptFilterPid ? '<div class="filter-banner">只显示关联「'+escHtml(ptitle)+'」的脚本<span onclick="clearScriptFilter()">显示全部 ✕</span></div>' : '';
     var wrap = document.getElementById('scriptList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-file-text-o"></i></div><p>暂无脚本</p><p class="sub">点「新增脚本」开始沉淀你的短视频脚本</p></div>'; return; }
-    var html='';
-    arr.forEach(function(item, i){
-        var full = '脚本标题：' + item.title + (item.promptId ? '\n关联提示词ID：' + item.promptId : '') + '\n\n📝 内容：\n' + item.content;
-        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:item.promptId?('提示词:'+item.promptId):'', content:full, date:item.date, editAction:"openEdit('scriptList',"+i+")" });
+    if (all.length === 0){ wrap.innerHTML = banner + '<div class="empty"><div class="ico"><i class="fa fa-file-text-o"></i></div><p>暂无脚本</p><p class="sub">点「新增脚本」开始沉淀你的短视频脚本</p></div>'; return; }
+    var html = banner;
+    all.forEach(function(item, i){
+        if (scriptFilterPid && item.promptId !== scriptFilterPid) return;
+        var pName = item.promptId ? (pmap[item.promptId] || ('(已删除:'+item.promptId+')')) : '';
+        var full = '脚本标题：' + item.title + (pName ? '\n关联提示词：' + pName : '') + '\n\n📝 内容：\n' + item.content;
+        html += buildCard({ key:'scriptList', idx:i, title:item.title, sub:pName?('🎨 '+pName):'', content:full, date:item.date, editAction:"openEdit('scriptList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1420,17 +1426,56 @@ function savePrompt(){
 }
 function renderPrompt(){
     RENDER_MAP['promptList'] = renderPrompt;
+    ensurePromptIds();
+    refreshPromptSelect();
     var arr = storeGet('promptList');
+    var scripts = storeGet('scriptList');
     var wrap = document.getElementById('promptList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-paint-brush"></i></div><p>暂无提示词</p><p class="sub">点「新增提示词」统一管理少女风/服装绘图提示词</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
         var full = '提示词标题：' + item.title + (item.tags&&item.tags.length?('\n风格标签：'+item.tags.join('/')):'') + '\n\n🎨 内容：\n' + item.content;
-        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.tags&&item.tags.length?item.tags.join('/'):'', content:full, date:item.date, editAction:"openEdit('promptList',"+i+")" });
+        var refs = scripts.filter(function(s){ return s.promptId === item.id; });
+        var refHtml = refs.length ? '<div class="prompt-refs" onclick="event.stopPropagation();filterScriptsByPrompt(\''+item.id+'\')">被 '+refs.length+' 个脚本引用 ›</div>' : '';
+        html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.id + (item.tags&&item.tags.length?(' · '+item.tags.join('/')):''), content:full, date:item.date, editAction:"openEdit('promptList',"+i+")", extra:refHtml });
     });
     wrap.innerHTML = html;
     truncateAllNews();
 }
+
+// 提示词自动编号 + 下拉 + 反向关联
+var scriptFilterPid = null;
+function ensurePromptIds(){
+    var arr = storeGet('promptList');
+    var max = 0;
+    arr.forEach(function(it){ if(it.id && /^P(\d+)$/.test(it.id)){ var n=parseInt(it.id.slice(1),10); if(n>max) max=n; } });
+    var changed=false;
+    arr.forEach(function(it){ if(!it.id || !/^P\d+$/.test(it.id)){ max++; it.id='P'+('00'+max).slice(-3); changed=true; } });
+    if(changed) storeSet('promptList', arr);
+}
+function promptMap(){
+    var m = {};
+    storeGet('promptList').forEach(function(p){ if(p.id) m[p.id] = p.title; });
+    return m;
+}
+function refreshPromptSelect(){
+    var sel = document.getElementById('scr-prompt');
+    if(!sel) return;
+    ensurePromptIds();
+    var prompts = storeGet('promptList');
+    var used = {};
+    storeGet('scriptList').forEach(function(s){ if(s.promptId) used[s.promptId]=true; });
+    var opts = '<option value="">— 不关联 —</option>';
+    prompts.forEach(function(p){ if(p.id) opts += '<option value="'+p.id+'">'+p.id+' · '+(p.title||'')+'</option>'; });
+    Object.keys(used).forEach(function(pid){ if(!prompts.some(function(p){return p.id===pid;})) opts += '<option value="'+pid+'">'+pid+' · (已删除)</option>'; });
+    sel.innerHTML = opts;
+}
+function filterScriptsByPrompt(pid){
+    scriptFilterPid = pid;
+    if(typeof showPage === 'function') showPage('script-lib');
+    renderScript();
+}
+function clearScriptFilter(){ scriptFilterPid = null; renderScript(); }
 
 // ===================== 9. 发布记录&复盘（localStorage） =====================
 function saveRecord(){
@@ -1590,12 +1635,11 @@ function renderFinanceNews(){
     financeNewsData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
         var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
-        html += '<div class="news-card"'+(isRead("finance",item.title)?" read":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+(isRead("finance",item.title)?'<span class="read-dot"></span>':'')+'</div>'+ urlHtml +
+        html += '<div class="news-card" data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
+            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+ urlHtml +
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
-'<span class="'+(isRead("finance",item.title)?"read-flag":"")+' data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleRead(this)">'+(isRead("finance",item.title)?"■ 已读":"✓ 已读")+'</span>'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
             '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
@@ -2416,11 +2460,9 @@ function showPage(pageId, el){
 // ===== 收藏 / 已读 通用状态（localStorage，按 模块::键 唯一）=====
 function _wbGetSet(k){ try { return JSON.parse(localStorage.getItem(k) || '{}'); } catch(e){ return {}; } }
 function _wbSetSet(k,o){ try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){} }
-var WB_FAV='wb_fav', WB_READ='wb_read';
+var WB_FAV='wb_fav';
 function isFav(m,t){ return !!_wbGetSet(WB_FAV)[m+'::'+t]; }
-function isRead(m,t){ return !!_wbGetSet(WB_READ)[m+'::'+t]; }
 function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var s=_wbGetSet(WB_FAV),key=m+'::'+k; if(s[key]) delete s[key]; else s[key]=1; _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); }
-function toggleRead(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var s=_wbGetSet(WB_READ),key=m+'::'+k; if(s[key]) delete s[key]; else s[key]=1; _wbSetSet(WB_READ,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); }
 
 function truncateAllNews(){
     document.querySelectorAll('.news-card').forEach(function(card){
@@ -2720,6 +2762,7 @@ function _setStore(key, arr){
 }
 function openEdit(key, idx){
     var c = EDIT_CONFIG[key]; if(!c) return;
+    if(key === 'scriptList') refreshPromptSelect();
     var arr = _getStore(key); var it = arr[idx]; if(!it) return;
     _editState.key = key; _editState.idx = idx;
     var form = document.getElementById(c.f); if(!form) return;
