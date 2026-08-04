@@ -1665,6 +1665,7 @@ function renderFinanceNews(){
 
 // ===================== 15. 持仓台账（localStorage + 识别/定投/占比/涨跌） =====================
 var fundQuote = {};
+var lastQuoteTime = '';   // 最近一次成功抓取到跌涨数据的时间（兜底显示用）
 try { var _fqc = JSON.parse(localStorage.getItem('fundQuoteCache')||'{}'); for (var _k in _fqc){ if(_fqc.hasOwnProperty(_k)) fundQuote[_k]=_fqc[_k]; } } catch(e){}
 function saveFundCache(){ try { localStorage.setItem('fundQuoteCache', JSON.stringify(fundQuote)); } catch(e){} }
 window.jsonpgz = function(d){
@@ -1849,7 +1850,7 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">今日收益</span><span class="val '+todayCls+'">'+todayTxt+'</span></div>'
             +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
-            +   (q && q.gztime ? '<div class="asset-cell"><span class="lab">更新</span><span class="val flat" style="font-size:12px">'+escHtml(q.gztime)+'</span></div>' : '')
+            +   (q ? '<div class="asset-cell"><span class="lab">更新</span><span class="val flat" style="font-size:12px" title="跌涨数据抓取时间">'+escHtml((q.gztime||lastQuoteTime||'已抓取'))+'</span></div>' : '')
             + '</div>'
             + '<div class="asset-foot"><span class="asset-foot-hint">点按钮操作</span>'
             + '<div class="asset-btns">'
@@ -2020,6 +2021,7 @@ function refreshFundQuotes(silent){
     var n=0, got=0;
     (function next(){
         if (n>=codes.length){
+            if (got>0){ var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; lastQuoteTime=_d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate())+' '+_p(_d.getHours())+':'+_p(_d.getMinutes()); }
             renderAsset();
             showToast(got>0?('每日涨跌已更新（'+got+'只）'):'接口未返回估值：可能非交易时段或网络受限');
             return;
@@ -2167,9 +2169,9 @@ function renderIndexTrack(filterKey){
         if(filterKey && item.name.indexOf(filterKey)===-1 && (item.code||'').indexOf(filterKey)===-1) return;
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
         var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
-        // 显示全部指标行（不截断）
+        // 显示全部指标行（不截断），但隐藏"估值区间"行
         var rowsHtml = '';
-        item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
+        item.rows.forEach(function(r){ if(r.label === '估值区间') return; rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
         var noteHtml = item.note ? '<div class="idx-note">💡 '+escHtml(item.note)+'</div>' : '';
         html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
@@ -2178,6 +2180,7 @@ function renderIndexTrack(filterKey){
             '</div>'+
             '<div class="idx-rows">'+rowsHtml+'</div>'+
             noteHtml+
+            '<div class="idx-src-row"><i class="fa fa-database"></i> 数据来源：东方财富基金净值 · 利率为美债10Y参考</div>'+
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
