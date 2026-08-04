@@ -176,6 +176,7 @@
         .idx-card .idx-row { font-size:13px; color:#555; }
         .idx-card .idx-row b { color:#333; }
         .idx-card .idx-note { font-size:12px; color:#999; border-top:1px dashed #FCE4EC; padding-top:6px; margin-top:6px; }
+        .idx-card .idx-src-row { font-size:11px; color:#B0AAB5; margin-top:6px; padding-top:6px; border-top:1px dashed #F0E8EC; display:flex; align-items:center; gap:4px; }
 
         /* ===== 唯一表格：今日打卡面板 ===== */
         .checkin-section-title { font-size:15px; font-weight:600; color:#E91E63; margin:16px 0 8px 0; display:flex; align-items:center; gap:6px; }
@@ -656,7 +657,12 @@
         <div class="page" id="page-prompt-lib">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-paint-brush ico"></i> AI素材提示词仓库</div>
-                <button class="pill-btn" onclick="toggleForm('form-prompt')"><i class="fa fa-plus"></i> 新增提示词</button>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div class="prompt-search-wrap" style="position:relative;flex:1;min-width:140px;max-width:260px">
+                        <input type="text" id="prompt-search" placeholder="🔍 按 ID（P001）或标题搜索…" oninput="searchPrompt(this.value)" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #F8BBD0;border-radius:16px;font-size:13px;background:#FFF5F8;color:#333;outline:none" />
+                    </div>
+                    <button class="pill-btn" onclick="toggleForm('form-prompt')"><i class="fa fa-plus"></i> 新增提示词</button>
+                </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 统一管理、迭代少女风 / 服装绘图提示词</div>
             <div class="card form-card hidden" id="form-prompt">
@@ -1424,7 +1430,7 @@ function savePrompt(){
     showToast(_editState.key?'提示词已更新':'提示词已保存');
     renderPrompt();
 }
-function renderPrompt(){
+function renderPrompt(filterKey){
     RENDER_MAP['promptList'] = renderPrompt;
     ensurePromptIds();
     refreshPromptSelect();
@@ -1432,6 +1438,12 @@ function renderPrompt(){
     var scripts = storeGet('scriptList');
     var wrap = document.getElementById('promptList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-paint-brush"></i></div><p>暂无提示词</p><p class="sub">点「新增提示词」统一管理少女风/服装绘图提示词</p></div>'; return; }
+    // 搜索筛选
+    if(filterKey){
+        var fk=filterKey.toLowerCase();
+        arr=arr.filter(function(item){ return (item.id||'').toLowerCase().indexOf(fk)!==-1 || (item.title||'').toLowerCase().indexOf(fk)!==-1 || (item.content||'').toLowerCase().indexOf(fk)!==-1; });
+        if(arr.length===0){ wrap.innerHTML='<div class="empty"><div class="ico"><i class="fa fa-search"></i></div><p>未找到匹配「'+escHtml(filterKey)+'」的提示词</p><p class="sub">试试换个 ID 或关键词</p></div>'; return; }
+    }
     var html='';
     arr.forEach(function(item, i){
         var full = '提示词标题：' + item.title + (item.tags&&item.tags.length?('\n风格标签：'+item.tags.join('/')):'') + '\n\n🎨 内容：\n' + item.content;
@@ -1439,8 +1451,12 @@ function renderPrompt(){
         var refHtml = refs.length ? '<div class="prompt-refs" onclick="event.stopPropagation();filterScriptsByPrompt(\''+item.id+'\')">被 '+refs.length+' 个脚本引用 ›</div>' : '';
         html += buildCard({ key:'promptList', idx:i, title:item.title, sub:item.id + (item.tags&&item.tags.length?(' · '+item.tags.join('/')):''), content:full, date:item.date, editAction:"openEdit('promptList',"+i+")", extra:refHtml });
     });
+    if(filterKey) html='<div class="filter-banner">搜索「'+escHtml(filterKey)+'」结果（'+arr.length+'条）<span onclick="searchPrompt(\'\')" style="cursor:pointer;color:#E91E63;margin-left:8px;font-weight:700">✕ 清除</span></div>'+html;
     wrap.innerHTML = html;
     truncateAllNews();
+}
+function searchPrompt(key){
+    renderPrompt(key.trim());
 }
 
 // 提示词自动编号 + 下拉 + 反向关联
@@ -2144,28 +2160,31 @@ var indexTrackData = [
         {label:"汇率影响", val:"人民币贬值利好"}
     ], level:"mid",         note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"}
 ];
-function renderIndexTrack(){
+function renderIndexTrack(filterKey){
     var html='';
     indexTrackData.forEach(function(item){
+        if(filterKey && item.name.indexOf(filterKey)===-1 && (item.code||'').indexOf(filterKey)===-1) return;
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
         var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
-        // 构建实时行情行（如果有）
-        var liveRow = '';
+        // 只取前2行核心指标（PE/股息率/金价 等），不显示全部 rows
+        var coreRows = item.rows.slice(0, 2);
+        var rowsHtml = '';
+        coreRows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
+        // 实时涨跌（简化为一行）
         var fcode = INDEX_FUND_MAP[item.name];
+        var liveHtml = '';
         if (fcode && fundQuote[fcode]){
             var q = fundQuote[fcode];
             var z = parseFloat(q.gszzl); var cls = z>0?'up':(z<0?'down':'flat'); var sign=z>0?'+':'';
-            liveRow = '<div class="idx-row"><b>实时估值</b>：<span style="color:#E91E63;font-weight:700">'+escHtml(q.name||item.name)+'</span> 净值 <b>'+q.gsz+'</b> · 今日 <b class="'+cls+'">'+sign+z+'%</b><span style="color:#A0AAB5;font-size:11px;margin-left:4px">['+q.gztime+']</span></div>';
+            liveHtml = '<div class="idx-row">今日 <b class="'+cls+'">'+sign+(isNaN(z)?'—':z.toFixed(2))+'%</b>'+(q.gztime?' <span class="idx-src">['+q.gztime+']</span>':'')+'</div>';
         }
-        var rowsHtml = '';
-        item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
         html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
             '<div class="idx-name"><i class="fa fa-'+item.icon+'" style="color:'+item.color+'"></i> '+item.name+'</div>'+
             '<span class="val-badge '+levelClass+'">'+levelText+'</span>'+
             '</div>'+
-            '<div class="idx-rows">'+liveRow+rowsHtml+'</div>'+
-            '<div class="idx-note"><i class="fa fa-user"></i> '+item.note+'</div>'+
+            '<div class="idx-rows">'+liveHtml+rowsHtml+'</div>'+
+            '<div class="idx-src-row"><i class="fa fa-database"></i> 数据来源：东方财富基金净值 · 策展内容需在电脑端发「刷新」指令更新</div>'+
             '</div>';
     });
     document.getElementById('indexTrackList').innerHTML = html;
