@@ -1852,12 +1852,6 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             +   (q ? '<div class="asset-cell"><span class="lab">更新</span><span class="val flat" style="font-size:12px" title="跌涨数据抓取时间">'+escHtml((q.gztime||lastQuoteTime||'已抓取'))+'</span></div>' : '')
             + '</div>'
-            + '<div class="asset-foot"><span class="asset-foot-hint">点按钮操作</span>'
-            + '<div class="asset-btns">'
-            + '<button type="button" class="asset-act" onclick="event.stopPropagation();openDCA('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-repeat"></i> 定投</button>'
-            + '<button type="button" class="asset-act" onclick="event.stopPropagation();openEditAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-pencil"></i> 编辑</button>'
-            + '<button type="button" class="asset-del" onclick="event.stopPropagation();deleteAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-trash"></i> 删除</button>'
-            + '</div></div>'
             + '</div>';
     });
     wrap.innerHTML = html;
@@ -2169,9 +2163,9 @@ function renderIndexTrack(filterKey){
         if(filterKey && item.name.indexOf(filterKey)===-1 && (item.code||'').indexOf(filterKey)===-1) return;
         var levelClass = item.level === 'low' ? 'low' : (item.level === 'mid' ? 'mid' : 'high');
         var levelText = item.level === 'low' ? '低位' : (item.level === 'mid' ? '中位' : '高位');
-        // 显示全部指标行（不截断），但隐藏"估值区间"行
+        // 显示全部指标行（不截断，与截图对齐）
         var rowsHtml = '';
-        item.rows.forEach(function(r){ if(r.label === '估值区间') return; rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
+        item.rows.forEach(function(r){ rowsHtml += '<div class="idx-row"><b>'+r.label+'</b>：'+r.val+'</div>'; });
         var noteHtml = item.note ? '<div class="idx-note">💡 '+escHtml(item.note)+'</div>' : '';
         html += '<div class="idx-card" data-mod="index" data-key="'+escAttr(item.name)+'">'+
             '<div class="idx-head">'+
