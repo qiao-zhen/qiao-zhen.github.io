@@ -885,7 +885,7 @@
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 实时估值（每行"实时估值"行）打开即自动更新 · 绿色=低位 / 橙色=中位 / 红色=高位 · PE/估值分位/个人判断为策展内容，需在电脑端发「刷新」指令由电脑版更新</div>
             <div id="indexTrackList">
-                <div class="empty"><div class="ico"><i class="fa fa-area-chart"></i></div><p>点击右上角「刷新估值」查看最新数据</p><p class="sub">5 类资产：黄金 / 纳斯达克100 / 红利低波 / 标普500跟踪摩根 / 中证500</p></div>
+                <div class="empty"><div class="ico"><i class="fa fa-area-chart"></i></div><p>点击右上角「刷新估值」查看最新数据</p><p class="sub">4 类资产：黄金 / 纳斯达克100 / 红利低波 / 标普500跟踪摩根</p></div>
             </div>
         </div>
 
@@ -1782,11 +1782,16 @@ function renderAsset(){
             todayProfit += (parseFloat(it.amount)||0) * (parseFloat(q.gszzl)||0) / 100;
         }
     });
+    var totalProfitSum = 0;
+    arr.forEach(function(it){ var c=(it.cost!==undefined && it.cost!==null && it.cost!=='')?parseFloat(it.cost):(parseFloat(it.amount)||0); totalProfitSum += (parseFloat(it.amount)||0) - c; });
     var sumWrap = document.getElementById('assetSummary');
     if (sumWrap){
         var tpCls = todayProfit>0 ? 'today-profit' : (todayProfit<0 ? 'today-profit neg' : 'today-profit zero');
         var tpSign = todayProfit>0 ? '+' : '';
+        var tpsCls = totalProfitSum>0 ? 'today-profit' : (totalProfitSum<0 ? 'today-profit neg' : 'today-profit zero');
+        var tpsSign = totalProfitSum>0 ? '+' : '';
         sumWrap.innerHTML = '总持仓 <b>¥'+fmt(total)+'</b> · 今日总收益 <b class="'+tpCls+'">'+tpSign+fmt(todayProfit)+'</b>'
+            + ' · 累计总收益 <b class="'+tpsCls+'">'+tpsSign+fmt(totalProfitSum)+'</b>'
             + (enabledDaily>0 ? (' · 今日定投 <b>¥'+fmt(enabledDaily)+'</b>') : '')
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
@@ -2115,7 +2120,7 @@ function confirmOCR(){
     renderAsset();
 }
 
-// ===================== 16. 指数跟踪（AI 抓取 + 中证500） =====================
+// ===================== 16. 指数跟踪（AI 抓取） =====================
 var indexTrackData = [
     {name:"黄金", icon:"circle", color:"#FFD700", rows:[
         {label:"金价", val:"545.2 元/克"},
@@ -2137,12 +2142,7 @@ var indexTrackData = [
         {label:"溢价率", val:"3.2%"},
         {label:"限购状态", val:"限额"},
         {label:"汇率影响", val:"人民币贬值利好"}
-    ], level:"mid", note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"},
-    {name:"中证500", icon:"circle", color:"#FB8C00", rows:[
-        {label:"当前PE", val:"35.5"},
-        {label:"近一年估值分位", val:"52%"},
-        {label:"估值区间", val:"中位"}
-    ], level:"mid", note:"PE约35.5倍，近一年估值分位回落至约52%（中位合理区间）；经历回调后配置价值凸显，但需关注中小盘盈利修复节奏。个人判断：中性偏乐观，适合作为宽基底仓补充。"}
+    ], level:"mid",         note:"标普500跟踪摩根限购+溢价3.2%，买入成本偏高。汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"}
 ];
 function renderIndexTrack(){
     var html='';
@@ -2848,9 +2848,9 @@ function loadRemoteData(){
                     var code = (h.code||'').trim();
                     if (!code || !h.name || !(h.amount > 0)) return; // 跳过无效行
                     if (codeMap[code]){
-                        for(var i=0;i<arr.length;i++){ if(arr[i].code === code){ arr[i].amount = h.amount; arr[i].name = h.name; break; } }
+                        for(var i=0;i<arr.length;i++){ if(arr[i].code === code){ arr[i].amount = h.amount; arr[i].name = h.name; if(h.cost!==undefined && h.cost!==null && h.cost!=='') arr[i].cost = h.cost; break; } }
                     } else {
-                        arr.unshift({name:h.name, code:code, amount:h.amount, type:h.type||'other', cost:h.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false});
+                        arr.unshift({name:h.name, code:code, amount:h.amount, type:h.type||'other', cost:(h.cost!==undefined && h.cost!==null && h.cost!=='')?h.cost:h.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false});
                         codeMap[code] = true;
                     }
                 });
