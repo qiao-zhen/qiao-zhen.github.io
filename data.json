@@ -5,24 +5,39 @@
       "code": "020602",
       "amount": 2294.19,
       "type": "dividend",
-      "cost": 2220.00,
-      "dca": {"enabled": false, "daily": 0, "lastDate": "2026-08-04", "acc": 0}
+      "cost": 2220.0,
+      "dca": {
+        "enabled": false,
+        "daily": 0,
+        "lastDate": "2026-08-04",
+        "acc": 0
+      }
     },
     {
       "name": "摩根标普500指数(QDII)A",
       "code": "017641",
       "amount": 300.21,
       "type": "qdii",
-      "cost": 300.00,
-      "dca": {"enabled": true, "daily": 10, "lastDate": "2026-08-04", "acc": 0}
+      "cost": 300.0,
+      "dca": {
+        "enabled": true,
+        "daily": 10,
+        "lastDate": "2026-08-04",
+        "acc": 0
+      }
     },
     {
       "name": "华夏黄金ETF联接A",
       "code": "000217",
-      "amount": 259.20,
+      "amount": 259.2,
       "type": "gold",
       "cost": 261.65,
-      "dca": {"enabled": true, "daily": 10, "lastDate": "2026-08-04", "acc": 0}
+      "dca": {
+        "enabled": true,
+        "daily": 10,
+        "lastDate": "2026-08-04",
+        "acc": 0
+      }
     },
     {
       "name": "南方纳斯达克100ETF发起联接(QDII)A人民币",
@@ -30,7 +45,12 @@
       "amount": 787.49,
       "type": "nasdaq",
       "cost": 804.23,
-      "dca": {"enabled": true, "daily": 60, "lastDate": "2026-08-04", "acc": 0}
+      "dca": {
+        "enabled": true,
+        "daily": 60,
+        "lastDate": "2026-08-04",
+        "acc": 0
+      }
     }
   ],
   "financeNews": [
@@ -216,7 +236,7 @@
       "note": "股息率4.32%、PE分位约80%，较此前性价比回落；仍适合作为底仓配置。个人判断：性价比较前回落，长期持有收息为主。"
     },
     {
-      "name": "QDII基金",
+      "name": "标普500跟踪摩根",
       "icon": "circle",
       "color": "#7B1FA2",
       "rows": [
@@ -239,27 +259,6 @@
       ],
       "level": "mid",
       "note": "QDII限购+溢价3%左右，买入成本偏高；汇率因素对收益有放大效应。个人判断：暂缓追加，等溢价收窄或限购放松再考虑。"
-    },
-    {
-      "name": "中证500",
-      "icon": "circle",
-      "color": "#FB8C00",
-      "rows": [
-        {
-          "label": "当前PE",
-          "val": "34.8"
-        },
-        {
-          "label": "近十年估值分位",
-          "val": "86.7%"
-        },
-        {
-          "label": "估值区间",
-          "val": "高位"
-        }
-      ],
-      "level": "high",
-      "note": "PE约34.8倍，近十年分位86.7%处历史偏高；中小盘估值偏热。个人判断：中性偏谨慎，不作为低估布局窗口。"
     }
   ]
 }
