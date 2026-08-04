@@ -338,7 +338,8 @@
 .asset-cell .val.up{color:#E53935;}
 .asset-cell .val.down{color:#2E9E5B;}
 .asset-cell .val.flat{color:#888;}
-.asset-update-time{text-align:right;font-size:11px;color:#B0AAB5;margin-top:6px;padding-top:6px;border-top:1px dashed #F0E1E9;}
+.asset-foot-line{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed #F0E1E9;gap:8px;flex-wrap:wrap;}
+.asset-update-time{font-size:11px;color:#B0AAB5;}
 .summary-bar .today-profit{color:#E53935;font-weight:700;font-size:15px;}
 .summary-bar .today-profit.neg{color:#2E9E5B;}
 .summary-bar .today-profit.zero{color:#888;}
@@ -1852,7 +1853,14 @@ function renderAsset(){
             +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             + '</div>'
-            + (q ? '<div class="asset-update-time">更新：'+escHtml((q.gztime||lastQuoteTime||'已抓取'))+'</div>' : '')
+            + '<div class="asset-foot-line">'
+            +   '<span class="asset-update-time">更新：'+escHtml((q && q.gztime ? q.gztime : (lastQuoteTime || '已抓取'))) +'</span>'
+            +   '<div class="asset-btns">'
+            +   '<button type="button" class="asset-act" onclick="event.stopPropagation();openDCA('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-repeat"></i> 定投</button>'
+            +   '<button type="button" class="asset-act" onclick="event.stopPropagation();openEditAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-pencil"></i> 编辑</button>'
+            +   '<button type="button" class="asset-del" onclick="event.stopPropagation();deleteAsset('+i+')" ontouchstart="event.stopPropagation()"><i class="fa fa-trash"></i> 删除</button>'
+            +   '</div>'
+            + '</div>'
             + '</div>';
     });
     wrap.innerHTML = html;
