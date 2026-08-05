@@ -1565,6 +1565,7 @@ function saveSideIdea(){
     renderSideIdeas();
 }
 function renderSideIdeas(){
+    RENDER_MAP['sideIdeas'] = renderSideIdeas;
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     var wrap = document.getElementById('sideIdeaList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-flask"></i></div><p>暂无灵感记录</p><p class="sub">点击「新增脑洞」手动录入，或在AI抓取板块点「搬运」推送过来</p></div>'; return; }
