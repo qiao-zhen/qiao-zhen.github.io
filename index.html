@@ -975,10 +975,10 @@
         <div class="page" id="page-checkin-history">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-calendar ico"></i> 查看历史打卡汇总</div>
-                <button class="pill-btn" onclick="batchRefresh('本月打卡汇总')"><i class="fa fa-bar-chart"></i> AI汇总本月</button>
+                <button class="pill-btn" onclick="renderCheckinHistory()"><i class="fa fa-bar-chart"></i> AI汇总本月</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 按月聚合汇总打卡数据 · 拒绝杂乱逐条罗列</div>
-            <div class="empty"><div class="ico"><i class="fa fa-calendar"></i></div><p>本月暂无打卡数据</p><p class="sub">回话告诉我"汇总本月打卡"，我会按月聚合睡眠/瑜伽/食疗/体感数据</p></div>
+            <div id="checkinHistoryList"></div>
         </div>
 
         <!-- 20. 身体观察备忘录 -->
@@ -2414,6 +2414,43 @@ function exportCheckinMD(){
     document.getElementById('exportModal').style.display = 'flex';
 }
 
+// ===================== 19. 查看历史打卡汇总（纯本地：按月聚合，不联网） =====================
+function renderCheckinHistory(){
+    RENDER_MAP['checkin-history'] = renderCheckinHistory;
+    var wrap = document.getElementById('checkinHistoryList');
+    if (!wrap) return;
+    var month = todayStr().slice(0,7);
+    var all = JSON.parse(localStorage.getItem('checkinRecords') || '{}');
+    var recs = all[month] || [];
+    if (recs.length === 0){
+        wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-calendar"></i></div><p>本月暂无打卡数据</p><p class="sub">在「今日打卡面板」保存打卡后，点「AI汇总本月」即可生成本月统计</p></div>';
+        return;
+    }
+    var sections = ['睡眠','运动','食疗','体感'];
+    var totalDays = recs.length;
+    var html = '';
+    html += '<div class="card" style="margin-bottom:12px"><div style="font-weight:700;color:#E91E63;font-size:15px">'+month+' 本月汇总 · 已打卡 <b>'+totalDays+'</b> 天</div>';
+    html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">';
+    sections.forEach(function(sec){
+        var days = recs.filter(function(r){ var d=r.data&&r.data[sec]; return d && Object.keys(d).some(function(k){return d[k];}); }).length;
+        html += '<span style="padding:4px 10px;border:1px solid #F8BBD0;border-radius:14px;font-size:12px;color:#AD1457">'+sec+'：'+days+'天</span>';
+    });
+    html += '</div></div>';
+    sections.forEach(function(sec){
+        var filled = recs.filter(function(r){ var d=r.data&&r.data[sec]; return d && Object.keys(d).some(function(k){return d[k];}); });
+        if (filled.length === 0) return;
+        html += '<div class="card" style="margin-top:12px"><div style="font-weight:600;color:#AD1457;margin-bottom:6px">'+sec+' · 共 '+filled.length+' 天</div>';
+        filled.slice(0,3).forEach(function(r){
+            var d = r.data[sec];
+            var parts = Object.keys(d).filter(function(k){ return d[k]; }).map(function(k){ return k+'：'+d[k]; });
+            html += '<div style="font-size:12px;color:#888;margin:4px 0">'+r.date+'：'+parts.join(' · ')+'</div>';
+        });
+        if (filled.length > 3) html += '<div style="font-size:12px;color:#BBB">…还有 '+(filled.length-3)+' 天</div>';
+        html += '</div>';
+    });
+    wrap.innerHTML = html;
+}
+
 // ===================== 19. 身体观察备忘录（localStorage） =====================
 function saveBodyNote(){
     var date = document.getElementById('bn-date').value.trim();
@@ -2568,6 +2605,7 @@ function showPage(pageId, el){
     truncateAllNews();
     window.scrollTo(0, 0);
     if (pageId === 'health-checkin') renderCheckinCards();
+    if (pageId === 'checkin-history') renderCheckinHistory();
 }
 
 // ===================== 内容截断 >100字 =====================
