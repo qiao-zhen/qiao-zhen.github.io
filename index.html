@@ -791,7 +791,7 @@
                     <button class="pill-btn ghost" onclick="exportSectionMD('finance-news')"><i class="fa fa-download"></i> 导出MD</button>
                 </div>
             </div>
-            <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：2026-08-01 · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
+            <div class="tip"><i class="fa fa-clock-o"></i> 板块最后更新：<span id="fnLastUpdate">加载中…</span> · 受 MCP 总开关控制 · 严禁输出买卖建议 · 覆盖美联储/科技/国内政策</div>
             <div id="financeNewsList"></div>
         </div>
 
@@ -2867,6 +2867,13 @@ function loadRemoteData(){
             if (d.operationIdeas) operationIdeasData = d.operationIdeas;
             if (d.ideaLib) ideaLibData = d.ideaLib;
             if (d.indexTrack) indexTrackData = d.indexTrack;
+            // 基金跌涨数据（刷新时由AI抓取写入，页面打开自动填充）
+            if (d.fundQuotes && typeof d.fundQuotes === 'object') {
+                Object.keys(d.fundQuotes).forEach(function(code){
+                    if (d.fundQuotes[code]) fundQuote[code] = d.fundQuotes[code];
+                });
+                saveFundCache();
+            }
             // 对话录入的持仓自动合并到本地台账（按基金代码去重，有则更新金额）
             if (d.holdings && d.holdings.length > 0){
                 var arr = storeGet('assetList');
@@ -2886,6 +2893,14 @@ function loadRemoteData(){
             }
             applyIdeaStatus();
             renderFinanceNews(); renderOperationIdeas(); renderIdeaLib(); renderIndexTrack(); renderAsset();
+            // 动态更新板块最后时间（取 financeNews 最新日期）
+            var lu = document.getElementById('fnLastUpdate');
+            if (lu && financeNewsData && financeNewsData.length > 0) {
+                var dates = financeNewsData.map(function(x){ return x.date || ''; }).filter(Boolean);
+                if (dates.length) lu.textContent = dates.sort().pop();
+            } else if (lu) {
+                lu.textContent = '未知';
+            }
             showToast('已拉取最新 AI 内容');
         })
         .catch(function(){
