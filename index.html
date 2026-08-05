@@ -502,8 +502,9 @@
                 <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
-            <div class="card form-card hidden" id="form-knowledge">
+                <div class="card form-card hidden" id="form-knowledge">
                 <h4 id="kbFormTitle">粘贴内容生成卡片</h4>
+                <div class="form-item"><label>标题（自定义，留空则自动取首行）</label><input type="text" id="kb-title" placeholder="给这张卡片起个名字，例如：美联储9月降息预期"></div>
                 <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..."></textarea></div>
                 <div class="form-item"><label>分类</label>
                     <select id="kb-category">
@@ -1078,6 +1079,7 @@ function buildCard(o){
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
         '<div class="right">'+
         (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
+        (o.exportAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.exportAction+'" style="color:#00897B;cursor:pointer;">⤓ 导出</span></span>' : '')+
         (o.copyAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.copyAction+'" style="color:#7B1FA2;cursor:pointer;">⧉ 复制</span></span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
@@ -1121,7 +1123,10 @@ function saveKnowledge(){
     content = content.trim();
     if (!content){ showToast('请先粘贴内容'); return; }
     var category = (document.getElementById('kb-category')||{}).value || 'AI';
-    var title = (content.split('\n')[0] || '').slice(0,30) || '粘贴笔记';
+    var titleInput = (document.getElementById('kb-title')||{}).value || '';
+    titleInput = titleInput.trim();
+    var autoTitle = (content.split('\n')[0] || '').slice(0,30) || '粘贴笔记';
+    var title = titleInput || autoTitle;
     var item = { title:title, category:category, content:content, date:todayStr() };
     if (_editState.key === 'knowledgeBase' && _editState.idx != null){
         var arr = getKnowledgeList();
@@ -1133,6 +1138,7 @@ function saveKnowledge(){
         showToast('已生成卡片');
     }
     _editState.key = null; _editState.idx = null;
+    document.getElementById('kb-title').value='';
     document.getElementById('kb-content').value='';
     document.getElementById('kbFormTitle').textContent='粘贴内容生成卡片';
     document.getElementById('kbSaveBtn').innerHTML='<i class="fa fa-check"></i> 生成卡片';
@@ -1161,6 +1167,13 @@ function copyCard(idx){
     var it = arr[idx]; if (!it) return;
     copyTextToClipboard('【'+it.category+'】'+(it.title||'')+'\n'+it.content);
 }
+function exportCard(idx){
+    var arr = getKnowledgeList();
+    var it = arr[idx]; if (!it) return;
+    var title = (it.title||'note').replace(/[\\/?:*<>|"]/g,'_');
+    var md = '# '+(it.title||'未命名')+'（'+(it.category||'')+'）\n\n> 记录于 '+(it.date||'')+'\n\n'+(it.content||'');
+    downloadText(title+'.md', md);
+}
 function copyTextToClipboard(text){
     try {
         if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){showToast('已复制卡片内容');}, function(){fallbackCopyText(text);}); }
@@ -1174,7 +1187,32 @@ function fallbackCopyText(text){
         showToast('已复制卡片内容');
     } catch(e2){ showToast('复制失败，请手动长按选择复制'); }
 }
+// 通用：下载/分享文本文件（兼容 iPhone 分享面板、安卓直接下载）
+function downloadText(filename, text, mime){
+    try {
+        mime = mime || 'text/markdown;charset=utf-8';
+        var blob = new Blob([text], {type:mime});
+        if (isIOS()){
+            var file = new File([blob], filename, {type:mime});
+            if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+                navigator.share({ files:[file], title:filename }).catch(function(){});
+                return;
+            }
+            var url0 = URL.createObjectURL(blob);
+            window.open(url0, '_blank');
+            showToast('已打开预览，请长按并选择「存储到文件」');
+            return;
+        }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        showToast('已开始下载 ' + filename);
+    } catch(e){ showToast('下载失败，请改用「复制」'); }
+}
 function renderKnowledgeBase(){
+    RENDER_MAP['knowledgeBase'] = renderKnowledgeBase;
     var all = getKnowledgeList();
     var wrap = document.getElementById('knowledgeList');
     var arr = (kbFilterCat==='all') ? all : all.filter(function(i){ return i.category===kbFilterCat; });
@@ -1183,7 +1221,7 @@ function renderKnowledgeBase(){
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
         var srcHtml = kbCatButtons(item, i);
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, extra:srcHtml, copyAction:"copyCard("+i+")", editAction:"openEditKnowledge("+i+")" });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, extra:srcHtml, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1193,6 +1231,7 @@ function openEditKnowledge(idx){
     var it = arr[idx]; if (!it) return;
     _editState.key = 'knowledgeBase'; _editState.idx = idx;
     document.getElementById('kbFormTitle').textContent = '编辑卡片';
+    document.getElementById('kb-title').value = it.title || '';
     document.getElementById('kb-content').value = it.content || '';
     var sel = document.getElementById('kb-category'); if (sel && it.category) sel.value = it.category;
     document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 保存修改';
@@ -1824,7 +1863,8 @@ function renderAsset(){
     runDCA();
     var arr = storeGet('assetList');
     var total = 0; arr.forEach(function(it){ total += (parseFloat(it.amount)||0); });
-    var enabledDaily = 0; arr.forEach(function(it){ if(it.dca && it.dca.enabled) enabledDaily += (parseFloat(it.dca.daily)||0); });
+    var enabledDaily = 0; var dcaAccTotal = 0;
+    arr.forEach(function(it){ if(it.dca && (parseFloat(it.dca.daily)||0)>0){ enabledDaily += (parseFloat(it.dca.daily)||0); dcaAccTotal += (parseFloat(it.dca.acc)||0); } });
     // 今日总收益
     var todayProfit = 0;
     arr.forEach(function(it){
@@ -1843,7 +1883,7 @@ function renderAsset(){
         var tpsSign = totalProfitSum>0 ? '+' : '';
         sumWrap.innerHTML = '总持仓 <b>¥'+fmt(total)+'</b> · 今日总收益 <b class="'+tpCls+'">'+tpSign+fmt(todayProfit)+'</b>'
             + ' · 累计总收益 <b class="'+tpsCls+'">'+tpsSign+fmt(totalProfitSum)+'</b>'
-            + (enabledDaily>0 ? (' · 今日定投 <b>¥'+fmt(enabledDaily)+'</b>') : '')
+            + (enabledDaily>0 ? (' · 今日定投 <b>¥'+fmt(enabledDaily)+'</b> · 定投累计 <b>¥'+fmt(dcaAccTotal)+'</b>') : '')
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
     var wrap = document.getElementById('assetList');
@@ -1873,7 +1913,7 @@ function renderAsset(){
         if (item.code) subParts.push(item.code);
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
-        if (item.dca && item.dca.enabled && parseFloat(item.dca.daily)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天');
+        if (item.dca && (parseFloat(item.dca.daily)||0)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天 · 累计 ¥'+fmt(parseFloat(item.dca.acc)||0));
         var sub = subParts.join(' · ');
         html += '<div class="asset-row" data-idx="'+i+'">'
             + '<div class="asset-top"><span class="asset-name">'+escHtml(item.name)+'</span>'
@@ -1953,11 +1993,17 @@ function saveDCAFromModal(){
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     if (!it.dca) it.dca={enabled:false, daily:0, lastDate:todayStr(), acc:0};
     var v = parseFloat(document.getElementById('dcaInput').value)||0;
-    it.dca.daily = v; it.dca.enabled = v>0;
-    if (v>0 && !it.dca.lastDate) it.dca.lastDate = todayStr();
+    it.dca.daily = v;
+    if (v>0){
+        it.dca.enabled = true;
+        // 关键修复：开启/调整定投时，把入账时钟重置为「今天」，避免从建仓日回溯补记多天金额
+        it.dca.lastDate = todayStr();
+    } else {
+        it.dca.enabled = false;
+    }
     storeSet('assetList', arr);
     document.getElementById('dcaModal').style.display='none';
-    showToast(v>0?('已设定每日定投 ¥'+fmt(v)):'已关闭定投');
+    showToast(v>0?('已设定每日定投 ¥'+fmt(v)+'（从今天起累计）'):'已关闭定投');
     renderAsset();
 }
 // ===== 编辑弹窗 =====
