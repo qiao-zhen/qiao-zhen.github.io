@@ -1009,15 +1009,23 @@
             <div class="tip"><i class="fa fa-info-circle"></i> 双模式：URL 解析 / 大段文本粘贴 · 必须手动点击按钮触发 · 遇 Cloudflare 立刻停止</div>
             <div class="card">
                 <h4><i class="fa fa-globe" style="color:#F06292"></i> 模式 ① URL 解析</h4>
-                <div class="form-item"><label>网页 URL</label><input type="text" placeholder="https://..."></div>
-                <button class="save-btn" onclick="batchRefresh('URL解析')"><i class="fa fa-magic"></i> 解析摘要</button>
+                <div class="form-item"><label>网页 URL</label><input type="text" id="ws-url" placeholder="https://..."></div>
+                <button class="save-btn" onclick="webCopyInstruction('url')"><i class="fa fa-magic"></i> 生成指令并复制</button>
             </div>
             <div class="card">
                 <h4><i class="fa fa-paste" style="color:#F06292"></i> 模式 ② 纯文本粘贴总结</h4>
-                <div class="form-item"><label>粘贴大段文本（社群 / 帖子 / 文章）</label><textarea style="min-height:100px" placeholder="粘贴在这里..."></textarea></div>
-                <button class="save-btn" onclick="batchRefresh('文本总结')"><i class="fa fa-magic"></i> 总结文本</button>
+                <div class="form-item"><label>粘贴大段文本（社群 / 帖子 / 文章）</label><textarea id="ws-text" style="min-height:100px" placeholder="粘贴在这里..."></textarea></div>
+                <button class="save-btn" onclick="webCopyInstruction('text')"><i class="fa fa-magic"></i> 生成指令并复制</button>
             </div>
-            <div class="empty" style="margin-top:14px"><div class="ico"><i class="fa fa-link"></i></div><p>暂无摘要记录</p><p class="sub">回话告诉我"总结这段文本：..."或"解析这个链接：..."，我会手动触发并打标签保存</p></div>
+            <div class="card">
+                <h4><i class="fa fa-save" style="color:#F06292"></i> 保存 AI 摘要结果</h4>
+                <div class="tip"><i class="fa fa-info-circle"></i> 在对话里发链接/文本让我总结后，把返回的结果粘贴到下面保存，即出现在本页。</div>
+                <div class="form-item"><label>标题（可选）</label><input type="text" id="ws-title" placeholder="例如：竞品爆款拆解"></div>
+                <div class="form-item"><label>AI 返回的摘要内容</label><textarea id="ws-import" style="min-height:100px" placeholder="粘贴 AI 返回的摘要结果..."></textarea></div>
+                <button class="save-btn" onclick="saveWebSummary()"><i class="fa fa-check"></i> 保存到本页</button>
+            </div>
+            <div id="webSummaryList"></div>
+            <div class="empty" id="wsEmpty" style="margin-top:14px"><div class="ico"><i class="fa fa-link"></i></div><p>暂无摘要记录</p><p class="sub">在上方生成指令发给对话 AI，总结后把结果粘贴保存即可</p></div>
         </div>
 
         <!-- 22. 今日待办清单 -->
@@ -2851,6 +2859,73 @@ function batchRefresh(name){
     else loadRemoteData();
 }
 
+// ===================== 网页实时摘要（纯前端：靠对话触发，按钮生成指令） =====================
+function webCopyInstruction(type){
+    var text = '';
+    if (type === 'url'){
+        var url = (document.getElementById('ws-url')||{}).value || '';
+        url = url.trim();
+        if (!url){ showToast('请先填写网页 URL'); return; }
+        text = '解析这个链接：' + url;
+    } else {
+        var t = (document.getElementById('ws-text')||{}).value || '';
+        t = t.trim();
+        if (!t){ showToast('请先粘贴要总结的文本'); return; }
+        text = '总结这段文本：' + t;
+    }
+    function done(){ showToast('指令已复制，去主对话粘贴发送即可让 AI 摘要'); }
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); });
+        } else { fallbackCopy(text); }
+    } catch(e){ fallbackCopy(text); }
+}
+function fallbackCopy(text){
+    try {
+        var ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        showToast('指令已复制，去主对话粘贴发送即可让 AI 摘要');
+    } catch(e2){ showToast('请手动复制这段去对话发送：' + text); }
+}
+function saveWebSummary(){
+    var title = (document.getElementById('ws-title')||{}).value || '';
+    var content = (document.getElementById('ws-import')||{}).value || '';
+    title = title.trim(); content = content.trim();
+    if (!content){ showToast('请先粘贴 AI 返回的摘要内容'); return; }
+    var arr = storeGet('wb_webSummary');
+    arr.unshift({ title: title || '未命名摘要', content: content, date: todayStr() });
+    storeSet('wb_webSummary', arr);
+    document.getElementById('ws-title').value = '';
+    document.getElementById('ws-import').value = '';
+    renderWebSummary();
+    showToast('已保存到本页');
+}
+function renderWebSummary(){
+    RENDER_MAP['wb_webSummary'] = renderWebSummary;
+    var arr = storeGet('wb_webSummary');
+    var list = document.getElementById('webSummaryList');
+    var empty = document.getElementById('wsEmpty');
+    if (!list) return;
+    if (arr.length === 0){ list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
+    if (empty) empty.style.display = 'none';
+    var html = '';
+    arr.forEach(function(it, i){
+        html += '<div class="card" style="margin-top:12px">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center"><b>'+escHtml(it.title)+'</b><span style="font-size:12px;color:#AD1457">'+escHtml(it.date||'')+'</span></div>'
+            + '<div style="margin-top:8px;white-space:pre-wrap;line-height:1.6">'+escHtml(it.content)+'</div>'
+            + '<div style="margin-top:8px;text-align:right"><button class="asset-del" onclick="delWebSummary('+i+')"><i class="fa fa-trash"></i> 删除</button></div>'
+            + '</div>';
+    });
+    list.innerHTML = html;
+}
+function delWebSummary(i){
+    var arr = storeGet('wb_webSummary');
+    arr.splice(i, 1);
+    storeSet('wb_webSummary', arr);
+    renderWebSummary();
+    showToast('已删除');
+}
+
 // ===================== 方案B：从 data.json 加载 =====================
 var ideaStatusOverride = {};
 try { ideaStatusOverride = JSON.parse(localStorage.getItem('ideaStatusOverride') || '{}'); } catch(e){}
@@ -2929,6 +3004,7 @@ document.addEventListener('DOMContentLoaded', function(){
     renderRebalance();
     renderBodyNote();
     renderTodo();
+    renderWebSummary();
     loadRemoteData();
 });
 </script>
