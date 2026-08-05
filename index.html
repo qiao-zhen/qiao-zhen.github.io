@@ -208,6 +208,9 @@
         .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
         .filter-chip { padding:4px 14px; border:1px solid #F8BBD0; border-radius:14px; font-size:12px; color:#AD1457; cursor:pointer; background:#FFF; }
         .filter-chip.sel { background:#F06292; color:#FFF; border-color:#F06292; font-weight:600; }
+        .kb-cats { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+        .kb-cat { font-size:12px; padding:3px 10px; border:1px solid #F8BBD0; border-radius:12px; color:#AD1457; cursor:pointer; background:#FFF; }
+        .kb-cat.on { background:#F06292; color:#FFF; border-color:#F06292; font-weight:600; }
 
         /* ===== 弹窗 ===== */
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:999; align-items:center; justify-content:center; padding:20px; }
@@ -439,7 +442,6 @@
         <div class="group" data-group="1">
             <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-rocket"></i><span>AI新账号运营</span></div>
             <div class="sub-list">
-                <div class="sub-item active" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
                 <div class="sub-item" data-page="operation-ideas" onclick="showPage('operation-ideas',this)"><span class="ico"><i class="fa fa-lightbulb-o"></i></span><span>运营思路&选题素材库</span></div>
                 <div class="sub-item" data-page="account-observe" onclick="showPage('account-observe',this)"><span class="ico"><i class="fa fa-binoculars"></i></span><span>对标账号观测记录</span></div>
                 <div class="sub-item" data-page="work-review" onclick="showPage('work-review',this)"><span class="ico"><i class="fa fa-pie-chart"></i></span><span>作品复盘记录表</span></div>
@@ -484,6 +486,7 @@
         <div class="group" data-group="6">
             <div class="group-title" onclick="toggleGroup(6)"><span class="arrow">▼</span><i class="fa fa-wrench"></i><span>通用工具</span></div>
             <div class="sub-list">
+                <div class="sub-item active" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
                 <div class="sub-item" data-page="todo-list" onclick="showPage('todo-list',this)"><span class="ico"><i class="fa fa-thumb-tack"></i></span><span>今日待办清单</span></div>
             </div>
         </div>
@@ -492,39 +495,32 @@
     <!-- 主内容 -->
     <div class="main" id="main">
 
-        <!-- 1. 知识库笔记（手记+粘贴保存） -->
+        <!-- 1. 知识库笔记（粘贴录入 · 分类：理财/养生/AI/运营） -->
         <div class="page active" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
-                <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-plus"></i> 新增笔记</button>
+                <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 手动记录抖音底层逻辑、流量池闯关、3秒钩子等干货文章/知识点 · 不自动抓取，纯本地保存</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
             <div class="card form-card hidden" id="form-knowledge">
-                <h4>新增知识库笔记</h4>
-                <div class="form-item"><label>笔记标题</label><input type="text" id="kb-title" placeholder="例如：抖音流量池闯关规则"></div>
+                <h4 id="kbFormTitle">粘贴内容生成卡片</h4>
+                <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..."></textarea></div>
                 <div class="form-item"><label>分类</label>
                     <select id="kb-category">
-                        <option>流量逻辑</option>
-                        <option>钩子设计</option>
-                        <option>算法机制</option>
-                        <option>账号权重</option>
-                        <option>运营方法论</option>
-                        <option>其他干货</option>
+                        <option>理财</option>
+                        <option>养生</option>
+                        <option>AI</option>
+                        <option>运营</option>
                     </select>
                 </div>
-                <div class="form-item"><label>来源链接（可选）</label><input type="text" id="kb-source" placeholder="https://...（看到的原文链接）"></div>
-                <div class="form-item"><label>核心知识点（粘贴大段内容）</label><textarea id="kb-content" style="min-height:120px" placeholder="把刷到的干货文章/知识点粘贴到这里..."></textarea></div>
-                <div class="form-item"><label>我的理解 / 应用场景</label><textarea id="kb-note" placeholder="我看完之后的理解，或者能怎么用"></textarea></div>
-                <button class="save-btn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 保存笔记</button>
+                <button class="save-btn" id="kbSaveBtn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 生成卡片</button>
             </div>
             <div class="filter-row" id="kb-filter">
                 <span class="filter-chip sel" data-cat="all" onclick="filterKnowledge('all',this)">全部</span>
-                <span class="filter-chip" data-cat="流量逻辑" onclick="filterKnowledge('流量逻辑',this)">流量逻辑</span>
-                <span class="filter-chip" data-cat="钩子设计" onclick="filterKnowledge('钩子设计',this)">钩子设计</span>
-                <span class="filter-chip" data-cat="算法机制" onclick="filterKnowledge('算法机制',this)">算法机制</span>
-                <span class="filter-chip" data-cat="账号权重" onclick="filterKnowledge('账号权重',this)">账号权重</span>
-                <span class="filter-chip" data-cat="运营方法论" onclick="filterKnowledge('运营方法论',this)">运营方法论</span>
-                <span class="filter-chip" data-cat="其他干货" onclick="filterKnowledge('其他干货',this)">其他干货</span>
+                <span class="filter-chip" data-cat="理财" onclick="filterKnowledge('理财',this)">理财</span>
+                <span class="filter-chip" data-cat="养生" onclick="filterKnowledge('养生',this)">养生</span>
+                <span class="filter-chip" data-cat="AI" onclick="filterKnowledge('AI',this)">AI</span>
+                <span class="filter-chip" data-cat="运营" onclick="filterKnowledge('运营',this)">运营</span>
             </div>
             <div id="knowledgeList"></div>
         </div>
@@ -1082,6 +1078,7 @@ function buildCard(o){
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
         '<div class="right">'+
         (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
+        (o.copyAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.copyAction+'" style="color:#7B1FA2;cursor:pointer;">⧉ 复制</span></span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
         (o.readMore!==false?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
@@ -1114,24 +1111,32 @@ function downloadMD(filename, md){
     showToast('已导出 '+filename);
 }
 
-// ===================== 1. 知识库笔记（localStorage） =====================
+// ===================== 1. 知识库笔记（粘贴录入 · 分类：理财/养生/AI/运营） =====================
 function getKnowledgeList(){ return JSON.parse(localStorage.getItem('knowledgeBase') || '[]'); }
 function setKnowledgeList(arr){ localStorage.setItem('knowledgeBase', JSON.stringify(arr)); }
 var kbFilterCat = 'all';
+var KB_CATS = ['理财','养生','AI','运营'];
 function saveKnowledge(){
-    var title = document.getElementById('kb-title').value.trim();
-    var category = document.getElementById('kb-category').value;
-    var source = document.getElementById('kb-source').value.trim();
-    var content = document.getElementById('kb-content').value.trim();
-    var note = document.getElementById('kb-note').value.trim();
-    if (!title) { showToast('请填写笔记标题'); return; }
-    if (!content) { showToast('请粘贴核心知识点'); return; }
-    var item = { title:title, category:category, source:source, content:content, note:note, date:todayStr() };
-    editOrInsert('knowledgeBase', item);
-    document.getElementById('kb-title').value=''; document.getElementById('kb-source').value='';
-    document.getElementById('kb-content').value=''; document.getElementById('kb-note').value='';
+    var content = (document.getElementById('kb-content')||{}).value || '';
+    content = content.trim();
+    if (!content){ showToast('请先粘贴内容'); return; }
+    var category = (document.getElementById('kb-category')||{}).value || 'AI';
+    var title = (content.split('\n')[0] || '').slice(0,30) || '粘贴笔记';
+    var item = { title:title, category:category, content:content, date:todayStr() };
+    if (_editState.key === 'knowledgeBase' && _editState.idx != null){
+        var arr = getKnowledgeList();
+        if (arr[_editState.idx]){ arr[_editState.idx].content = content; arr[_editState.idx].category = category; arr[_editState.idx].title = title; }
+        setKnowledgeList(arr);
+        showToast('已更新');
+    } else {
+        var arr2 = getKnowledgeList(); arr2.unshift(item); setKnowledgeList(arr2);
+        showToast('已生成卡片');
+    }
+    _editState.key = null; _editState.idx = null;
+    document.getElementById('kb-content').value='';
+    document.getElementById('kbFormTitle').textContent='粘贴内容生成卡片';
+    document.getElementById('kbSaveBtn').innerHTML='<i class="fa fa-check"></i> 生成卡片';
     document.getElementById('form-knowledge').classList.add('hidden');
-    showToast(_editState.key?'笔记已更新':'知识库笔记已保存');
     renderKnowledgeBase();
 }
 function filterKnowledge(cat, el){
@@ -1140,29 +1145,64 @@ function filterKnowledge(cat, el){
     if (el) el.classList.add('sel');
     renderKnowledgeBase();
 }
-function renderKnowledgeBase(){
+function kbCatButtons(item, i){
+    var html = '<div class="kb-cats">';
+    KB_CATS.forEach(function(c){
+        html += '<span class="kb-cat'+(item.category===c?' on':'')+'" onclick="event.stopPropagation();setCardCat('+i+',\''+c+'\')">'+c+'</span>';
+    });
+    return html + '</div>';
+}
+function setCardCat(idx, cat){
     var arr = getKnowledgeList();
-    if (kbFilterCat !== 'all') arr = arr.filter(function(i){ return i.category === kbFilterCat; });
+    if (arr[idx]){ arr[idx].category = cat; setKnowledgeList(arr); renderKnowledgeBase(); }
+}
+function copyCard(idx){
+    var arr = getKnowledgeList();
+    var it = arr[idx]; if (!it) return;
+    copyTextToClipboard('【'+it.category+'】'+(it.title||'')+'\n'+it.content);
+}
+function copyTextToClipboard(text){
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){showToast('已复制卡片内容');}, function(){fallbackCopyText(text);}); }
+        else fallbackCopyText(text);
+    } catch(e){ fallbackCopyText(text); }
+}
+function fallbackCopyText(text){
+    try {
+        var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        showToast('已复制卡片内容');
+    } catch(e2){ showToast('复制失败，请手动长按选择复制'); }
+}
+function renderKnowledgeBase(){
+    var all = getKnowledgeList();
     var wrap = document.getElementById('knowledgeList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-book"></i></div><p>暂无知识库笔记</p><p class="sub">点「新增笔记」把刷到的干货粘贴保存 · 数据存本地浏览器</p></div>'; return; }
+    var arr = (kbFilterCat==='all') ? all : all.filter(function(i){ return i.category===kbFilterCat; });
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-book"></i></div><p>暂无知识库笔记</p><p class="sub">点「粘贴」把内容粘进来即生成卡片 · 数据存本地浏览器</p></div>'; return; }
     var html='';
-    arr.forEach(function(item, i){
-        var full = '分类：' + item.category + '\n\n📚 核心知识点：\n' + item.content + (item.note ? '\n\n💡 我的理解：\n' + item.note : '');
-        var srcHtml = item.source ? '<div class="n-link">📎 原文链接：<a href="'+escAttr(item.source)+'" target="_blank" rel="noopener">'+escHtml(item.source)+'</a></div>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title, sub:item.category, content:full, date:item.date, url:item.source, extra:srcHtml, editAction:"openEdit('knowledgeBase',"+i+")" });
+    all.forEach(function(item, i){
+        if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
+        var srcHtml = kbCatButtons(item, i);
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, extra:srcHtml, copyAction:"copyCard("+i+")", editAction:"openEditKnowledge("+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
 }
-function deleteKnowledge(idx){
-    if (!confirm('确定删除这条笔记？')) return;
+function openEditKnowledge(idx){
     var arr = getKnowledgeList();
-    if (kbFilterCat !== 'all'){
-        var filtered = arr.filter(function(i){ return i.category === kbFilterCat; });
-        var realItem = filtered[idx];
-        var realIdx = arr.indexOf(realItem);
-        if (realIdx >= 0) arr.splice(realIdx, 1);
-    } else { arr.splice(idx, 1); }
+    var it = arr[idx]; if (!it) return;
+    _editState.key = 'knowledgeBase'; _editState.idx = idx;
+    document.getElementById('kbFormTitle').textContent = '编辑卡片';
+    document.getElementById('kb-content').value = it.content || '';
+    var sel = document.getElementById('kb-category'); if (sel && it.category) sel.value = it.category;
+    document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 保存修改';
+    document.getElementById('form-knowledge').classList.remove('hidden');
+    document.getElementById('form-knowledge').scrollIntoView({behavior:'smooth'});
+}
+function deleteKnowledge(idx){
+    if (!confirm('确定删除这张卡片？')) return;
+    var arr = getKnowledgeList();
+    arr.splice(idx, 1);
     setKnowledgeList(arr);
     showToast('已删除');
     renderKnowledgeBase();
@@ -2730,8 +2770,6 @@ injectFormCloseButtons();
 // ===================== 通用编辑系统 =====================
 var _editState = { key:null, idx:null };
 var EDIT_CONFIG = {
-    knowledgeBase:{ f:'form-knowledge', t:'编辑笔记', g:getKnowledgeList, s:setKnowledgeList,
-        fld:[['kb-title','title'],['kb-category','category'],['kb-source','source'],['kb-content','content'],['kb-note','note']] },
     accountObserve:{ f:'form-account', t:'编辑对标账号', g:getAccountList, s:setAccountList,
         q:true, // 用 querySelectorAll 按顺序
         props:['name','track','hotVideo','hook','structure','updateFreq','postTime','learn','avoid'] },
