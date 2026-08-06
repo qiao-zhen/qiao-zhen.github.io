@@ -3336,14 +3336,21 @@ function hideAllForms(){
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideAllForms(); });
 function injectFormCloseButtons(){
     document.querySelectorAll('.form-card').forEach(function(card){
-        if (card.querySelector('.form-close')) return; // 已有×的跳过（如持仓表单）
+        if (card.querySelector('.form-close')) return; // 已有×的跳过
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'form-close';
         btn.setAttribute('aria-label','关闭');
         btn.textContent = '×';
-        btn.onclick = function(e){ e.stopPropagation(); var o = document.getElementById(card.id + '_ov'); if (o) o.style.display = 'none'; else toggleForm(card.id); };
-        card.insertBefore(btn, card.firstChild);
+        var title = card.querySelector('h4');
+        var fid = card.id;
+        btn.onclick = function(e){
+            e.stopPropagation();
+            var o = document.getElementById(fid + '_ov');
+            if (o) o.style.display = 'none'; else toggleForm(fid);
+        };
+        if (title){ title.appendChild(btn); }
+        else{ card.insertBefore(btn, card.firstChild); }
     });
 }
 injectFormCloseButtons();
