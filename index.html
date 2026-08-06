@@ -295,6 +295,7 @@
             .menu-btn { position:static; transform:none; }
             .top-left { order:1; flex:0 0 auto; }
             .mcp-wrap { order:2; width:auto; flex:0 0 auto; justify-content:flex-start; margin-left:auto; }
+            .sync-wrap { order:3; }
             .brand { order:unset; flex-shrink:0; }
             .search-top-row { order:3; padding:8px 12px; }
             .search-top-row .search-center { justify-content:flex-start; }
@@ -1185,19 +1186,31 @@ function cloudHydrate(){
   var token = getGithubToken();
   if (!token) return;
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
-  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token } })
-    .then(function(r){ if(r.status===404) return; if(!r.ok) return; return r.json(); })
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 15000);
+  setSyncStatus('正在拉取云端数据…');
+  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token }, signal: ctrl.signal })
+    .then(function(r){
+      if (r.status===404){ setSyncStatus('云端暂无数据，已保留本机存储'); return; }
+      if (!r.ok){ setSyncStatus('拉取失败：Token 无效或无权限（需 Contents 读写）'); return; }
+      return r.json();
+    })
     .then(function(j){
       if (!j || !j.content) return;
       if (j.sha) window.__cloudSha = j.sha;
-      var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ return; }
-      if (!snap || typeof snap !== 'object') return;
+      var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ setSyncStatus('云端数据解析失败'); return; }
+      if (!snap || typeof snap !== 'object'){ setSyncStatus('云端数据格式异常'); return; }
       window.__cloudSkip = true;
       SYNC_KEYS.forEach(function(k){ if (snap[k] !== undefined){ try { localStorage.setItem(k, JSON.stringify(snap[k])); } catch(e){} } });
       window.__cloudSkip = false;
       renderSyncModules();
+      setSyncStatus('已从云端载入最新数据 ✓');
     })
-    .catch(function(){});
+    .catch(function(err){
+      if (err && err.name === 'AbortError'){ setSyncStatus('拉取超时（15秒）：网络较慢或 GitHub 暂时不可达'); }
+      else { setSyncStatus('拉取失败：网络异常，请检查网络连接'); }
+    })
+    .finally(function(){ clearTimeout(timer); });
 }
 function renderSyncModules(){
   renderKnowledgeBase(); renderAccountObserve(); renderWorkReview(); renderProduct();
