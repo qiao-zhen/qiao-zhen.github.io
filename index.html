@@ -1237,7 +1237,7 @@ function cloudHydrate(){
     })
     .then(function(text){
       clearTimeout(timer);
-      if(!text || text.length < 10) throw new Error('pages-empty('+text.length+')');
+      if(!text || typeof text !== 'string' || text.length < 10) throw new Error('pages-empty('+(text?text.length:'null')+')');
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
       applyCloudSnap(snap);
@@ -3432,28 +3432,21 @@ function loadRemoteData(){
         });
 }
 
-// 本地为空时，用内嵌的云端快照直接填充（完全不依赖网络，避免受限网络下 fetch 卡死导致无数据）
+// 每会话首次加载时，无条件用内嵌云端快照填充 localStorage（不依赖网络、不判断是否为空）
+// 用 sessionStorage 标记防止同会话重复写入覆盖用户手动修改
 function ensureFallbackData(){
   if (typeof __CLOUD_FALLBACK === 'undefined' || !__CLOUD_FALLBACK) return;
-  var needRender = false;
-  SYNC_KEYS.forEach(function(k){
-    var raw = null;
-    try { raw = localStorage.getItem(k); } catch(e){}
-    var empty = false;
-    if (raw === null){ empty = true; }
-    else {
-      try {
-        var v = JSON.parse(raw);
-        if (v === null) empty = true;
-        else if (Array.isArray(v) && v.length === 0) empty = true;
-        else if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) empty = true;
-      } catch(e){ empty = true; }
-    }
-    if (empty && __CLOUD_FALLBACK[k] !== undefined){
-      try { localStorage.setItem(k, JSON.stringify(__CLOUD_FALLBACK[k])); needRender = true; } catch(e){}
-    }
-  });
-  if (needRender) renderSyncModules();
+  try {
+    if (sessionStorage.getItem('__fb_injected') === '1') return;
+  } catch(e){ return; }
+  try {
+    SYNC_KEYS.forEach(function(k){
+      if (__CLOUD_FALLBACK[k] !== undefined){
+        localStorage.setItem(k, JSON.stringify(__CLOUD_FALLBACK[k]));
+      }
+    });
+    sessionStorage.setItem('__fb_injected', '1');
+  } catch(e){}
 }
 
 // ===================== 初始化 =====================
