@@ -1177,27 +1177,36 @@ function cloudPush(force, cb){
 // 写入 GitHub：先取 sha（无则视为新建），再 PUT；409 冲突自动重试一次
 function pushToGithub(token, payload, cb){
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
+  // 可选代理前缀（国内访问 api.github.com 不稳时填入，如 https://ghproxy.com/）
+  var proxy = ''; try { proxy = (localStorage.getItem('githubProxy')||'').trim(); } catch(e){}
+  var url = proxy ? proxy + apiBase : apiBase;
   function doPut(sha){
     var body = { message:'sync userData '+new Date().toISOString(), content:b64enc(payload) };
     if (sha) body.sha = sha;
-    fetch(apiBase, {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 20000);  // 20秒超时，避免永久卡死
+    fetch(url, {
       method:'PUT',
       headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: ctrl.signal
     }).then(function(r){
+      clearTimeout(timer);
       if (r.ok){ r.json().then(function(j){ if(j&&j.content&&j.content.sha) window.__cloudSha=j.content.sha; cb(true); }); }
       else if (r.status===409 && sha){ getSha(token, function(ns){ if(ns){ doPut(ns); } else { cb(false); } }); }
       else { cb(false); }
-    }).catch(function(){ cb(false); });
+    }).catch(function(){ clearTimeout(timer); cb(false); });
   }
   if (window.__cloudSha){ doPut(window.__cloudSha); }
   else { getSha(token, function(sha){ window.__cloudSha = sha; doPut(sha); }); }
 }
 function getSha(token, cb){
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
-  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token } })
-    .then(function(r){ if(r.status===404) return cb(null); if(!r.ok) return cb(null); return r.json().then(function(j){ cb(j&&j.sha?j.sha:null); }); })
-    .catch(function(){ cb(null); });
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 15000);  // 15秒超时
+  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token }, signal: ctrl.signal })
+    .then(function(r){ clearTimeout(timer); if(r.status===404) return cb(null); if(!r.ok) return cb(null); return r.json().then(function(j){ cb(j&&j.sha?j.sha:null); }); })
+    .catch(function(){ clearTimeout(timer); cb(null); });
 }
 // 把云端快照写入本机
 function applyCloudSnap(snap){
@@ -1300,8 +1309,10 @@ function saveSyncSettings(){
 function forceSyncNow(){
   var token = getGithubToken();
   if (!token){ setSyncStatus('请先填写 GitHub Token'); return; }
-  setSyncStatus('同步中…');
-  cloudPush(true, function(ok){ setSyncStatus(ok ? '已同步到云端 ✓' : '同步失败：检查 Token 权限 / 网络'); });
+  setSyncStatus('正在上传到云端（最多 20 秒）…');
+  cloudPush(true, function(ok){
+    setSyncStatus(ok ? '已同步到云端 ✓' : '同步失败：api.github.com 不可达（国内网络限制）。可填「代理前缀」或把数据发我代推');
+  });
 }
 function setSyncStatus(m){ var el = document.getElementById('syncStatus'); if(el) el.textContent = m; }
 
