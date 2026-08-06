@@ -1110,7 +1110,7 @@
         <h3>☁ 云端同步设置</h3>
         <div class="form-item"><label>GitHub Token（fine-grained）</label><input type="password" id="syncToken" placeholder="github_pat_... 仅授权 qiao-zhen.github.io 的 Contents 读写"></div>
         <div class="sync-hint">配置后：手机/电脑/他人打开链接，数据都来自 GitHub 云端（userData.json），任一设备修改自动同步。Token 仅存本机浏览器、不上传；建议用只授权该仓库 Contents 读写的 fine-grained token，且别在待办/台账里写密码、银行卡号等敏感信息。</div>
-        <button class="save-btn" onclick="saveSyncSettings()"><i class="fa fa-check"></i> 保存设置</button>
+        <button class="save-btn" onclick="saveSyncSettings()"><i class="fa fa-download"></i> 拉取云端数据</button>
         <button class="save-btn" style="background:#AD1457;margin-top:8px" onclick="forceSyncNow()"><i class="fa fa-refresh"></i> 立即同步到云端</button>
         <div class="sync-status" id="syncStatus"></div>
     </div>
@@ -1225,7 +1225,7 @@ function openSyncSettings(){
 function saveSyncSettings(){
   var token = (document.getElementById('syncToken').value||'').trim();
   try { localStorage.setItem('syncGithubToken', token); } catch(e){}
-  setSyncStatus(token ? '已保存，正在拉取云端数据…' : '已清空，将仅使用本机存储');
+  setSyncStatus(token ? '已保存 Token，正在拉取云端数据…' : '已清空，将仅使用本机存储');
   if (token) cloudHydrate();
 }
 function forceSyncNow(){
