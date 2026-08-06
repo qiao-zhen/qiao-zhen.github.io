@@ -80,6 +80,10 @@
         .sidebar { scrollbar-width:none; -ms-overflow-style:none; }
         .sidebar::-webkit-scrollbar { width:0; height:0; }
         .page { display:none; }
+        .home-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:62vh; text-align:center; gap:6px; color:#D88AA6; }
+        .home-empty .he-icon { font-size:46px; }
+        .home-empty .he-title { font-size:19px; font-weight:700; color:#E91E63; }
+        .home-empty .he-sub { font-size:13px; color:#C9A6B6; }
         .page.active { display:block; }
         .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
         .page-title { font-size:16px; font-weight:bold; color:#E91E63; display:flex; align-items:center; gap:8px; }
@@ -456,7 +460,7 @@
 <div class="layout">
     <!-- 侧边栏 -->
         <div class="sidebar" id="sidebar">
-        <div class="group" data-group="1">
+        <div class="group collapsed" data-group="1">
             <div class="group-title" onclick="toggleGroup(1)"><span class="arrow">▼</span><i class="fa fa-rocket"></i><span>AI新账号运营</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="operation-ideas" onclick="showPage('operation-ideas',this)"><span class="ico"><i class="fa fa-lightbulb-o"></i></span><span>运营思路&选题素材库</span></div>
@@ -464,7 +468,7 @@
                 <div class="sub-item" data-page="work-review" onclick="showPage('work-review',this)"><span class="ico"><i class="fa fa-pie-chart"></i></span><span>作品复盘记录表</span></div>
             </div>
         </div>
-        <div class="group" data-group="2">
+        <div class="group collapsed" data-group="2">
             <div class="group-title" onclick="toggleGroup(2)"><span class="arrow">▼</span><i class="fa fa-magic"></i><span>AI服装带货</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="product-lib" onclick="showPage('product-lib',this)"><span class="ico"><i class="fa fa-shopping-bag"></i></span><span>选品库管理</span></div>
@@ -474,7 +478,7 @@
                 <div class="sub-item" data-page="record-review" onclick="showPage('record-review',this)"><span class="ico"><i class="fa fa-bar-chart"></i></span><span>发布记录&复盘</span></div>
             </div>
         </div>
-        <div class="group" data-group="3">
+        <div class="group collapsed" data-group="3">
             <div class="group-title" onclick="toggleGroup(3)"><span class="arrow">▼</span><i class="fa fa-money"></i><span>赚钱思路与副业机会</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="side-idea" onclick="showPage('side-idea',this)"><span class="ico"><i class="fa fa-flask"></i></span><span>灵感脑洞库</span></div>
@@ -483,7 +487,7 @@
                 <div class="sub-item" data-page="project-archive" onclick="showPage('project-archive',this)"><span class="ico"><i class="fa fa-archive"></i></span><span>项目归档复盘</span></div>
             </div>
         </div>
-        <div class="group" data-group="4">
+        <div class="group collapsed" data-group="4">
             <div class="group-title" onclick="toggleGroup(4)"><span class="arrow">▼</span><i class="fa fa-line-chart"></i><span>理财研究</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="finance-news" onclick="showPage('finance-news',this)"><span class="ico"><i class="fa fa-book"></i></span><span>理财每日新知</span></div>
@@ -492,7 +496,7 @@
                 <div class="sub-item" data-page="rebalance" onclick="showPage('rebalance',this)"><span class="ico"><i class="fa fa-refresh"></i></span><span>调仓再平衡记录</span></div>
             </div>
         </div>
-        <div class="group" data-group="5">
+        <div class="group collapsed" data-group="5">
             <div class="group-title" onclick="toggleGroup(5)"><span class="arrow">▼</span><i class="fa fa-heartbeat"></i><span>健康养生</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="health-checkin" onclick="showPage('health-checkin',this)"><span class="ico"><i class="fa fa-check-square-o"></i></span><span>今日打卡面板</span></div>
@@ -500,10 +504,10 @@
                 <div class="sub-item" data-page="body-note" onclick="showPage('body-note',this)"><span class="ico"><i class="fa fa-sticky-note-o"></i></span><span>身体观察备忘录</span></div>
             </div>
         </div>
-        <div class="group" data-group="6">
+        <div class="group collapsed" data-group="6">
             <div class="group-title" onclick="toggleGroup(6)"><span class="arrow">▼</span><i class="fa fa-wrench"></i><span>通用工具</span></div>
             <div class="sub-list">
-                <div class="sub-item active" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
+                <div class="sub-item" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
                 <div class="sub-item" data-page="todo-list" onclick="showPage('todo-list',this)"><span class="ico"><i class="fa fa-thumb-tack"></i></span><span>今日待办清单</span></div>
             </div>
         </div>
@@ -520,8 +524,14 @@
       <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
     </div>
 
+    <div id="homeEmpty" class="home-empty">
+      <div class="he-icon">🗂️</div>
+      <div class="he-title">桥桥工作台</div>
+      <div class="he-sub">请从左侧选择一个模块查看内容</div>
+    </div>
+
         <!-- 1. 知识库笔记（粘贴录入 · 分类：理财/养生/AI/运营） -->
-        <div class="page active" id="page-knowledge-base">
+        <div class="page" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
                 <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
@@ -2630,6 +2640,11 @@ function fmtCreated(it){
     var mm = (d.getMinutes()<10?'0':'')+d.getMinutes();
     return hh+':'+mm;
 }
+// 把时间戳转成 YYYYMMDD 整数，便于“按天倒序”（今天在上、昨天在下）
+function dayKey(ts){
+    var d = new Date(ts || 0);
+    return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+}
 function renderTodo(){
     RENDER_MAP['todoList'] = renderTodo;
     migrateTodoCreatedAt();
@@ -2644,7 +2659,9 @@ function renderTodo(){
         var pa = order[a.it.prio]!=null ? order[a.it.prio] : 9;
         var pb = order[b.it.prio]!=null ? order[b.it.prio] : 9;
         if (pa !== pb) return pa - pb;            // 高 > 中 > 低
-        return (b.it.createdAt||0) - (a.it.createdAt||0);  // 同优先级：新增时间新(大)的在上
+        var da = dayKey(a.it.createdAt||0), db = dayKey(b.it.createdAt||0);
+        if (da !== db) return db - da;            // 日期新(今天)的在上、昨天在下
+        return (b.it.createdAt||0) - (a.it.createdAt||0);  // 同日：创建时间新(大)的在上
     });
     var html='';
     sorted.forEach(function(entry){
@@ -2729,7 +2746,7 @@ function exportTodoMD(){
     var order = {高:0,中:1,低:2};
     function tmin(t){ if(!t) return -1; var p=t.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); }
     var sorted = arr.slice().map(function(it,oi){return {it:it,oi:oi};});
-    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; return (b.it.createdAt||0)-(a.it.createdAt||0); });
+    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; var da=dayKey(a.it.createdAt||0),db=dayKey(b.it.createdAt||0); if(da!==db) return db-da; return (b.it.createdAt||0)-(a.it.createdAt||0); });
     sorted.forEach(function(entry, n){
         var item = entry.it;
         md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.remind?(' · 提醒'+item.remind):'') + (item.due?(' · 截止'+item.due):'') + ' · 创建'+fmtCreated(item)+')_\n';
@@ -2775,6 +2792,8 @@ function showPage(pageId, el){
     var page = document.getElementById('page-'+pageId);
     if (page) page.classList.add('active');
     if (el) el.classList.add('active');
+    var he = document.getElementById('homeEmpty');
+    if (he) he.style.display = page ? 'none' : 'flex';
     var mainEl = document.getElementById('main');
     if (mainEl) mainEl.scrollTop = 0;
     truncateAllNews();
