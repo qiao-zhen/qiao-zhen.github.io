@@ -251,12 +251,12 @@
         .form-modal { position:fixed; inset:0; z-index:10000; background:rgba(60,20,40,.45); display:none; align-items:center; justify-content:center; padding:14px; }
         .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
         /* 右上角待办提醒通知 */
-        .todo-notify { position:fixed; top:14px; right:14px; z-index:12000; max-width:300px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:12px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:11px 12px; display:none; align-items:flex-start; gap:9px; cursor:pointer; }
+        .todo-notify { position:fixed; top:12px; right:12px; z-index:12000; max-width:218px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:none; align-items:flex-start; gap:7px; cursor:pointer; }
         .todo-notify:hover { background:#FFF4F8; }
-        .todo-notify-icon { font-size:18px; line-height:1.2; }
+        .todo-notify-icon { font-size:15px; line-height:1.2; }
         .todo-notify-body { flex:1; min-width:0; }
-        .todo-notify-title { font-size:13px; font-weight:700; color:#C2185B; margin-bottom:2px; }
-        .todo-notify-text { font-size:12.5px; color:#555; line-height:1.4; }
+        .todo-notify-title { font-size:12px; font-weight:700; color:#C2185B; margin-bottom:1px; }
+        .todo-notify-text { font-size:11.5px; color:#555; line-height:1.35; }
         .todo-notify-close { width:20px; height:20px; border:none; background:transparent; color:#BBB; font-size:16px; line-height:1; cursor:pointer; flex-shrink:0; }
         .todo-notify-close:hover { color:#E91E63; }
 
@@ -1050,6 +1050,7 @@
             <div class="form-item"><label>时间</label><input type="time" id="td-time"></div>
         </div>
         <div class="form-item"><label>截止时间（可选）</label><input type="text" id="td-due" placeholder="今天 / 明天 / 具体日期"></div>
+        <div class="form-item"><label>提醒时间（选填：到点打开工作台会弹通知并语音提醒）</label><input type="time" id="td-remind"></div>
         <button class="save-btn" onclick="saveTodo()"><i class="fa fa-check"></i> 保存待办</button>
     </div>
 </div>
@@ -2514,9 +2515,9 @@ function renderBodyNote(){
 var _todoEditIdx = null;
 function openTodoModal(idx){
     _todoEditIdx = (idx==null) ? null : idx;
-    var titleEl = document.getElementById('td-title'), textEl = document.getElementById('td-text'), dueEl = document.getElementById('td-due'), timeEl = document.getElementById('td-time'), prioEl = document.getElementById('td-prio');
+    var titleEl = document.getElementById('td-title'), textEl = document.getElementById('td-text'), dueEl = document.getElementById('td-due'), timeEl = document.getElementById('td-time'), prioEl = document.getElementById('td-prio'), remindEl = document.getElementById('td-remind');
     if (idx==null){
-        titleEl.value=''; textEl.value=''; dueEl.value=''; timeEl.value='';
+        titleEl.value=''; textEl.value=''; dueEl.value=''; timeEl.value=''; remindEl.value='';
         prioEl.selectedIndex = 1;
         document.getElementById('todoModalTitle').textContent = '新增待办';
     } else {
@@ -2525,6 +2526,7 @@ function openTodoModal(idx){
         textEl.value = it.text || '';
         dueEl.value = it.due || '';
         timeEl.value = it.time || '';
+        remindEl.value = it.remind || '';
         for (var k=0;k<prioEl.options.length;k++){ if (prioEl.options[k].value === it.prio){ prioEl.selectedIndex = k; break; } }
         document.getElementById('todoModalTitle').textContent = '编辑待办';
     }
@@ -2538,6 +2540,7 @@ function saveTodo(){
     var item = {
         title:title, text:text, prio:document.getElementById('td-prio').value, time:document.getElementById('td-time').value,
         due:document.getElementById('td-due').value.trim(),
+        remind:document.getElementById('td-remind').value,
         date:todayStr(), done:false
     };
     var arr = storeGet('todoList');
@@ -2574,7 +2577,7 @@ function renderTodo(){
     var html='';
     sorted.forEach(function(entry){
         var item = entry.it; var i = entry.oi;
-        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n时间：' + (item.time||'未设') + '\n截止：' + (item.due||'未设');
+        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n时间：' + (item.time||'未设') + '\n提醒：' + (item.remind||'未设') + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
         var sub = item.prio+'优先';
         html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
@@ -2585,18 +2588,46 @@ function renderTodo(){
 function showTodoNotify(){
     try{
         var arr = storeGet('todoList');
-        var undone = arr.filter(function(it){ return !it.done; });
-        if (undone.length === 0) return;
-        var c = {高:0, 中:0, 低:0};
-        undone.forEach(function(it){ if(c[it.prio]!=null) c[it.prio]++; });
-        var parts = [];
-        if(c['高']) parts.push('高'+c['高']);
-        if(c['中']) parts.push('中'+c['中']);
-        if(c['低']) parts.push('低'+c['低']);
-        var txt = document.getElementById('todoNotifyText');
-        if(txt) txt.textContent = '你有 ' + undone.length + ' 条待办未完成（' + parts.join(' / ') + '），点击查看';
+        if (!arr.length) return;
+        var now = new Date();
+        var hm = now.getHours()*60 + now.getMinutes();
+        var today = todayStr();
+        var due = [];
+        arr.forEach(function(it, i){
+            if (it.done) return;
+            if (!it.remind) return;                       // 没设提醒时间 → 不提醒
+            var p = (it.remind||'').split(':');
+            var rh = (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
+            if (hm < rh) return;                          // 还没到提醒时间
+            if (it.remindedOn === today) return;          // 今天已提醒过（每天一次）
+            due.push({ it:it, i:i });
+        });
+        if (due.length === 0) return;
+        due.forEach(function(d){ arr[d.i].remindedOn = today; });
+        storeSet('todoList', arr);
         var box = document.getElementById('todoNotify');
-        if(box) box.style.display = 'flex';
+        var txt = document.getElementById('todoNotifyText');
+        if (!box || !txt) return;
+        var speech;
+        if (due.length === 1){
+            var t = due[0].it.title || due[0].it.text || '待办';
+            txt.textContent = '📌 ' + t + '（提醒时间已到）';
+            speech = t + ' 要截至了，快点完成哦';
+        } else {
+            txt.textContent = '📌 有 ' + due.length + ' 条待办到提醒时间，点击查看';
+            speech = '有 ' + due.length + ' 条待办到提醒时间啦，快点完成哦';
+        }
+        box.style.display = 'flex';
+        speakReminder(speech);
+    }catch(e){}
+}
+function speakReminder(text){
+    try{
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN'; u.rate = 1.0; u.pitch = 1.0;
+        window.speechSynthesis.speak(u);
     }catch(e){}
 }
 function closeTodoNotify(){ var b=document.getElementById('todoNotify'); if(b) b.style.display='none'; }
@@ -2611,7 +2642,7 @@ function exportTodoMD(){
     sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; return tmin(b.it.time)-tmin(a.it.time); });
     sorted.forEach(function(entry, n){
         var item = entry.it;
-        md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.time?(' · '+item.time):'') + (item.due?(' · 截止'+item.due):'') + ')_\n';
+        md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.time?(' · '+item.time):'') + (item.remind?(' · 提醒'+item.remind):'') + (item.due?(' · 截止'+item.due):'') + ')_\n';
     });
     md = md.trim() + '\n';
     _exportMD = md; _exportFilename = '待办清单_' + todayStr() + '.md';
