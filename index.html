@@ -3432,9 +3432,34 @@ function loadRemoteData(){
         });
 }
 
+// 本地为空时，用内嵌的云端快照直接填充（完全不依赖网络，避免受限网络下 fetch 卡死导致无数据）
+function ensureFallbackData(){
+  if (typeof __CLOUD_FALLBACK === 'undefined' || !__CLOUD_FALLBACK) return;
+  var needRender = false;
+  SYNC_KEYS.forEach(function(k){
+    var raw = null;
+    try { raw = localStorage.getItem(k); } catch(e){}
+    var empty = false;
+    if (raw === null){ empty = true; }
+    else {
+      try {
+        var v = JSON.parse(raw);
+        if (v === null) empty = true;
+        else if (Array.isArray(v) && v.length === 0) empty = true;
+        else if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) empty = true;
+      } catch(e){ empty = true; }
+    }
+    if (empty && __CLOUD_FALLBACK[k] !== undefined){
+      try { localStorage.setItem(k, JSON.stringify(__CLOUD_FALLBACK[k])); needRender = true; } catch(e){}
+    }
+  });
+  if (needRender) renderSyncModules();
+}
+
 // ===================== 初始化 =====================
 document.addEventListener('DOMContentLoaded', function(){
-    cloudHydrate();   // 先从 GitHub 云端拉取 userData.json 注水（未配置则跳过）
+    ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
+    cloudHydrate();         // 异步联网更新（成功则刷新为最新，失败也不影响已显示的数据）
     renderKnowledgeBase();
     renderAccountObserve();
     renderWorkReview();
