@@ -1107,9 +1107,8 @@
     <div class="modal">
         <button class="close" onclick="document.getElementById('syncModal').style.display='none'">×</button>
         <h3>☁ 云端同步设置</h3>
-        <div class="form-item"><label>Worker 地址</label><input type="text" id="syncUrl" placeholder="https://你的.workers.dev"></div>
-        <div class="form-item"><label>同步密钥（API Secret）</label><input type="text" id="syncKey" placeholder="与 Cloudflare Worker 环境变量 API_SECRET 一致"></div>
-        <div class="sync-hint">配置后：你手机/电脑/他人打开链接，数据都来自 GitHub 云端（userData.json），任一设备修改自动同步。密钥仅存本机，不上传。</div>
+        <div class="form-item"><label>GitHub Token（fine-grained）</label><input type="password" id="syncToken" placeholder="github_pat_... 仅授权 qiao-zhen.github.io 的 Contents 读写"></div>
+        <div class="sync-hint">配置后：手机/电脑/他人打开链接，数据都来自 GitHub 云端（userData.json），任一设备修改自动同步。Token 仅存本机浏览器、不上传；建议用只授权该仓库 Contents 读写的 fine-grained token，且别在待办/台账里写密码、银行卡号等敏感信息。</div>
         <button class="save-btn" onclick="saveSyncSettings()"><i class="fa fa-check"></i> 保存设置</button>
         <button class="save-btn" style="background:#AD1457;margin-top:8px" onclick="forceSyncNow()"><i class="fa fa-refresh"></i> 立即同步到云端</button>
         <div class="sync-status" id="syncStatus"></div>
@@ -1124,48 +1123,74 @@
 function storeGet(key){ try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ return []; } }
 function storeSet(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 
-// ============ 云端同步引擎（Worker + GitHub，PC 无关） ============
+// ============ 云端同步引擎（直连 GitHub API，无需 Cloudflare） ============
 // 仅同步用户数据 key；AI 内容(data.json)仍由对话「刷新」写入，不在此列。
+// GitHub REST API 本身允许浏览器跨域调用（Access-Control-Allow-Origin: *），
+// 因此可直接从网页 PUT/GET userData.json，省去中间 Worker。
 var SYNC_KEYS = ['todoList','knowledgeBase','accountObserve','workReview','productList','scriptList','promptList','recordList','sideIdeas','evalList','testList','archiveList','assetList','rebalanceList','bodyNoteList','checkinRecords'];
-function getSyncWorkerUrl(){ try { return (localStorage.getItem('syncWorkerUrl')||'').trim(); } catch(e){ return ''; } }
-function getSyncApiKey(){ try { return (localStorage.getItem('syncApiKey')||'').trim(); } catch(e){ return ''; } }
+var GH_OWNER='qiao-zhen', GH_REPO='qiao-zhen.github.io', GH_BRANCH='main', GH_PATH='userData.json';
+function getGithubToken(){ try { return (localStorage.getItem('syncGithubToken')||'').trim(); } catch(e){ return ''; } }
 window.__cloudSkip = false;
-// 拦截所有 localStorage 写入：命中用户数据 key 且已配置同步，则防抖推云端
+window.__cloudSha = null;
+function b64enc(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64dec(b64){ try { return decodeURIComponent(escape(atob(b64))); } catch(e){ return ''; } }
+// 拦截所有 localStorage 写入：命中用户数据 key 且已配置 Token，则防抖推云端
 (function(){
   var _orig = Storage.prototype.setItem;
   Storage.prototype.setItem = function(k, v){
     var res = _orig.apply(this, arguments);
     if (window.__cloudSkip) return res;
-    if (SYNC_KEYS.indexOf(k) !== -1 && getSyncWorkerUrl() && getSyncApiKey()) scheduleCloudPush();
+    if (SYNC_KEYS.indexOf(k) !== -1 && getGithubToken()) scheduleCloudPush();
     return res;
   };
 })();
 var _pushTimer = null;
 function scheduleCloudPush(){ if(_pushTimer) clearTimeout(_pushTimer); _pushTimer = setTimeout(function(){ cloudPush(false); }, 700); }
 function cloudPush(force, cb){
-  var url = getSyncWorkerUrl(), key = getSyncApiKey();
-  if (!url || !key){ if(cb) cb(false); return; }
+  var token = getGithubToken();
+  if (!token){ if(cb) cb(false); return; }
   var snap = {};
   SYNC_KEYS.forEach(function(k){ try { snap[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ snap[k] = null; } });
+  var payload = JSON.stringify(snap);
   var btn = document.getElementById('syncBtn');
   if (btn) btn.classList.add('syncing');
-  fetch(url.replace(/\/$/,'') + '/api/save', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key},
-    body: JSON.stringify({ file:'userData.json', data: JSON.stringify(snap), message:'sync ' + new Date().toISOString() })
-  })
-  .then(function(r){ return r.json().then(function(j){ return { ok: (r.ok && j && j.ok), j:j }; }); })
-  .then(function(res){ if(btn) btn.classList.remove('syncing'); if(cb) cb(!!res.ok); })
-  .catch(function(){ if(btn) btn.classList.remove('syncing'); if(cb) cb(false); });
+  pushToGithub(token, payload, function(ok){ if(btn) btn.classList.remove('syncing'); if(cb) cb(ok); });
+}
+// 写入 GitHub：先取 sha（无则视为新建），再 PUT；409 冲突自动重试一次
+function pushToGithub(token, payload, cb){
+  var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
+  function doPut(sha){
+    var body = { message:'sync userData '+new Date().toISOString(), content:b64enc(payload) };
+    if (sha) body.sha = sha;
+    fetch(apiBase, {
+      method:'PUT',
+      headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(r){
+      if (r.ok){ r.json().then(function(j){ if(j&&j.content&&j.content.sha) window.__cloudSha=j.content.sha; cb(true); }); }
+      else if (r.status===409 && sha){ getSha(token, function(ns){ if(ns){ doPut(ns); } else { cb(false); } }); }
+      else { cb(false); }
+    }).catch(function(){ cb(false); });
+  }
+  if (window.__cloudSha){ doPut(window.__cloudSha); }
+  else { getSha(token, function(sha){ window.__cloudSha = sha; doPut(sha); }); }
+}
+function getSha(token, cb){
+  var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
+  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token } })
+    .then(function(r){ if(r.status===404) return cb(null); if(!r.ok) return cb(null); return r.json().then(function(j){ cb(j&&j.sha?j.sha:null); }); })
+    .catch(function(){ cb(null); });
 }
 function cloudHydrate(){
-  var url = getSyncWorkerUrl(), key = getSyncApiKey();
-  if (!url || !key) return;
-  fetch(url.replace(/\/$/,'') + '/api/load?file=userData.json', { headers:{'x-api-key':key} })
-    .then(function(r){ return r.json(); })
+  var token = getGithubToken();
+  if (!token) return;
+  var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
+  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token } })
+    .then(function(r){ if(r.status===404) return; if(!r.ok) return; return r.json(); })
     .then(function(j){
-      if (!j || !j.ok || !j.content) return;
-      var snap; try { snap = JSON.parse(j.content); } catch(e){ return; }
+      if (!j || !j.content) return;
+      if (j.sha) window.__cloudSha = j.sha;
+      var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ return; }
       if (!snap || typeof snap !== 'object') return;
       window.__cloudSkip = true;
       SYNC_KEYS.forEach(function(k){ if (snap[k] !== undefined){ try { localStorage.setItem(k, JSON.stringify(snap[k])); } catch(e){} } });
@@ -1180,23 +1205,21 @@ function renderSyncModules(){
   renderTest(); renderArchive(); renderAsset(); renderRebalance(); renderBodyNote(); renderTodo();
 }
 function openSyncSettings(){
-  document.getElementById('syncUrl').value = getSyncWorkerUrl() || '';
-  document.getElementById('syncKey').value = getSyncApiKey() || '';
+  document.getElementById('syncToken').value = getGithubToken() || '';
   var s = document.getElementById('syncStatus'); if(s) s.textContent = '';
   document.getElementById('syncModal').style.display = 'flex';
 }
 function saveSyncSettings(){
-  var url = (document.getElementById('syncUrl').value||'').trim();
-  var key = (document.getElementById('syncKey').value||'').trim();
-  try { localStorage.setItem('syncWorkerUrl', url); localStorage.setItem('syncApiKey', key); } catch(e){}
-  setSyncStatus(url && key ? '已保存，正在拉取云端数据…' : '已清空，将仅使用本机存储');
-  if (url && key) cloudHydrate();
+  var token = (document.getElementById('syncToken').value||'').trim();
+  try { localStorage.setItem('syncGithubToken', token); } catch(e){}
+  setSyncStatus(token ? '已保存，正在拉取云端数据…' : '已清空，将仅使用本机存储');
+  if (token) cloudHydrate();
 }
 function forceSyncNow(){
-  var url = getSyncWorkerUrl(), key = getSyncApiKey();
-  if (!url || !key){ setSyncStatus('请先填写 Worker 地址和密钥'); return; }
+  var token = getGithubToken();
+  if (!token){ setSyncStatus('请先填写 GitHub Token'); return; }
   setSyncStatus('同步中…');
-  cloudPush(true, function(ok){ setSyncStatus(ok ? '已同步到云端 ✓' : '同步失败：检查地址 / 密钥 / 网络'); });
+  cloudPush(true, function(ok){ setSyncStatus(ok ? '已同步到云端 ✓' : '同步失败：检查 Token 权限 / 网络'); });
 }
 function setSyncStatus(m){ var el = document.getElementById('syncStatus'); if(el) el.textContent = m; }
 
