@@ -1254,7 +1254,9 @@ function cloudHydrate(){
     })
     .then(function(text){
       clearTimeout(timer);
-      if(!text || typeof text !== 'string' || text.length < 10) throw new Error('pages-empty('+(text?text.length:'null')+')');
+      // 兜底：text 为 null/非字符串/空/太短均视为失败
+      if(!text || typeof text !== 'string'){ throw new Error('null-response'); }
+      if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
       applyCloudSnap(snap);
