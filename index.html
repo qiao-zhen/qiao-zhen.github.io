@@ -259,6 +259,8 @@
         .todo-notify-text { font-size:11.5px; color:#555; line-height:1.35; }
         .todo-notify-close { width:20px; height:20px; border:none; background:transparent; color:#BBB; font-size:16px; line-height:1; cursor:pointer; flex-shrink:0; }
         .todo-notify-close:hover { color:#E91E63; }
+        .news-card.flash { animation: flashHl 2.2s ease-out; }
+        @keyframes flashHl { 0%{ box-shadow:0 0 0 3px #E91E63; } 100%{ box-shadow:0 6px 18px rgba(0,0,0,.06); } }
 
         /* ===== 移动端 ===== */
         @media (max-width:768px) {
@@ -512,7 +514,7 @@
     <div id="todoNotify" class="todo-notify" onclick="gotoTodoFromNotify()">
       <div class="todo-notify-icon">🔔</div>
       <div class="todo-notify-body">
-        <div class="todo-notify-title">待办提醒</div>
+        <div class="todo-notify-title" id="todoNotifyTitle">待办提醒</div>
         <div class="todo-notify-text" id="todoNotifyText"></div>
       </div>
       <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
@@ -1055,7 +1057,7 @@
         <div class="form-item"><label>待办事项</label><input type="text" id="td-text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
         <div class="form-item"><label>优先级</label><select id="td-prio"><option>高</option><option>中</option><option>低</option></select></div>
         <div class="form-item"><label>截止时间（可选）</label><input type="text" id="td-due" placeholder="今天 / 明天 / 具体日期"></div>
-        <div class="form-item"><label>提醒时间（选填：到点打开工作台会弹通知并语音提醒）</label><input type="time" id="td-remind"></div>
+        <div class="form-item"><label>截止提醒时间（选填：某年-某月-某日 某时:某分；到点后每次打开工作台都会弹通知+语音提醒，直到你点完成）</label><input type="datetime-local" id="td-remind"></div>
         <button class="save-btn" onclick="saveTodo()"><i class="fa fa-check"></i> 保存待办</button>
     </div>
 </div>
@@ -1106,7 +1108,7 @@ function buildCard(o){
     var extraHtml = o.extra || '';
     var titleHtml = escHtml(o.title);
     var titleCls = 'n-title' + (o.subRight ? ' sub-right' : '');
-    return '<div class="news-card'+(done?' done':'')+'" data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
+    return '<div class="news-card'+(done?' done':'')+'"'+(o.id?' id="'+escAttr(o.id)+'"':'')+' data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
         '<div class="'+titleCls+'">'+titleHtml+subHtml+'</div>'+
         extraHtml+
         '<div class="n-content"></div>'+
@@ -2577,6 +2579,50 @@ function migrateTodoCreatedAt(){
         if(changed) storeSet('todoList', a);
     }catch(e){}
 }
+function localYMD(){
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = (d.getMonth()+1<10?'0':'')+(d.getMonth()+1);
+    var day = (d.getDate()<10?'0':'')+d.getDate();
+    return y+'-'+m+'-'+day;
+}
+// 旧数据：提醒时间只填了 HH:MM → 补成今天的全日期，避免“不知道是哪天”
+function migrateTodoRemind(){
+    try{
+        var a = storeGet('todoList');
+        var changed = false;
+        var t = localYMD();
+        a.forEach(function(it){
+            if(it.remind && it.remind.indexOf('T') < 0 && it.remind.indexOf(':') >= 0){
+                it.remind = t + 'T' + it.remind;
+                changed = true;
+            }
+        });
+        if(changed) storeSet('todoList', a);
+    }catch(e){}
+}
+// 把提醒时间解析成 Date（支持 YYYY-MM-DDTHH:MM；仅 HH:MM 视为今天）
+function parseRemind(s){
+    if(!s) return null;
+    s = (s+'').trim();
+    if(s.indexOf('T') >= 0){
+        var d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    var p = s.split(':');
+    if(p.length >= 2){
+        var d2 = new Date();
+        d2.setHours(parseInt(p[0],10)||0, parseInt(p[1],10)||0, 0, 0);
+        return d2;
+    }
+    return null;
+}
+// 显示用：YYYY-MM-DDTHH:MM → YYYY-MM-DD HH:MM
+function fmtRemind(s){
+    if(!s) return '未设';
+    s = (s+'').trim();
+    return s.indexOf('T') >= 0 ? s.replace('T',' ') : s;
+}
 function fmtCreated(it){
     if(!it || !it.createdAt) return '未设';
     var d = new Date(it.createdAt);
@@ -2587,6 +2633,7 @@ function fmtCreated(it){
 function renderTodo(){
     RENDER_MAP['todoList'] = renderTodo;
     migrateTodoCreatedAt();
+    migrateTodoRemind();
     var arr = storeGet('todoList');
     var wrap = document.getElementById('todoList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-thumb-tack"></i></div><p>暂无待办</p><p class="sub">点「新增待办」记录今天要做的事</p></div>'; return; }
@@ -2602,10 +2649,10 @@ function renderTodo(){
     var html='';
     sorted.forEach(function(entry){
         var item = entry.it; var i = entry.oi;
-        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n创建：' + fmtCreated(item) + '\n提醒：' + (item.remind||'未设') + '\n截止：' + (item.due||'未设');
+        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n创建：' + fmtCreated(item) + '\n截止提醒：' + fmtRemind(item.remind) + '\n截止描述：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
         var sub = item.prio+'优先';
-        html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
+        html += buildCard({ key:'todoList', idx:i, id:'todo-card-'+i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2615,29 +2662,33 @@ function showTodoNotify(){
         var arr = storeGet('todoList');
         if (!arr.length) return;
         var now = new Date();
-        var hm = now.getHours()*60 + now.getMinutes();
-        var today = todayStr();
         var due = [];
         arr.forEach(function(it, i){
-            if (it.done) return;
-            if (!it.remind) return;                       // 没设提醒时间 → 不提醒
-            var p = (it.remind||'').split(':');
-            var rh = (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
-            if (hm < rh) return;                          // 还没到提醒时间
-            due.push({ it:it, i:i });
+            if (it.done) return;                         // 已完成 → 不再提醒
+            if (!it.remind) return;                      // 没设截止提醒时间 → 不提醒
+            var rd = parseRemind(it.remind);
+            if (!rd) return;
+            if (now >= rd) due.push({ it:it, i:i, rd:rd });  // 到点（含已过）→ 每次打开都提醒
         });
         if (due.length === 0) return;
+        due.sort(function(a,b){ return a.rd - b.rd; });   // 截止最早 = 最急
+        window.__notifyTargets = due;
         var box = document.getElementById('todoNotify');
+        var titleEl = document.getElementById('todoNotifyTitle');
         var txt = document.getElementById('todoNotifyText');
         if (!box || !txt) return;
         var speech;
         if (due.length === 1){
             var t = due[0].it.title || due[0].it.text || '待办';
-            txt.textContent = '📌 ' + t + '（提醒时间已到）';
-            speech = t + ' 要截至了，快点完成哦';
+            if(titleEl) titleEl.textContent = '待办提醒 · 已到截止';
+            txt.textContent = '📌 「' + t + '」已到截止时间，点击查看';
+            speech = '「' + t + '」已到截止时间，快点完成哦';
         } else {
-            txt.textContent = '📌 有 ' + due.length + ' 条待办到提醒时间，点击查看';
-            speech = '有 ' + due.length + ' 条待办到提醒时间啦，快点完成哦';
+            var top = due[0].it;
+            var topTitle = top.title || top.text || '待办';
+            if(titleEl) titleEl.textContent = '待办提醒 · 共 '+due.length+' 条已到截止';
+            txt.textContent = '📌 最急：「' + topTitle + '」(' + fmtRemind(top.remind) + ')，点击查看';
+            speech = '你有 ' + due.length + ' 条待办已到截止时间，快点完成哦';
         }
         box.style.display = 'flex';
         speakReminder(speech);
@@ -2653,7 +2704,24 @@ function speakReminder(text){
     }catch(e){}
 }
 function closeTodoNotify(){ var b=document.getElementById('todoNotify'); if(b) b.style.display='none'; }
-function gotoTodoFromNotify(){ closeTodoNotify(); var el=document.querySelector('.sub-item[data-page="todo-list"]'); showPage('todo-list', el); }
+function gotoTodoFromNotify(){
+    var targets = window.__notifyTargets || [];
+    closeTodoNotify();
+    var el = document.querySelector('.sub-item[data-page="todo-list"]');
+    showPage('todo-list', el);
+    var t = targets.length ? targets[0] : null;  // targets 已按截止时间升序，[0] 即最急/唯一条
+    setTimeout(function(){
+        renderTodo();
+        if (t){
+            var card = document.getElementById('todo-card-' + t.i);
+            if (card){
+                card.scrollIntoView({ block:'center' });
+                card.classList.add('flash');
+                setTimeout(function(){ card.classList.remove('flash'); }, 2200);
+            }
+        }
+    }, 320);
+}
 function exportTodoMD(){
     var arr = storeGet('todoList');
     if (arr.length === 0){ showToast('暂无待办可导出'); return; }
