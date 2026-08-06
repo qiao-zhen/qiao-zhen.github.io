@@ -251,7 +251,7 @@
         .form-modal { position:fixed; inset:0; z-index:10000; background:rgba(60,20,40,.45); display:none; align-items:center; justify-content:center; padding:14px; }
         .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
         /* 右上角待办提醒通知 */
-        .todo-notify { position:fixed; top:12px; right:12px; z-index:12000; max-width:218px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:none; align-items:flex-start; gap:7px; cursor:pointer; }
+        .todo-notify { position:sticky; top:8px; margin-left:auto; margin-right:0; z-index:12000; max-width:230px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:none; align-items:flex-start; gap:7px; cursor:pointer; }
         .todo-notify:hover { background:#FFF4F8; }
         .todo-notify-icon { font-size:15px; line-height:1.2; }
         .todo-notify-body { flex:1; min-width:0; }
@@ -509,6 +509,14 @@
 
     <!-- 主内容 -->
     <div class="main" id="main">
+    <div id="todoNotify" class="todo-notify" onclick="gotoTodoFromNotify()">
+      <div class="todo-notify-icon">🔔</div>
+      <div class="todo-notify-body">
+        <div class="todo-notify-title">待办提醒</div>
+        <div class="todo-notify-text" id="todoNotifyText"></div>
+      </div>
+      <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
+    </div>
 
         <!-- 1. 知识库笔记（粘贴录入 · 分类：理财/养生/AI/运营） -->
         <div class="page active" id="page-knowledge-base">
@@ -2616,12 +2624,9 @@ function showTodoNotify(){
             var p = (it.remind||'').split(':');
             var rh = (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
             if (hm < rh) return;                          // 还没到提醒时间
-            if (it.remindedOn === today) return;          // 今天已提醒过（每天一次）
             due.push({ it:it, i:i });
         });
         if (due.length === 0) return;
-        due.forEach(function(d){ arr[d.i].remindedOn = today; });
-        storeSet('todoList', arr);
         var box = document.getElementById('todoNotify');
         var txt = document.getElementById('todoNotifyText');
         if (!box || !txt) return;
@@ -3175,15 +3180,6 @@ document.addEventListener('DOMContentLoaded', function(){
     showTodoNotify();
 });
 </script>
-
-<div id="todoNotify" class="todo-notify" onclick="gotoTodoFromNotify()">
-  <div class="todo-notify-icon">🔔</div>
-  <div class="todo-notify-body">
-    <div class="todo-notify-title">待办提醒</div>
-    <div class="todo-notify-text" id="todoNotifyText"></div>
-  </div>
-  <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
-</div>
 
 </body>
 </html>
