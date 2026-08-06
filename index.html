@@ -396,13 +396,15 @@
 .form-card{position:relative;}
 .asset-actions input[type=file]{display:none !important;}
 .form-card h4{position:relative;padding-right:30px;}
-.form-close{position:absolute;right:10px;top:2px;width:26px;height:26px;border:none;background:#FCE4EC;border-radius:50%;color:#C2185B;font-size:17px;line-height:1;cursor:pointer;}
-.form-close:active{background:#F8BBD0;}
 .form-hint{font-size:12px;color:#B07090;background:#FFF4F8;border-radius:8px;padding:7px 10px;margin:0 0 12px;line-height:1.4;}
 .form-hint .fa{color:#E91E63;margin-right:4px;}
 .form-btn-row{display:flex;gap:10px;margin-top:6px;}
 .cancel-btn{flex:1;border:1px solid #F0C9D8;background:#fff;color:#B07090;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;}
 .cancel-btn:active{background:#FFF0F5;}
+/* 表单弹窗外观：与「新增待办」一致，居中卡片 + 遮罩 + 可滚动 */
+.form-modal .form-card{max-width:520px;width:100%;max-height:86vh;overflow-y:auto;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+.form-close{position:absolute;right:10px;top:10px;width:30px;height:30px;border:none;background:#FCE4EC;border-radius:50%;color:#C2185B;font-size:20px;line-height:1;cursor:pointer;z-index:2;}
+.form-close:active{background:#F8BBD0;}
 /* 长按菜单（底部弹出） */
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
 .long-menu-mask.show{display:flex;}
@@ -859,7 +861,7 @@
             <div id="ocrStatus" class="hidden"></div>
             <div id="ocrResult"></div>
             <div class="card form-card hidden" id="form-asset">
-                <h4>新增持仓<button type="button" class="form-close" onclick="toggleForm('form-asset')" aria-label="关闭">×</button></h4>
+                <h4>新增持仓<button type="button" class="form-close" onclick="document.getElementById('form-asset_ov').style.display='none'" aria-label="关闭">×</button></h4>
                 <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」即可，名称与跌涨自动补全。<b>成本金额</b>是你买入花的总本金（公开接口查不到，需自己填，或直接发基金App持仓截图给我全自动录入）</p>
                 <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000216" onblur="autoFillFundName()" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) autoFillFundName()"></div>
                 <div class="form-hint" id="as-quote" style="display:none;margin:-4px 0 6px"></div>
@@ -3304,14 +3306,28 @@ function wrapForms(){
         ov.setAttribute('onclick', "if(event.target===this) document.getElementById('"+card.id+"_ov').style.display='none'");
     });
 }
-function showForm(formId){
+function ensureFormOverlay(formId){
     var ov = document.getElementById(formId + '_ov');
-    if (ov){ ov.style.display = 'flex'; return; }
-    var f = document.getElementById(formId); if (f) f.classList.remove('hidden');
+    if (ov) return ov;
+    var f = document.getElementById(formId);
+    if (!f) return null;
+    ov = document.createElement('div');
+    ov.className = 'modal-overlay form-modal';
+    ov.id = formId + '_ov';
+    f.classList.remove('hidden');
+    if (f.parentNode) f.parentNode.insertBefore(ov, f);
+    ov.appendChild(f);
+    ov.style.display = 'none';
+    ov.setAttribute('onclick', "if(event.target===this) document.getElementById('"+formId+"_ov').style.display='none'");
+    return ov;
+}
+function showForm(formId){
+    var ov = ensureFormOverlay(formId);
+    if (ov) ov.style.display = 'flex';
 }
 function toggleForm(formId){
-    var ov = document.getElementById(formId + '_ov');
-    if (!ov){ var f = document.getElementById(formId); if (f) f.classList.toggle('hidden'); return; }
+    var ov = ensureFormOverlay(formId);
+    if (!ov) return;
     ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
 }
 function hideAllForms(){
@@ -3326,7 +3342,7 @@ function injectFormCloseButtons(){
         btn.className = 'form-close';
         btn.setAttribute('aria-label','关闭');
         btn.textContent = '×';
-        btn.onclick = function(e){ e.stopPropagation(); toggleForm(card.id); };
+        btn.onclick = function(e){ e.stopPropagation(); var o = document.getElementById(card.id + '_ov'); if (o) o.style.display = 'none'; else toggleForm(card.id); };
         card.insertBefore(btn, card.firstChild);
     });
 }
