@@ -1,16 +1,6 @@
 {
   "todoList": [
     {
-      "title": "workbuddy做一个朗读的软件",
-      "text": "用来读我的书籍，手机版现有的阅读朗读声音太难听了，而且要花钱",
-      "prio": "中",
-      "createdAt": 1786002058695,
-      "due": "",
-      "remind": "",
-      "date": "2026-08-06",
-      "done": false
-    },
-    {
       "text": "让workbuddy将我的手机和电脑ipad多端同步数据要如何实现呢",
       "prio": "中",
       "time": "10:11",
@@ -124,11 +114,11 @@
     {
       "text": "【云端同步测试】若你看到这条，说明下载链路已跑通（可删除）",
       "prio": "中",
-      "time": "15:44",
+      "time": "15:30",
       "due": "今天",
       "date": "2026-08-06",
       "done": false,
-      "createdAt": 1786002507253
+      "createdAt": 1786001515480
     }
   ],
   "knowledgeBase": [],
