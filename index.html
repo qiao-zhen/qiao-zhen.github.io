@@ -499,23 +499,9 @@
         <div class="page active" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
-                <button class="pill-btn" onclick="toggleForm('form-knowledge')"><i class="fa fa-clipboard"></i> 粘贴</button>
+                <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
-                <div class="card form-card hidden" id="form-knowledge">
-                <h4 id="kbFormTitle">粘贴内容生成卡片</h4>
-                <div class="form-item"><label>标题（自定义，留空则自动取首行）</label><input type="text" id="kb-title" placeholder="给这张卡片起个名字，例如：美联储9月降息预期"></div>
-                <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..."></textarea></div>
-                <div class="form-item"><label>分类</label>
-                    <select id="kb-category">
-                        <option>理财</option>
-                        <option>养生</option>
-                        <option>AI</option>
-                        <option>运营</option>
-                    </select>
-                </div>
-                <button class="save-btn" id="kbSaveBtn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 生成卡片</button>
-            </div>
             <div class="filter-row" id="kb-filter">
                 <span class="filter-chip sel" data-cat="all" onclick="filterKnowledge('all',this)">全部</span>
                 <span class="filter-chip" data-cat="理财" onclick="filterKnowledge('理财',this)">理财</span>
@@ -1003,20 +989,10 @@
                 <div class="page-title"><i class="fa fa-thumb-tack ico"></i> 今日待办清单</div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="export-btn" onclick="exportTodoMD()"><i class="fa fa-download"></i> 导出(MD)</button>
-                    <button class="pill-btn" onclick="openNewTodo()"><i class="fa fa-plus"></i> 新增待办</button>
+                    <button class="pill-btn" onclick="openTodoModal(null)"><i class="fa fa-plus"></i> 新增待办</button>
                 </div>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 优先级：高 / 中 / 低 · 完成事项可点「✓ 已完成」标记 · 数据存本地浏览器</div>
-            <div class="card form-card hidden" id="form-todo">
-                <h4>新增待办</h4>
-                <div class="form-item"><label>待办事项</label><input type="text" id="td-text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
-                <div class="form-row">
-                    <div class="form-item"><label>优先级</label><select id="td-prio"><option>高</option><option>中</option><option>低</option></select></div>
-                    <div class="form-item"><label>时间</label><input type="time" id="td-time"></div>
-                </div>
-                <div class="form-item"><label>截止时间（可选）</label><input type="text" id="td-due" placeholder="今天 / 明天 / 具体日期"></div>
-                <button class="save-btn" onclick="saveTodo()"><i class="fa fa-check"></i> 保存待办</button>
-            </div>
             <div id="todoList"></div>
         </div>
 
@@ -1044,6 +1020,41 @@
             <button class="pill-btn" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
             <button class="pill-btn ghost" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
         </div>
+    </div>
+</div>
+
+<!-- 待办新增/编辑弹窗 -->
+<div class="modal-overlay" id="todoModal" onclick="if(event.target===this)document.getElementById('todoModal').style.display='none'">
+    <div class="modal">
+        <button class="close" onclick="document.getElementById('todoModal').style.display='none'">×</button>
+        <h3 id="todoModalTitle">新增待办</h3>
+        <div class="form-item"><label>标题（选填，留空自动取内容首行）</label><input type="text" id="td-title" placeholder="例如：护肤脚本"></div>
+        <div class="form-item"><label>待办事项</label><input type="text" id="td-text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
+        <div class="form-row">
+            <div class="form-item"><label>优先级</label><select id="td-prio"><option>高</option><option>中</option><option>低</option></select></div>
+            <div class="form-item"><label>时间</label><input type="time" id="td-time"></div>
+        </div>
+        <div class="form-item"><label>截止时间（可选）</label><input type="text" id="td-due" placeholder="今天 / 明天 / 具体日期"></div>
+        <button class="save-btn" onclick="saveTodo()"><i class="fa fa-check"></i> 保存待办</button>
+    </div>
+</div>
+
+<!-- 知识库粘贴弹窗 -->
+<div class="modal-overlay" id="kbModal" onclick="if(event.target===this)document.getElementById('kbModal').style.display='none'">
+    <div class="modal">
+        <button class="close" onclick="document.getElementById('kbModal').style.display='none'">×</button>
+        <h3 id="kbModalTitle">粘贴内容生成卡片</h3>
+        <div class="form-item"><label>标题（选填，留空自动取首行）</label><input type="text" id="kb-title" placeholder="给这张卡片起个名字，例如：美联储9月降息预期"></div>
+        <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..."></textarea></div>
+        <div class="form-item"><label>分类</label>
+            <select id="kb-category">
+                <option>理财</option>
+                <option>养生</option>
+                <option>AI</option>
+                <option>运营</option>
+            </select>
+        </div>
+        <button class="save-btn" id="kbSaveBtn" onclick="saveKnowledge()"><i class="fa fa-check"></i> 生成卡片</button>
     </div>
 </div>
 
@@ -1141,9 +1152,9 @@ function saveKnowledge(){
     _editState.key = null; _editState.idx = null;
     document.getElementById('kb-title').value='';
     document.getElementById('kb-content').value='';
-    document.getElementById('kbFormTitle').textContent='粘贴内容生成卡片';
+    document.getElementById('kbModalTitle').textContent='粘贴内容生成卡片';
     document.getElementById('kbSaveBtn').innerHTML='<i class="fa fa-check"></i> 生成卡片';
-    document.getElementById('form-knowledge').classList.add('hidden');
+    document.getElementById('kbModal').style.display='none';
     renderKnowledgeBase();
 }
 function filterKnowledge(cat, el){
@@ -1227,17 +1238,24 @@ function renderKnowledgeBase(){
     wrap.innerHTML = html;
     truncateAllNews();
 }
+function openKbModal(){
+    _editState.key = null; _editState.idx = null;
+    document.getElementById('kb-title').value='';
+    document.getElementById('kb-content').value='';
+    document.getElementById('kbModalTitle').textContent = '粘贴内容生成卡片';
+    document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 生成卡片';
+    document.getElementById('kbModal').style.display='flex';
+}
 function openEditKnowledge(idx){
     var arr = getKnowledgeList();
     var it = arr[idx]; if (!it) return;
     _editState.key = 'knowledgeBase'; _editState.idx = idx;
-    document.getElementById('kbFormTitle').textContent = '编辑卡片';
+    document.getElementById('kbModalTitle').textContent = '编辑卡片';
     document.getElementById('kb-title').value = it.title || '';
     document.getElementById('kb-content').value = it.content || '';
     var sel = document.getElementById('kb-category'); if (sel && it.category) sel.value = it.category;
     document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 保存修改';
-    document.getElementById('form-knowledge').classList.remove('hidden');
-    document.getElementById('form-knowledge').scrollIntoView({behavior:'smooth'});
+    document.getElementById('kbModal').style.display='flex';
 }
 function deleteKnowledge(idx){
     if (!confirm('确定删除这张卡片？')) return;
@@ -2478,36 +2496,37 @@ function renderBodyNote(){
 
 // ===================== 20. 今日待办清单（localStorage + 导出） =====================
 var _todoEditIdx = null;
-function openNewTodo(){
-    _todoEditIdx = null;
-    document.getElementById('td-text').value='';
-    document.getElementById('td-due').value='';
-    document.getElementById('td-time').value='';
-    document.getElementById('td-prio').selectedIndex = 1;
-    var h = document.querySelector('#form-todo h4'); if (h) h.textContent = '新增待办';
-    document.getElementById('form-todo').classList.remove('hidden');
-}
-function editTodo(idx){
-    var arr = storeGet('todoList'); var it = arr[idx]; if (!it) return;
-    _todoEditIdx = idx;
-    document.getElementById('td-text').value = it.text || '';
-    document.getElementById('td-due').value = it.due || '';
-    document.getElementById('td-time').value = it.time || '';
-    var sel = document.getElementById('td-prio');
-    for (var k=0;k<sel.options.length;k++){ if (sel.options[k].value === it.prio){ sel.selectedIndex = k; break; } }
-    var h = document.querySelector('#form-todo h4'); if (h) h.textContent = '编辑待办';
-    document.getElementById('form-todo').classList.remove('hidden');
+function openTodoModal(idx){
+    _todoEditIdx = (idx==null) ? null : idx;
+    var titleEl = document.getElementById('td-title'), textEl = document.getElementById('td-text'), dueEl = document.getElementById('td-due'), timeEl = document.getElementById('td-time'), prioEl = document.getElementById('td-prio');
+    if (idx==null){
+        titleEl.value=''; textEl.value=''; dueEl.value=''; timeEl.value='';
+        prioEl.selectedIndex = 1;
+        document.getElementById('todoModalTitle').textContent = '新增待办';
+    } else {
+        var it = storeGet('todoList')[idx]; if (!it){ return; }
+        titleEl.value = it.title || '';
+        textEl.value = it.text || '';
+        dueEl.value = it.due || '';
+        timeEl.value = it.time || '';
+        for (var k=0;k<prioEl.options.length;k++){ if (prioEl.options[k].value === it.prio){ prioEl.selectedIndex = k; break; } }
+        document.getElementById('todoModalTitle').textContent = '编辑待办';
+    }
+    document.getElementById('todoModal').style.display='flex';
 }
 function saveTodo(){
     var text = document.getElementById('td-text').value.trim();
     if (!text){ showToast('请填写待办事项'); return; }
+    var titleInput = (document.getElementById('td-title').value||'').trim();
+    var title = titleInput || (text.split('\n')[0].slice(0,20)) || text.slice(0,20) || '待办';
     var item = {
-        text:text, prio:document.getElementById('td-prio').value, time:document.getElementById('td-time').value,
+        title:title, text:text, prio:document.getElementById('td-prio').value, time:document.getElementById('td-time').value,
         due:document.getElementById('td-due').value.trim(),
         date:todayStr(), done:false
     };
     var arr = storeGet('todoList');
-    if (_todoEditIdx != null && arr[_todoEditIdx]){
+    var isEdit = (_todoEditIdx != null && arr[_todoEditIdx]);
+    if (isEdit){
         var old = arr[_todoEditIdx];
         item.done = !!old.done;
         item.date = old.date || item.date;
@@ -2516,10 +2535,10 @@ function saveTodo(){
         arr.unshift(item);
     }
     storeSet('todoList', arr);
-    document.getElementById('td-text').value=''; document.getElementById('td-due').value='';
+    document.getElementById('td-title').value=''; document.getElementById('td-text').value=''; document.getElementById('td-due').value=''; document.getElementById('td-time').value='';
     _todoEditIdx = null;
-    document.getElementById('form-todo').classList.add('hidden');
-    showToast('待办已保存');
+    document.getElementById('todoModal').style.display='none';
+    showToast(isEdit?'待办已更新':'待办已保存');
     renderTodo();
 }
 function renderTodo(){
@@ -2542,7 +2561,7 @@ function renderTodo(){
         var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n时间：' + (item.time||'未设') + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
         var sub = item.prio+'优先' + (item.time ? ' · '+item.time : '');
-        html += buildCard({ key:'todoList', idx:i, title:item.text, sub:sub, subClass:prioCls, content:full, date:item.date, showDone:true, editAction:'editTodo('+i+')' });
+        html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
