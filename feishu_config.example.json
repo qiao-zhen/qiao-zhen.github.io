@@ -1,0 +1,10 @@
+{
+  "app_id": "cli_xxxxxxxxxxxxxxxx",
+  "app_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "docs": {
+    "理财": "docx_把理财文档URL里/docx/后面的token填这里",
+    "养生": "docx_把养生文档URL里/docx/后面的token填这里",
+    "AI": "docx_把AI文档URL里/docx/后面的token填这里",
+    "运营": "docx_把运营文档URL里/docx/后面的token填这里"
+  }
+}
