@@ -1213,7 +1213,6 @@ function hydrateFromApi(token){
       if (err && err.name === 'AbortError'){ setSyncStatus('API拉取超时（15秒）'); }
       else { var em = err && err.message ? String(err.message).slice(0,60) : ''; setSyncStatus('API也失败('+em+')，建议用电脑WiFi同步'); }
     })
-    })
     .finally(function(){ clearTimeout(timer); });
 }
 // 拉取云端数据：优先走 GitHub Pages 同源静态读取（国内更稳、无需 Token、无 CORS）
