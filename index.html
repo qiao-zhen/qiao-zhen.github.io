@@ -2103,6 +2103,12 @@ function renderAsset(){
     RENDER_MAP['assetList'] = renderAsset;
     runDCA();
     var arr = storeGet('assetList');
+    // 渲染级兜底：localStorage 为空时直接从内嵌快照读取
+    if (!arr || !Array.isArray(arr) || arr.length === 0){
+      if (typeof __CLOUD_FALLBACK !== 'undefined' && __CLOUD_FALLBACK && __CLOUD_FALLBACK.assetList && __CLOUD_FALLBACK.assetList.length > 0){
+        arr = __CLOUD_FALLBACK.assetList;
+      }
+    }
     var total = 0; arr.forEach(function(it){ total += (parseFloat(it.amount)||0); });
     var enabledDaily = 0; var dcaAccTotal = 0;
     arr.forEach(function(it){ if(it.dca && (parseFloat(it.dca.daily)||0)>0){ enabledDaily += (parseFloat(it.dca.daily)||0); dcaAccTotal += (parseFloat(it.dca.acc)||0); } });
@@ -2838,6 +2844,12 @@ function renderTodo(){
     migrateTodoCreatedAt();
     migrateTodoRemind();
     var arr = storeGet('todoList');
+    // 渲染级兜底：localStorage 为空时直接从内嵌快照读取（确保数据一定显示）
+    if (!arr || !Array.isArray(arr) || arr.length === 0){
+      if (typeof __CLOUD_FALLBACK !== 'undefined' && __CLOUD_FALLBACK && __CLOUD_FALLBACK.todoList && __CLOUD_FALLBACK.todoList.length > 0){
+        arr = __CLOUD_FALLBACK.todoList;
+      }
+    }
     var wrap = document.getElementById('todoList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-thumb-tack"></i></div><p>暂无待办</p><p class="sub">点「新增待办」记录今天要做的事</p></div>'; return; }
     var order = {高:0, 中:1, 低:2};
