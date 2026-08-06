@@ -120,6 +120,14 @@
         .news-card.done .n-title { text-decoration:line-through; color:#2E7D32; }
         .news-card.hl { box-shadow:0 0 0 3px #F06292; animation:hlPulse 1.2s ease; }
         @keyframes hlPulse { 0%{box-shadow:0 0 0 6px rgba(240,98,146,.5);} 100%{box-shadow:0 0 0 3px #F06292;} }
+        /* ===== 全局搜索结果 ===== */
+        .search-result-list { max-height:60vh; overflow:auto; margin-top:10px; }
+        .search-result-item { padding:12px 14px; border:1px solid #FCE4EC; border-radius:12px; margin-bottom:10px; cursor:pointer; background:#FFF; transition:background .15s; }
+        .search-result-item:hover { background:#FFF0F5; }
+        .sr-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .sr-mod { font-size:11px; padding:2px 8px; border-radius:10px; background:#FCE4EC; color:#C2185B; }
+        .sr-title { font-size:15px; font-weight:600; color:#333; }
+        .sr-snip { font-size:13px; color:#888; margin-top:5px; line-height:1.5; }
         .news-card .n-title { font-size:14px; font-weight:bold; color:#E91E63; margin-bottom:4px; }
         .news-card .n-content { font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
         .news-card .n-foot { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#999; flex-wrap:wrap; gap:6px; }
@@ -482,7 +490,7 @@
 <div class="search-top-row">
     <div class="search-center" id="searchCenter">
         <div class="search-wrap">
-            <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" oninput="liveSearch(this.value)">
+            <input type="text" class="search-box" id="globalSearch" placeholder="全局搜索工作台内容…" onkeydown="if(event.key==='Enter')triggerSearch()">
             <button class="search-icon-btn" onclick="triggerSearch()" type="button"><i class="fa fa-search"></i></button>
         </div>
     </div>
@@ -1086,6 +1094,15 @@
             <button class="pill-btn" onclick="downloadExportMD()"><i class="fa fa-download"></i> 下载 .md</button>
             <button class="pill-btn ghost" onclick="document.getElementById('exportModal').style.display='none'">关闭</button>
         </div>
+    </div>
+</div>
+
+<!-- 全局搜索结果弹窗 -->
+<div class="modal-overlay" id="searchModal" onclick="if(event.target===this)closeSearchModal()">
+    <div class="modal" style="max-width:560px;">
+        <button class="close" onclick="closeSearchModal()">×</button>
+        <h3 id="searchResultTitle">搜索结果</h3>
+        <div id="searchResultList" class="search-result-list"></div>
     </div>
 </div>
 
@@ -3134,46 +3151,89 @@ function collectSearchSources(){
     financeNewsData.forEach(function(item,i){ sources.push({key:'finance',pageId:'finance-news',idx:i,title:item.title,content:item.title+item.content}); });
     return sources;
 }
-function liveSearch(q){
-    if (!q) return;
-    var map = MODULE_MAP;
-    for (var key in map){
-        if (q.indexOf(key) >= 0){
-            var target = document.querySelector('[data-page="'+map[key]+'"]');
-            if (target) showPage(map[key], target);
+// 模块中文名（搜索结果展示用）
+var MODULE_LABELS = {
+  'knowledge-base':'知识库笔记','operation-ideas':'运营思路&选题','account-observe':'对标账号观测',
+  'work-review':'作品复盘','product-lib':'选品库','idea-lib':'选题灵感库','script-lib':'短视频脚本库',
+  'prompt-lib':'提示词仓库','record-review':'发布记录&复盘','side-idea':'灵感脑洞库','project-eval':'项目评估池',
+  'project-test':'项目测试记录','project-archive':'项目归档复盘','finance-news':'理财每日新知','asset-account':'持仓台账',
+  'index-track':'指数跟踪表','rebalance':'调仓再平衡','health-checkin':'今日打卡','checkin-history':'打卡历史汇总',
+  'body-note':'身体观察备忘录','todo-list':'今日待办'
+};
+function splitTerms(q){ return q.toLowerCase().split(/\s+/).filter(Boolean); }
+// 全局搜索主逻辑：精确模块词 -> 跳模块；否则全文检索跨模块列出结果
+function triggerSearch(){
+    var q = (document.getElementById('globalSearch') ? document.getElementById('globalSearch').value : '').trim();
+    if (!q){ showToast('请输入搜索内容'); return; }
+    // 1) 精确等于某模块关键词 -> 直接打开该模块
+    for (var key in MODULE_MAP){
+        if (q === key){
+            var pg = MODULE_MAP[key];
+            var target = document.querySelector('[data-page="'+pg+'"]');
+            if (target){ showPage(pg, target); showToast('已打开：'+(MODULE_LABELS[pg]||pg)); }
             return;
         }
     }
-}
-function triggerSearch(){
-    var q = document.getElementById('globalSearch').value.trim();
-    if (!q){ showToast('请输入搜索内容'); return; }
-    // 1) 先试模块关键词跳转
-    for (var key in MODULE_MAP){
-        if (q.indexOf(key) >= 0){
-            var target = document.querySelector('[data-page="'+MODULE_MAP[key]+'"]');
-            if (target){ showPage(MODULE_MAP[key], target); showToast('已跳转到：'+MODULE_MAP[key]); return; }
-        }
-    }
-    // 2) 全文内容搜索：找匹配的数据卡片并跳转+高亮
+    // 2) 全文内容搜索：跨所有模块匹配标题/内容（多词需全部命中）
     var sources = collectSearchSources();
-    var hit = null;
-    for (var i=0;i<sources.length;i++){
-        if (sources[i].title.indexOf(q) >= 0 || sources[i].content.indexOf(q) >= 0){ hit = sources[i]; break; }
-    }
-    if (!hit){ showToast('未找到与「'+q+'」相关的内容'); return; }
-    showPage(hit.pageId, document.querySelector('[data-page="'+hit.pageId+'"]'));
-    // 渲染后高亮第一条命中卡片
-    setTimeout(function(){
-        var cards = document.querySelectorAll('#page-'+hit.pageId+' .news-card');
-        if (cards.length > 0){
-            cards[0].classList.add('hl');
-            cards[0].scrollIntoView({behavior:'smooth', block:'center'});
-            setTimeout(function(){ cards[0].classList.remove('hl'); }, 1600);
-        }
-    }, 120);
-    showToast('找到匹配内容，已定位');
+    var terms = splitTerms(q);
+    var results = [];
+    sources.forEach(function(s){
+        var hay = (s.title + ' ' + s.content).toLowerCase();
+        var allHit = terms.every(function(t){ return hay.indexOf(t) >= 0; });
+        if (!allHit) return;
+        var score = 0;
+        terms.forEach(function(t){ if (s.title.toLowerCase().indexOf(t) >= 0) score += 2; });
+        var p = hay.indexOf(terms[0]);
+        results.push({ s:s, score:score, pos:(p<0?9999:p) });
+    });
+    if (results.length === 0){ showToast('未找到与「'+q+'」相关的内容'); return; }
+    results.sort(function(a,b){ return b.score - a.score || a.pos - b.pos; });
+    renderSearchResults(q, results.slice(0, 50));
 }
+function renderSearchResults(q, results){
+    document.getElementById('searchResultTitle').textContent = '搜索「'+q+'」· 找到 '+results.length+' 条';
+    var box = document.getElementById('searchResultList');
+    var terms = splitTerms(q);
+    var html = '';
+    results.forEach(function(r, i){
+        var s = r.s;
+        var modLabel = MODULE_LABELS[s.pageId] || s.pageId;
+        var hay = (s.title||'') + ' ' + (s.content||'');
+        var low = hay.toLowerCase();
+        var p = low.indexOf(terms[0]);
+        var snippet = '';
+        if (p >= 0){ var st = Math.max(0, p-12); snippet = (st>0?'…':'') + hay.substr(st, 64) + '…'; }
+        else { snippet = (s.content||'').substr(0, 64); }
+        html += '<div class="search-result-item" onclick="openSearchResult('+i+')">'+
+                '<div class="sr-head"><span class="sr-mod">'+escHtml(modLabel)+'</span><span class="sr-title">'+escHtml(s.title||'(无标题)')+'</span></div>'+
+                '<div class="sr-snip">'+escHtml(snippet)+'</div></div>';
+    });
+    box.innerHTML = html;
+    window.__searchResults = results;
+    document.getElementById('searchModal').style.display = 'flex';
+}
+function openSearchResult(i){
+    var r = window.__searchResults && window.__searchResults[i];
+    if (!r) return;
+    var s = r.s;
+    closeSearchModal();
+    var target = document.querySelector('[data-page="'+s.pageId+'"]');
+    if (!target) return;
+    showPage(s.pageId, target);
+    setTimeout(function(){
+        var cards = document.querySelectorAll('#page-'+s.pageId+' .news-card');
+        for (var k=0;k<cards.length;k++){
+            var c = cards[k];
+            if (c.getAttribute('data-title') === String(s.title) && c.getAttribute('data-content') === String(s.content)){
+                c.classList.add('hl'); c.scrollIntoView({behavior:'smooth', block:'center'});
+                setTimeout(function(){ c.classList.remove('hl'); }, 1800);
+                break;
+            }
+        }
+    }, 160);
+}
+function closeSearchModal(){ var m=document.getElementById('searchModal'); if(m) m.style.display='none'; }
 
 // ===================== Toast =====================
 function showToast(msg){
