@@ -573,6 +573,7 @@
         <div class="page" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
+                <button class="pill-btn ghost" onclick="openFeishuSettings()"><i class="fa fa-gear"></i> 飞书设置</button>
                 <button class="pill-btn" onclick="exportToFeishu()"><i class="fa fa-cloud-upload"></i> 导出到飞书</button>
                 <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
@@ -1153,6 +1154,19 @@
     </div>
 </div>
 
+<!-- 飞书推送设置 -->
+<div class="modal-overlay" id="feishuModal" onclick="if(event.target===this)document.getElementById('feishuModal').style.display='none'">
+    <div class="modal">
+        <button class="close" onclick="document.getElementById('feishuModal').style.display='none'">×</button>
+        <h3>📤 飞书推送设置</h3>
+        <div class="form-item"><label>函数地址（阿里云 FC 公网 URL）</label><input type="text" id="feishuEndpoint" placeholder="https://xxx.cn-hangzhou.fc.aliyuncs.com/2016-08-15/proxy/服务/函数/"></div>
+        <div class="form-item"><label>推送密钥（函数环境变量 FEISHU_PUSH_TOKEN，可留空）</label><input type="text" id="feishuToken" placeholder="与函数里设的 token 一致即可"></div>
+        <div class="sync-hint">配置后，点「导出到飞书」会直接把 4 类笔记推到你的飞书文档，手机上无需电脑。未配置则退化为下载 JSON，需本机跑 push_feishu.js。部署步骤见《飞书推送-阿里云函数部署指南》。</div>
+        <button class="save-btn" onclick="saveFeishuSettings()"><i class="fa fa-check"></i> 保存设置</button>
+        <div class="sync-status" id="feishuStatus"></div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1462,22 +1476,66 @@ function exportCard(idx){
     downloadText(title+'.md', md);
 }
 // 导出知识库笔记到飞书：按 4 类分组生成 feishu_export.json，再由本地 push_feishu.js 推送到对应飞书文档
+function getFeishuSettings(){
+    try { return JSON.parse(localStorage.getItem('feishuPush') || '{}'); } catch(e){ return {}; }
+}
+function openFeishuSettings(){
+    var s = getFeishuSettings();
+    document.getElementById('feishuEndpoint').value = s.endpoint || '';
+    document.getElementById('feishuToken').value = s.token || '';
+    document.getElementById('feishuStatus').textContent = '';
+    document.getElementById('feishuModal').style.display = 'flex';
+}
+function saveFeishuSettings(){
+    var endpoint = (document.getElementById('feishuEndpoint').value || '').trim();
+    var token = (document.getElementById('feishuToken').value || '').trim();
+    localStorage.setItem('feishuPush', JSON.stringify({ endpoint: endpoint, token: token }));
+    document.getElementById('feishuStatus').textContent = endpoint ? '✅ 已保存，下次点「导出到飞书」直接推送' : '✅ 已保存（未填地址，仍将下载 JSON，可本机跑 push_feishu.js）';
+    showToast('飞书推送设置已保存');
+    setTimeout(function(){ document.getElementById('feishuModal').style.display = 'none'; }, 700);
+}
+function buildFeishuPayload(){
+    var arr = getKnowledgeList();
+    var groups = {};
+    KB_CATS.forEach(function(c){ groups[c] = []; });
+    arr.forEach(function(it){
+        var cat = it.category || '未分类';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push({ title:it.title||'未命名', content:it.content||'', date:it.date||'', url:it.url||'' });
+    });
+    return { exportedAt: new Date().toISOString(), categories: KB_CATS, notes: groups };
+}
+function fallbackFeishuDownload(payload){
+    var name = 'feishu_export_' + new Date().toISOString().slice(0,10) + '.json';
+    downloadText(name, JSON.stringify(payload, null, 2), 'application/json');
+}
 function exportToFeishu(){
     var arr = getKnowledgeList();
     if (!arr.length){ showToast('知识库还没有笔记，先去粘贴几张吧'); return; }
-    var groups = {};
-    KB_CATS.forEach(function(c){ groups[c] = []; });
-    (function(){ // 兜底：兼容非标准分类，归入「运营」以外的首个未知类不丢失
-        arr.forEach(function(it){
-            var cat = it.category || '未分类';
-            if (!groups[cat]) groups[cat] = [];
-            groups[cat].push({ title:it.title||'未命名', content:it.content||'', date:it.date||'', url:it.url||'' });
+    var payload = buildFeishuPayload();
+    var s = getFeishuSettings();
+    if (!s.endpoint){
+        fallbackFeishuDownload(payload);
+        showToast('未配置飞书函数地址，已下载 JSON；点「飞书设置」配置后可手机直接推送');
+        return;
+    }
+    showToast('正在推送到飞书…');
+    var headers = { 'Content-Type': 'application/json' };
+    if (s.token) headers['X-Feishu-Token'] = s.token;
+    fetch(s.endpoint, { method: 'POST', headers: headers, body: JSON.stringify(payload) })
+        .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+        .then(function(res){
+            if (res.ok && res.j && res.j.ok){ showToast('✅ 已推送到飞书 · ' + JSON.stringify(res.j.result || {})); }
+            else {
+                var msg = (res.j && res.j.msg) ? res.j.msg : (res.ok ? '未知错误' : '网络/跨域错误');
+                showToast('推送失败：' + msg + '；已改为下载 JSON');
+                fallbackFeishuDownload(payload);
+            }
+        })
+        .catch(function(e){
+            showToast('推送出错：' + e.message + '；已改为下载 JSON');
+            fallbackFeishuDownload(payload);
         });
-    })();
-    var payload = { exportedAt: new Date().toISOString(), categories: KB_CATS, notes: groups };
-    var name = 'feishu_export_' + new Date().toISOString().slice(0,10) + '.json';
-    downloadText(name, JSON.stringify(payload, null, 2), 'application/json');
-    showToast('已导出 4 类笔记到 ' + name + '，请在电脑本地运行 node push_feishu.js 推送到飞书（需先配置飞书应用凭据）');
 }
 function copyTextToClipboard(text){
     try {
