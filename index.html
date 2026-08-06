@@ -244,6 +244,21 @@
         .prio-high { font-size:11px; color:#fff; background:#E53935; padding:1px 8px; border-radius:8px; margin-left:6px; }
         .prio-mid { font-size:11px; color:#fff; background:#FB8C00; padding:1px 8px; border-radius:8px; margin-left:6px; }
         .prio-low { font-size:11px; color:#fff; background:#43A047; padding:1px 8px; border-radius:8px; margin-left:6px; }
+        /* 待办卡片：优先级标签放在标题行最右侧 */
+        .n-title.sub-right { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .n-title.sub-right > span { margin-left:auto; flex-shrink:0; }
+        /* 内联表单统一改为模态弹窗 */
+        .form-modal { position:fixed; inset:0; z-index:10000; background:rgba(60,20,40,.45); display:none; align-items:center; justify-content:center; padding:14px; }
+        .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
+        /* 右上角待办提醒通知 */
+        .todo-notify { position:fixed; top:14px; right:14px; z-index:12000; max-width:300px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:12px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:11px 12px; display:none; align-items:flex-start; gap:9px; cursor:pointer; }
+        .todo-notify:hover { background:#FFF4F8; }
+        .todo-notify-icon { font-size:18px; line-height:1.2; }
+        .todo-notify-body { flex:1; min-width:0; }
+        .todo-notify-title { font-size:13px; font-weight:700; color:#C2185B; margin-bottom:2px; }
+        .todo-notify-text { font-size:12.5px; color:#555; line-height:1.4; }
+        .todo-notify-close { width:20px; height:20px; border:none; background:transparent; color:#BBB; font-size:16px; line-height:1; cursor:pointer; flex-shrink:0; }
+        .todo-notify-close:hover { color:#E91E63; }
 
         /* ===== 移动端 ===== */
         @media (max-width:768px) {
@@ -1084,8 +1099,9 @@ function buildCard(o){
     var subHtml = o.sub ? '<span class="'+(o.subClass||'source-tag')+'">'+escHtml(o.sub)+'</span>' : '';
     var extraHtml = o.extra || '';
     var titleHtml = escHtml(o.title);
+    var titleCls = 'n-title' + (o.subRight ? ' sub-right' : '');
     return '<div class="news-card'+(done?' done':'')+'" data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
-        '<div class="n-title">'+titleHtml+subHtml+'</div>'+
+        '<div class="'+titleCls+'">'+titleHtml+subHtml+'</div>'+
         extraHtml+
         '<div class="n-content"></div>'+
         '<div class="n-foot"><span>'+(o.date||'')+'</span>'+
@@ -2560,12 +2576,31 @@ function renderTodo(){
         var item = entry.it; var i = entry.oi;
         var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n时间：' + (item.time||'未设') + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
-        var sub = item.prio+'优先' + (item.time ? ' · '+item.time : '');
-        html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
+        var sub = item.prio+'优先';
+        html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
     });
     wrap.innerHTML = html;
     truncateAllNews();
 }
+function showTodoNotify(){
+    try{
+        var arr = storeGet('todoList');
+        var undone = arr.filter(function(it){ return !it.done; });
+        if (undone.length === 0) return;
+        var c = {高:0, 中:0, 低:0};
+        undone.forEach(function(it){ if(c[it.prio]!=null) c[it.prio]++; });
+        var parts = [];
+        if(c['高']) parts.push('高'+c['高']);
+        if(c['中']) parts.push('中'+c['中']);
+        if(c['低']) parts.push('低'+c['低']);
+        var txt = document.getElementById('todoNotifyText');
+        if(txt) txt.textContent = '你有 ' + undone.length + ' 条待办未完成（' + parts.join(' / ') + '），点击查看';
+        var box = document.getElementById('todoNotify');
+        if(box) box.style.display = 'flex';
+    }catch(e){}
+}
+function closeTodoNotify(){ var b=document.getElementById('todoNotify'); if(b) b.style.display='none'; }
+function gotoTodoFromNotify(){ closeTodoNotify(); var el=document.querySelector('.sub-item[data-page="todo-list"]'); showPage('todo-list', el); }
 function exportTodoMD(){
     var arr = storeGet('todoList');
     if (arr.length === 0){ showToast('暂无待办可导出'); return; }
@@ -2866,13 +2901,32 @@ function downloadExportMD(){
 }
 
 // ===================== 表单切换 / 标签 =====================
+function wrapForms(){
+    document.querySelectorAll('.form-card').forEach(function(card){
+        if (!card.id) return;
+        if (card.parentNode && card.parentNode.classList && card.parentNode.classList.contains('form-modal')) return;
+        var ov = document.createElement('div');
+        ov.className = 'modal-overlay form-modal';
+        ov.id = card.id + '_ov';
+        card.classList.remove('hidden');
+        if (card.parentNode) card.parentNode.insertBefore(ov, card);
+        ov.appendChild(card);
+        ov.style.display = 'none';
+        ov.setAttribute('onclick', "if(event.target===this) document.getElementById('"+card.id+"_ov').style.display='none'");
+    });
+}
+function showForm(formId){
+    var ov = document.getElementById(formId + '_ov');
+    if (ov){ ov.style.display = 'flex'; return; }
+    var f = document.getElementById(formId); if (f) f.classList.remove('hidden');
+}
 function toggleForm(formId){
-    var form = document.getElementById(formId);
-    if (!form) return;
-    form.classList.toggle('hidden');
+    var ov = document.getElementById(formId + '_ov');
+    if (!ov){ var f = document.getElementById(formId); if (f) f.classList.toggle('hidden'); return; }
+    ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
 }
 function hideAllForms(){
-    document.querySelectorAll('.form-card:not(.hidden)').forEach(function(f){ f.classList.add('hidden'); });
+    document.querySelectorAll('.form-modal').forEach(function(ov){ ov.style.display = 'none'; });
 }
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideAllForms(); });
 function injectFormCloseButtons(){
@@ -2888,6 +2942,7 @@ function injectFormCloseButtons(){
     });
 }
 injectFormCloseButtons();
+wrapForms();
 
 // ===================== 通用编辑系统 =====================
 var _editState = { key:null, idx:null };
@@ -2951,8 +3006,7 @@ function openEdit(key, idx){
     }
     // 改标题
     var h4 = form.querySelector('h4'); if(h4) h4.textContent = c.t;
-    form.classList.remove('hidden');
-    try{ form.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+    showForm(form.id);
 }
 function openNewForm(key){
     var c = EDIT_CONFIG[key]; if(!c) return;
@@ -2963,7 +3017,7 @@ function openNewForm(key){
     form.querySelectorAll('select').forEach(function(e){e.selectedIndex=0;});
     form.querySelectorAll('textarea').forEach(function(e){e.value='';});
     var h4 = form.querySelector('h4'); if(h4) h4.textContent = h4.textContent.replace(/^编辑/,'新增');
-    form.classList.remove('hidden');
+    showForm(form.id);
 }
 function editOrInsert(key, item){
     var arr = _getStore(key);
@@ -3070,8 +3124,18 @@ document.addEventListener('DOMContentLoaded', function(){
     renderBodyNote();
     renderTodo();
     loadRemoteData();
+    showTodoNotify();
 });
 </script>
+
+<div id="todoNotify" class="todo-notify" onclick="gotoTodoFromNotify()">
+  <div class="todo-notify-icon">🔔</div>
+  <div class="todo-notify-body">
+    <div class="todo-notify-title">待办提醒</div>
+    <div class="todo-notify-text" id="todoNotifyText"></div>
+  </div>
+  <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
+</div>
 
 </body>
 </html>
