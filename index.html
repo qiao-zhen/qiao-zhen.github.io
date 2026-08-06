@@ -1045,10 +1045,7 @@
         <h3 id="todoModalTitle">新增待办</h3>
         <div class="form-item"><label>标题（选填，留空自动取内容首行）</label><input type="text" id="td-title" placeholder="例如：护肤脚本"></div>
         <div class="form-item"><label>待办事项</label><input type="text" id="td-text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
-        <div class="form-row">
-            <div class="form-item"><label>优先级</label><select id="td-prio"><option>高</option><option>中</option><option>低</option></select></div>
-            <div class="form-item"><label>时间</label><input type="time" id="td-time"></div>
-        </div>
+        <div class="form-item"><label>优先级</label><select id="td-prio"><option>高</option><option>中</option><option>低</option></select></div>
         <div class="form-item"><label>截止时间（可选）</label><input type="text" id="td-due" placeholder="今天 / 明天 / 具体日期"></div>
         <div class="form-item"><label>提醒时间（选填：到点打开工作台会弹通知并语音提醒）</label><input type="time" id="td-remind"></div>
         <button class="save-btn" onclick="saveTodo()"><i class="fa fa-check"></i> 保存待办</button>
@@ -2515,9 +2512,9 @@ function renderBodyNote(){
 var _todoEditIdx = null;
 function openTodoModal(idx){
     _todoEditIdx = (idx==null) ? null : idx;
-    var titleEl = document.getElementById('td-title'), textEl = document.getElementById('td-text'), dueEl = document.getElementById('td-due'), timeEl = document.getElementById('td-time'), prioEl = document.getElementById('td-prio'), remindEl = document.getElementById('td-remind');
+    var titleEl = document.getElementById('td-title'), textEl = document.getElementById('td-text'), dueEl = document.getElementById('td-due'), prioEl = document.getElementById('td-prio'), remindEl = document.getElementById('td-remind');
     if (idx==null){
-        titleEl.value=''; textEl.value=''; dueEl.value=''; timeEl.value=''; remindEl.value='';
+        titleEl.value=''; textEl.value=''; dueEl.value=''; remindEl.value='';
         prioEl.selectedIndex = 1;
         document.getElementById('todoModalTitle').textContent = '新增待办';
     } else {
@@ -2525,7 +2522,6 @@ function openTodoModal(idx){
         titleEl.value = it.title || '';
         textEl.value = it.text || '';
         dueEl.value = it.due || '';
-        timeEl.value = it.time || '';
         remindEl.value = it.remind || '';
         for (var k=0;k<prioEl.options.length;k++){ if (prioEl.options[k].value === it.prio){ prioEl.selectedIndex = k; break; } }
         document.getElementById('todoModalTitle').textContent = '编辑待办';
@@ -2537,14 +2533,16 @@ function saveTodo(){
     if (!text){ showToast('请填写待办事项'); return; }
     var titleInput = (document.getElementById('td-title').value||'').trim();
     var title = titleInput || (text.split('\n')[0].slice(0,20)) || text.slice(0,20) || '待办';
+    var arr = storeGet('todoList');
+    var isEdit = (_todoEditIdx != null && arr[_todoEditIdx]);
+    var createdAt = isEdit ? (arr[_todoEditIdx].createdAt || Date.now()) : Date.now();
     var item = {
-        title:title, text:text, prio:document.getElementById('td-prio').value, time:document.getElementById('td-time').value,
+        title:title, text:text, prio:document.getElementById('td-prio').value,
+        createdAt:createdAt,
         due:document.getElementById('td-due').value.trim(),
         remind:document.getElementById('td-remind').value,
         date:todayStr(), done:false
     };
-    var arr = storeGet('todoList');
-    var isEdit = (_todoEditIdx != null && arr[_todoEditIdx]);
     if (isEdit){
         var old = arr[_todoEditIdx];
         item.done = !!old.done;
@@ -2554,14 +2552,33 @@ function saveTodo(){
         arr.unshift(item);
     }
     storeSet('todoList', arr);
-    document.getElementById('td-title').value=''; document.getElementById('td-text').value=''; document.getElementById('td-due').value=''; document.getElementById('td-time').value='';
+    document.getElementById('td-title').value=''; document.getElementById('td-text').value=''; document.getElementById('td-due').value='';
     _todoEditIdx = null;
     document.getElementById('todoModal').style.display='none';
     showToast(isEdit?'待办已更新':'待办已保存');
     renderTodo();
 }
+function migrateTodoCreatedAt(){
+    try{
+        var a = storeGet('todoList');
+        var changed = false;
+        var base = Date.now() - a.length * 60000;
+        a.forEach(function(it, i){
+            if(!it.createdAt){ it.createdAt = base + i*60000; changed = true; }
+        });
+        if(changed) storeSet('todoList', a);
+    }catch(e){}
+}
+function fmtCreated(it){
+    if(!it || !it.createdAt) return '未设';
+    var d = new Date(it.createdAt);
+    var hh = (d.getHours()<10?'0':'')+d.getHours();
+    var mm = (d.getMinutes()<10?'0':'')+d.getMinutes();
+    return hh+':'+mm;
+}
 function renderTodo(){
     RENDER_MAP['todoList'] = renderTodo;
+    migrateTodoCreatedAt();
     var arr = storeGet('todoList');
     var wrap = document.getElementById('todoList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-thumb-tack"></i></div><p>暂无待办</p><p class="sub">点「新增待办」记录今天要做的事</p></div>'; return; }
@@ -2572,12 +2589,12 @@ function renderTodo(){
         var pa = order[a.it.prio]!=null ? order[a.it.prio] : 9;
         var pb = order[b.it.prio]!=null ? order[b.it.prio] : 9;
         if (pa !== pb) return pa - pb;            // 高 > 中 > 低
-        return tmin(b.it.time) - tmin(a.it.time);  // 同优先级：时间新(大)的在上
+        return (b.it.createdAt||0) - (a.it.createdAt||0);  // 同优先级：新增时间新(大)的在上
     });
     var html='';
     sorted.forEach(function(entry){
         var item = entry.it; var i = entry.oi;
-        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n时间：' + (item.time||'未设') + '\n提醒：' + (item.remind||'未设') + '\n截止：' + (item.due||'未设');
+        var full = '待办：' + item.text + '\n优先级：' + item.prio + '\n创建：' + fmtCreated(item) + '\n提醒：' + (item.remind||'未设') + '\n截止：' + (item.due||'未设');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
         var sub = item.prio+'优先';
         html += buildCard({ key:'todoList', idx:i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, date:item.date, showDone:true, editAction:'openTodoModal('+i+')' });
@@ -2639,10 +2656,10 @@ function exportTodoMD(){
     var order = {高:0,中:1,低:2};
     function tmin(t){ if(!t) return -1; var p=t.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); }
     var sorted = arr.slice().map(function(it,oi){return {it:it,oi:oi};});
-    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; return tmin(b.it.time)-tmin(a.it.time); });
+    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; return (b.it.createdAt||0)-(a.it.createdAt||0); });
     sorted.forEach(function(entry, n){
         var item = entry.it;
-        md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.time?(' · '+item.time):'') + (item.remind?(' · 提醒'+item.remind):'') + (item.due?(' · 截止'+item.due):'') + ')_\n';
+        md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.remind?(' · 提醒'+item.remind):'') + (item.due?(' · 截止'+item.due):'') + ' · 创建'+fmtCreated(item)+')_\n';
     });
     md = md.trim() + '\n';
     _exportMD = md; _exportFilename = '待办清单_' + todayStr() + '.md';
