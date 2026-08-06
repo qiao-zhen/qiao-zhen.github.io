@@ -573,6 +573,7 @@
         <div class="page" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
+                <button class="pill-btn" onclick="exportToFeishu()"><i class="fa fa-cloud-upload"></i> 导出到飞书</button>
                 <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
@@ -1459,6 +1460,24 @@ function exportCard(idx){
     var title = (it.title||'note').replace(/[\\/?:*<>|"]/g,'_');
     var md = '# '+(it.title||'未命名')+'（'+(it.category||'')+'）\n\n> 记录于 '+(it.date||'')+'\n\n'+(it.content||'');
     downloadText(title+'.md', md);
+}
+// 导出知识库笔记到飞书：按 4 类分组生成 feishu_export.json，再由本地 push_feishu.js 推送到对应飞书文档
+function exportToFeishu(){
+    var arr = getKnowledgeList();
+    if (!arr.length){ showToast('知识库还没有笔记，先去粘贴几张吧'); return; }
+    var groups = {};
+    KB_CATS.forEach(function(c){ groups[c] = []; });
+    (function(){ // 兜底：兼容非标准分类，归入「运营」以外的首个未知类不丢失
+        arr.forEach(function(it){
+            var cat = it.category || '未分类';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push({ title:it.title||'未命名', content:it.content||'', date:it.date||'', url:it.url||'' });
+        });
+    })();
+    var payload = { exportedAt: new Date().toISOString(), categories: KB_CATS, notes: groups };
+    var name = 'feishu_export_' + new Date().toISOString().slice(0,10) + '.json';
+    downloadText(name, JSON.stringify(payload, null, 2), 'application/json');
+    showToast('已导出 4 类笔记到 ' + name + '，请在电脑本地运行 node push_feishu.js 推送到飞书（需先配置飞书应用凭据）');
 }
 function copyTextToClipboard(text){
     try {
