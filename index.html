@@ -1211,7 +1211,13 @@ function getSha(token, cb){
 // 把云端快照写入本机
 function applyCloudSnap(snap){
   window.__cloudSkip = true;
-  SYNC_KEYS.forEach(function(k){ if (snap[k] !== undefined){ try { localStorage.setItem(k, JSON.stringify(snap[k])); } catch(e){} } });
+  SYNC_KEYS.forEach(function(k){
+    if (snap[k] !== undefined){
+      // 云端 null 值统一转为空数组，防止 render 函数读 null.length 崩溃
+      var val = (snap[k] === null) ? [] : snap[k];
+      try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
+    }
+  });
   window.__cloudSkip = false;
   renderSyncModules();
 }
@@ -1291,9 +1297,17 @@ function cloudHydrate(){
     });
 }
 function renderSyncModules(){
-  renderKnowledgeBase(); renderAccountObserve(); renderWorkReview(); renderProduct();
-  renderScript(); renderPrompt(); renderRecord(); renderSideIdeas(); renderEval();
-  renderTest(); renderArchive(); renderAsset(); renderRebalance(); renderBodyNote(); renderTodo();
+  var fns = [
+    ['renderKnowledgeBase', renderKnowledgeBase], ['renderAccountObserve', renderAccountObserve],
+    ['renderWorkReview', renderWorkReview], ['renderProduct', renderProduct],
+    ['renderScript', renderScript], ['renderPrompt', renderPrompt],
+    ['renderRecord', renderRecord], ['renderSideIdeas', renderSideIdeas],
+    ['renderEval', renderEval], ['renderTest', renderTest],
+    ['renderArchive', renderArchive], ['renderAsset', renderAsset],
+    ['renderRebalance', renderRebalance], ['renderBodyNote', renderBodyNote],
+    ['renderTodo', renderTodo]
+  ];
+  fns.forEach(function(pair){ try { pair[1](); } catch(e){ console.warn('renderSyncModules: '+pair[0]+' error', e); } });
 }
 function openSyncSettings(){
   document.getElementById('syncToken').value = getGithubToken() || '';
