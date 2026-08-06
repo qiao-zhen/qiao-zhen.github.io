@@ -1431,17 +1431,6 @@ function filterKnowledge(cat, el){
     if (el) el.classList.add('sel');
     renderKnowledgeBase();
 }
-function kbCatButtons(item, i){
-    var html = '<div class="kb-cats">';
-    KB_CATS.forEach(function(c){
-        html += '<span class="kb-cat'+(item.category===c?' on':'')+'" onclick="event.stopPropagation();setCardCat('+i+',\''+c+'\')">'+c+'</span>';
-    });
-    return html + '</div>';
-}
-function setCardCat(idx, cat){
-    var arr = getKnowledgeList();
-    if (arr[idx]){ arr[idx].category = cat; setKnowledgeList(arr); renderKnowledgeBase(); }
-}
 function copyCard(idx){
     var arr = getKnowledgeList();
     var it = arr[idx]; if (!it) return;
@@ -1500,8 +1489,7 @@ function renderKnowledgeBase(){
     var html='';
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
-        var srcHtml = kbCatButtons(item, i);
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, extra:srcHtml, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
