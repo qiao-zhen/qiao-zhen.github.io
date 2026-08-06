@@ -2584,7 +2584,7 @@ function migrateTodoCreatedAt(){
         var changed = false;
         var base = Date.now() - a.length * 60000;
         a.forEach(function(it, i){
-            if(!it.createdAt){ it.createdAt = base + i*60000; changed = true; }
+            if(!it.createdAt){ it.createdAt = base + (a.length - 1 - i) * 60000; changed = true; }
         });
         if(changed) storeSet('todoList', a);
     }catch(e){}
@@ -2661,7 +2661,7 @@ function renderTodo(){
         if (pa !== pb) return pa - pb;            // 高 > 中 > 低
         var da = dayKey(a.it.createdAt||0), db = dayKey(b.it.createdAt||0);
         if (da !== db) return db - da;            // 日期新(今天)的在上、昨天在下
-        return (b.it.createdAt||0) - (a.it.createdAt||0);  // 同日：创建时间新(大)的在上
+        return a.oi - b.oi;  // 同日：按数组顺序，新创建的(数组靠前)排最上，旧的在下
     });
     var html='';
     sorted.forEach(function(entry){
@@ -2746,7 +2746,7 @@ function exportTodoMD(){
     var order = {高:0,中:1,低:2};
     function tmin(t){ if(!t) return -1; var p=t.split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); }
     var sorted = arr.slice().map(function(it,oi){return {it:it,oi:oi};});
-    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; var da=dayKey(a.it.createdAt||0),db=dayKey(b.it.createdAt||0); if(da!==db) return db-da; return (b.it.createdAt||0)-(a.it.createdAt||0); });
+    sorted.sort(function(a,b){ var pa=order[a.it.prio]!=null?order[a.it.prio]:9; var pb=order[b.it.prio]!=null?order[b.it.prio]:9; if(pa!==pb) return pa-pb; var da=dayKey(a.it.createdAt||0),db=dayKey(b.it.createdAt||0); if(da!==db) return db-da; return a.oi-b.oi; });
     sorted.forEach(function(entry, n){
         var item = entry.it;
         md += (n+1) + '. [' + (item.done?'x':' ') + '] ' + item.text + '  _(' + item.prio + '优先' + (item.remind?(' · 提醒'+item.remind):'') + (item.due?(' · 截止'+item.due):'') + ' · 创建'+fmtCreated(item)+')_\n';
