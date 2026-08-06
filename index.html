@@ -118,8 +118,8 @@
         .news-card:hover { box-shadow:0 2px 8px rgba(248,187,208,.4); }
         .news-card.done { background:#E8F5E9; border-color:#A5D6A7; }
         .news-card.done .n-title { text-decoration:line-through; color:#2E7D32; }
-        .news-card.hl { box-shadow:0 0 0 3px #F06292; animation:hlPulse 1.2s ease; }
-        @keyframes hlPulse { 0%{box-shadow:0 0 0 6px rgba(240,98,146,.5);} 100%{box-shadow:0 0 0 3px #F06292;} }
+        .news-card.hl { box-shadow:0 0 0 3px #E91E63; border-color:#E91E63; animation:hlPulse 1.2s ease 2; }
+        @keyframes hlPulse { 0%,100%{box-shadow:0 0 0 3px #E91E63, 0 0 0 6px rgba(233,30,99,.18);} 50%{box-shadow:0 0 0 4px #E91E63, 0 0 0 16px rgba(233,30,99,.4);} }
         /* ===== 全局搜索结果 ===== */
         .search-result-list { max-height:60vh; overflow:auto; margin-top:10px; }
         .search-result-item { padding:12px 14px; border:1px solid #FCE4EC; border-radius:12px; margin-bottom:10px; cursor:pointer; background:#FFF; transition:background .15s; }
@@ -3223,11 +3223,22 @@ function openSearchResult(i){
     showPage(s.pageId, target);
     setTimeout(function(){
         var cards = document.querySelectorAll('#page-'+s.pageId+' .news-card');
+        var qTitle = String(s.title).trim();
         for (var k=0;k<cards.length;k++){
             var c = cards[k];
-            if (c.getAttribute('data-title') === String(s.title) && c.getAttribute('data-content') === String(s.content)){
-                c.classList.add('hl'); c.scrollIntoView({behavior:'smooth', block:'center'});
-                setTimeout(function(){ c.classList.remove('hl'); }, 1800);
+            var tEl = c.querySelector('.n-title');
+            var tTxt = '';
+            if (tEl){
+                var clone = tEl.cloneNode(true);
+                var spans = clone.getElementsByTagName('span');
+                while (spans.length) clone.removeChild(spans[0]);
+                tTxt = clone.textContent.trim();
+            }
+            if (tTxt === qTitle){
+                c.classList.add('hl');
+                c.scrollIntoView({behavior:'smooth', block:'center'});
+                var card = c;
+                setTimeout(function(){ card.classList.remove('hl'); }, 2400);
                 break;
             }
         }
