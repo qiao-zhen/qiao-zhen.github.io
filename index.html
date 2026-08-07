@@ -249,6 +249,8 @@
         /* AI抓取模块：刷新/导出按钮撑满右侧并放大 */
         .sec-btns { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; min-width:0; }
         .sec-btns .pill-btn { flex:1 1 0; justify-content:center; padding:9px 16px; font-size:14px; }
+        /* 知识库笔记：按钮移到标题下一行、靠右对齐（粘贴在左、复制在右） */
+        .kb-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-bottom:12px; }
 
         /* ===== Toast 通知 ===== */
         .toast {
@@ -573,8 +575,10 @@
         <div class="page" id="page-knowledge-base">
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
-                <button class="pill-btn" onclick="openCopyModal()"><i class="fa fa-copy"></i> 复制笔记</button>
+            </div>
+            <div class="kb-actions">
                 <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
+                <button class="pill-btn" onclick="openCopyModal()"><i class="fa fa-copy"></i> 复制笔记</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
             <div class="filter-row" id="kb-filter">
