@@ -1231,11 +1231,19 @@ function pushToGithub(token, payload, cb){
   // 可选代理前缀（国内访问 api.github.com 不稳时填入，如 https://ghproxy.com/）
   var proxy = ''; try { proxy = (localStorage.getItem('githubProxy')||'').trim(); } catch(e){}
   var url = proxy ? proxy + apiBase : apiBase;
+  var _done = false;
+  function done(ok){
+    if(_done) return; _done = true;
+    try{ var b=document.getElementById('syncBtn'); if(b) b.classList.remove('syncing'); }catch(e){}
+    cb(ok);
+  }
+  // 安全网：25秒后强制恢复按钮（防止 fetch 挂死/回调链断裂）
+  var _safety = setTimeout(function(){ done(false); }, 25000);
   function doPut(sha){
     var body = { message:'sync userData '+new Date().toISOString(), content:b64enc(payload) };
     if (sha) body.sha = sha;
     var ctrl = new AbortController();
-    var timer = setTimeout(function(){ ctrl.abort(); }, 20000);  // 20秒超时，避免永久卡死
+    var timer = setTimeout(function(){ ctrl.abort(); done(false); }, 20000);  // 20秒超时
     fetch(url, {
       method:'PUT',
       headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
@@ -1243,10 +1251,12 @@ function pushToGithub(token, payload, cb){
       signal: ctrl.signal
     }).then(function(r){
       clearTimeout(timer);
-      if (r.ok){ r.json().then(function(j){ if(j&&j.content&&j.content.sha) window.__cloudSha=j.content.sha; cb(true); }); }
-      else if (r.status===409 && sha){ getSha(token, function(ns){ if(ns){ doPut(ns); } else { cb(false); } }); }
-      else { cb(false); }
-    }).catch(function(){ clearTimeout(timer); cb(false); });
+      if (r.ok){
+        r.json().then(function(j){ if(j&&j.content&&j.content.sha) window.__cloudSha=j.content.sha; clearTimeout(_safety); done(true); }).catch(function(){ clearTimeout(_safety); done(false); });
+      }
+      else if (r.status===409 && sha){ getSha(token, function(ns){ if(ns){ doPut(ns); } else { clearTimeout(_safety); done(false); } }); }
+      else { clearTimeout(_safety); done(false); }
+    }).catch(function(){ clearTimeout(timer); clearTimeout(_safety); done(false); });
   }
   if (window.__cloudSha){ doPut(window.__cloudSha); }
   else { getSha(token, function(sha){ window.__cloudSha = sha; doPut(sha); }); }
@@ -1371,6 +1381,7 @@ function forceSyncNow(){
   saveTokenLive();
   var token = getGithubToken();
   if (!token){ setSyncStatus('请先填写 GitHub Token'); return; }
+  setSyncStatus('正在上传到云端…');  // 清掉旧提示，显示进度
   setSyncStatus('正在上传到云端（最多 20 秒）…');
   cloudPush(true, function(ok){
     setSyncStatus(ok ? '已同步到云端 ✓' : '同步失败：api.github.com 不可达（国内网络限制）。可填「代理前缀」或把数据发我代推');
