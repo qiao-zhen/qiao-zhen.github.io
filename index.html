@@ -1149,7 +1149,7 @@
     <div class="modal">
         <button class="close" onclick="document.getElementById('syncModal').style.display='none'">×</button>
         <h3>☁ 云端同步设置</h3>
-        <div class="form-item"><label>GitHub Token（fine-grained）</label><input type="password" id="syncToken" placeholder="github_pat_... 仅授权 qiao-zhen.github.io 的 Contents 读写"></div>
+        <div class="form-item"><label>GitHub Token（fine-grained）</label><input type="password" id="syncToken" placeholder="github_pat_... 仅授权 qiao-zhen.github.io 的 Contents 读写" oninput="saveTokenLive()"></div>
         <div class="sync-hint">配置后：手机/电脑/他人打开链接，数据都来自 GitHub 云端（userData.json），任一设备修改自动同步。Token 仅存本机浏览器、不上传；建议用只授权该仓库 Contents 读写的 fine-grained token，且别在待办/台账里写密码、银行卡号等敏感信息。</div>
         <button class="save-btn" onclick="saveSyncSettings()"><i class="fa fa-download"></i> 拉取云端数据</button>
         <button class="save-btn" style="background:#AD1457;margin-top:8px" onclick="forceSyncNow()"><i class="fa fa-refresh"></i> 立即同步到云端</button>
@@ -1206,6 +1206,7 @@ function b64dec(b64){ try { return decodeURIComponent(escape(atob(b64))); } catc
 })();
 var _pushTimer = null;
 function scheduleCloudPush(){ if(_pushTimer) clearTimeout(_pushTimer); _pushTimer = setTimeout(function(){ cloudPush(false); }, 700); }
+var _lastPushFailToast = 0;
 function cloudPush(force, cb){
   var token = getGithubToken();
   if (!token){ if(cb) cb(false); return; }
@@ -1214,7 +1215,15 @@ function cloudPush(force, cb){
   var payload = JSON.stringify(snap);
   var btn = document.getElementById('syncBtn');
   if (btn) btn.classList.add('syncing');
-  pushToGithub(token, payload, function(ok){ if(btn) btn.classList.remove('syncing'); if(cb) cb(ok); });
+  pushToGithub(token, payload, function(ok){
+    if(btn) btn.classList.remove('syncing');
+    // 自动推送(force=false)失败时给一次可见提示（30秒内不重复），避免静默丢数据
+    if(!ok && !force){
+      var now = Date.now();
+      if(now - _lastPushFailToast > 30000){ _lastPushFailToast = now; showToast('⚠️ 云端同步失败（网络或 Token 失效），点顶部☁手动重试'); }
+    }
+    if(cb) cb(ok);
+  });
 }
 // 写入 GitHub：先取 sha（无则视为新建），再 PUT；409 冲突自动重试一次
 function pushToGithub(token, payload, cb){
@@ -1344,18 +1353,22 @@ function renderSyncModules(){
   ];
   fns.forEach(function(pair){ try { pair[1](); } catch(e){ console.warn('renderSyncModules: '+pair[0]+' error', e); } });
 }
+function saveTokenLive(){
+  var t = (document.getElementById('syncToken').value||'').trim();
+  try { localStorage.setItem('syncGithubToken', t); } catch(e){}
+}
 function openSyncSettings(){
   document.getElementById('syncToken').value = getGithubToken() || '';
   var s = document.getElementById('syncStatus'); if(s) s.textContent = '';
   document.getElementById('syncModal').style.display = 'flex';
 }
 function saveSyncSettings(){
-  var token = (document.getElementById('syncToken').value||'').trim();
-  try { localStorage.setItem('syncGithubToken', token); } catch(e){}
+  saveTokenLive();
   // 拉取优先走 GitHub Pages 同源（无需 Token）；Token 仅用于「上传到云端」
   cloudHydrate();
 }
 function forceSyncNow(){
+  saveTokenLive();
   var token = getGithubToken();
   if (!token){ setSyncStatus('请先填写 GitHub Token'); return; }
   setSyncStatus('正在上传到云端（最多 20 秒）…');
