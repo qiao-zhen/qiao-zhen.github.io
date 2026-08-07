@@ -1258,6 +1258,8 @@ function applyCloudSnap(snap){
   });
   window.__cloudSkip = false;
   renderSyncModules();
+  // 云端数据载入/恢复后，重新判定待办提醒（避免同步覆盖后漏弹通知）
+  try { showTodoNotify(); } catch(e){}
 }
 // 回退：经 api.github.com 拉取（需 Token，国内常不稳）
 function hydrateFromApi(token){
@@ -1283,13 +1285,9 @@ function hydrateFromApi(token){
       if (err && err.name === 'AbortError'){ setSyncStatus('API拉取超时（15秒）'); }
       else {
         var em = err && err.message ? String(err.message).slice(0,60) : '';
-        // API 也失败 → 使用内嵌兜底数据
-        if (typeof __CLOUD_FALLBACK !== 'undefined' && __CLOUD_FALLBACK){
-          applyCloudSnap(__CLOUD_FALLBACK);
-          setSyncStatus('网络不可达，已从内嵌快照恢复数据 ✓（'+em+'）');
-          return;
-        }
-        setSyncStatus('API也失败('+em+')，建议用电脑WiFi同步');
+        // API 也失败：保留本机已有数据，不拿内置示例覆盖
+        setSyncStatus('云端同步失败，已保留本机数据（'+em+'）');
+        return;
       }
     })
     .finally(function(){ clearTimeout(timer); });
@@ -1322,13 +1320,8 @@ function cloudHydrate(){
       // 回退到 api.github.com（需 Token）
       var token = getGithubToken();
       if (!token){
-        // 无 Token 且 Pages 失败 → 使用内嵌兜底数据
-        if (typeof __CLOUD_FALLBACK !== 'undefined' && __CLOUD_FALLBACK){
-          applyCloudSnap(__CLOUD_FALLBACK);
-          setSyncStatus('已从内嵌快照恢复数据 ✓（网络不可达时使用预置备份）');
-          return;
-        }
-        setSyncStatus('拉取失败：Pages不可达且无Token（'+msg+'）');
+        // 无 Token 且 Pages 失败：保留本机已有数据，绝不拿内置示例覆盖用户真实数据
+        setSyncStatus('云端不可达且无Token，已保留本机数据（'+msg+'）');
         return;
       }
       hydrateFromApi(token);
