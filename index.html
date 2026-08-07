@@ -1292,7 +1292,7 @@ function applyCloudSnap(snap, onlyEmpty){
   try { showTodoNotify(); } catch(e){}
 }
 // 回退：经 api.github.com 拉取（需 Token，国内常不稳）
-function hydrateFromApi(token, force){
+function hydrateFromApi(token, force, fallbackToPages){
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
   var ctrl = new AbortController();
   var timer = setTimeout(function(){ ctrl.abort(); }, 15000);
@@ -1315,6 +1315,11 @@ function hydrateFromApi(token, force){
       if (err && err.name === 'AbortError'){ setSyncStatus('API拉取超时（15秒）'); }
       else {
         var em = err && err.message ? String(err.message).slice(0,60) : '';
+        // API 失败且要求回退 Pages：用 onlyEmpty 安全模式（只填空缺，避免旧版整份覆盖复活已删项）
+        if (fallbackToPages){
+          setSyncStatus('API拉取失败，改用 Pages 兜底（只填空缺）…');
+          return fetchPagesOnlyEmpty();
+        }
         // API 也失败：保留本机已有数据，不拿内置示例覆盖
         setSyncStatus('云端同步失败，已保留本机数据（'+em+'）');
         return;
@@ -1322,10 +1327,40 @@ function hydrateFromApi(token, force){
     })
     .finally(function(){ clearTimeout(timer); });
 }
-// 拉取云端数据：优先走 GitHub Pages 同源静态读取（国内更稳、无需 Token、无 CORS）
-// force=true（手动「拉取云端数据」按钮）= 整份覆盖本机；force=false/缺省（自动拉取）= 只填空缺，不覆盖本机已有数据
+// Pages 兜底读取：仅 onlyEmpty 填缺口，绝不整份覆盖（防止旧版复活已删数据）
+function fetchPagesOnlyEmpty(){
+  var pagesUrl = 'https://qiao-zhen.github.io/userData.json?t=' + Date.now();
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+  fetch(pagesUrl, { cache:'no-store', signal: ctrl.signal })
+    .then(function(r){ if(!r.ok) throw new Error('pages-HTTP'+r.status); return r.text(); })
+    .then(function(text){
+      clearTimeout(timer);
+      if(!text || typeof text !== 'string' || text.length < 10) throw new Error('pages-empty');
+      var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
+      if (!snap || typeof snap !== 'object') throw new Error('fmt');
+      applyCloudSnap(snap, true); // onlyEmpty=true，安全
+      setSyncStatus('已从 Pages 兜底载入（仅填空缺，未覆盖本机）');
+    })
+    .catch(function(err){
+      setSyncStatus('云端不可达，已保留本机数据（'+(err&&err.message?err.message:'')+'）');
+    })
+    .finally(function(){ clearTimeout(timer); });
+}
+// 拉取云端数据：
+// 【方案B·读写同源】优先走 API（与"同步到云端"写入同一份，数据最新，杜绝 Pages 旧版覆盖复活已删项）
+// 无 Token 时退而读 Pages 同源静态文件（仅填空缺，不覆盖）
+// force=true（手动「拉取云端数据」按钮）= 整份覆盖本机；force=false/缺省（自动拉取）= 只填空缺
 function cloudHydrate(force){
-  setSyncStatus('正在拉取云端数据…');
+  var token = getGithubToken();
+  if (token){
+    // 优先 API（与写入同源）
+    setSyncStatus('正在从 API 拉取云端数据…');
+    hydrateFromApi(token, force, true); // 第3参：API 失败则 Pages 兜底(仅填空缺)
+    return;
+  }
+  // 无 Token：Pages 同源读取（仅填空缺，避免旧版覆盖）
+  setSyncStatus('正在拉取云端数据（Pages）…');
   var pagesUrl = 'https://qiao-zhen.github.io/userData.json?t=' + Date.now();
   var ctrl = new AbortController();
   var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
@@ -1336,27 +1371,18 @@ function cloudHydrate(force){
     })
     .then(function(text){
       clearTimeout(timer);
-      // 兜底：text 为 null/非字符串/空/太短均视为失败
       if(!text || typeof text !== 'string'){ throw new Error('null-response'); }
       if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap, !force);
-      setSyncStatus('已从云端载入最新数据 ✓（'+text.length+'字符）');
+      applyCloudSnap(snap, true); // 无 Token 时强制 onlyEmpty，安全
+      setSyncStatus('已从云端载入数据 ✓（'+text.length+'字符，仅填空缺）');
     })
     .catch(function(err){
-      // Pages 同源读取失败，显示具体原因
       var msg = err && err.message ? String(err.message) : 'unknown';
-      setSyncStatus('Pages读取失败('+msg+')，正在尝试API…');
-      // 回退到 api.github.com（需 Token）
-      var token = getGithubToken();
-      if (!token){
-        // 无 Token 且 Pages 失败：保留本机已有数据，绝不拿内置示例覆盖用户真实数据
-        setSyncStatus('云端不可达且无Token，已保留本机数据（'+msg+'）');
-        return;
-      }
-      hydrateFromApi(token, force);
-    });
+      setSyncStatus('Pages读取失败('+msg+')，已保留本机数据');
+    })
+    .finally(function(){ clearTimeout(timer); });
 }
 function renderSyncModules(){
   var fns = [
