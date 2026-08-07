@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桥桥工作台 · 多端数据同步实现原理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#FCE4EC; color:#333; line-height:1.7; padding:0 0 60px; }
+  .top { background:#fff; padding:22px 18px 18px; border-bottom:1px solid #F8BBD0; position:sticky; top:0; z-index:10; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#E91E63; margin-right:8px; vertical-align:middle; }
+  .top h1 { font-size:19px; color:#E91E63; display:inline; font-weight:700; }
+  .top p { font-size:13px; color:#AD1457; margin-top:6px; }
+  .wrap { max-width:760px; margin:0 auto; padding:18px 16px; }
+  .card { background:#fff; border-radius:16px; padding:18px 16px; margin-bottom:16px; box-shadow:0 2px 10px rgba(233,30,99,.06); }
+  .card h2 { font-size:16px; color:#E91E63; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .card h2 .num { background:#F06292; color:#fff; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; flex:none; }
+  .card p { font-size:14px; margin:8px 0; color:#444; }
+  .card ul { margin:8px 0 4px 4px; list-style:none; }
+  .card li { font-size:14px; margin:7px 0; padding-left:18px; position:relative; color:#444; }
+  .card li::before { content:"·"; color:#F06292; font-weight:700; position:absolute; left:4px; top:0; }
+  .tag { display:inline-block; background:#FCE4EC; color:#AD1457; font-size:12px; padding:2px 9px; border-radius:20px; margin:2px 4px 2px 0; }
+  .key { background:#FFF3F6; border:1px solid #F8BBD0; border-radius:8px; padding:2px 7px; font-size:13px; color:#C2185B; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .code { background:#2b1a22; color:#ffd9e6; border-radius:10px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow-x:auto; margin:10px 0; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:pre; }
+  .warn { background:#FFF8E1; border-left:4px solid #FFB300; border-radius:8px; padding:10px 12px; font-size:13px; color:#7a5b00; margin:10px 0; }
+  .ok { background:#E8F5E9; border-left:4px solid #43A047; border-radius:8px; padding:10px 12px; font-size:13px; color:#1B5E20; margin:10px 0; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+  .flow .step { background:#FCE4EC; border:1px solid #F8BBD0; border-radius:10px; padding:8px 10px; font-size:12.5px; color:#AD1457; flex:1 1 120px; text-align:center; }
+  .flow .arrow { color:#F06292; font-weight:700; font-size:16px; flex:none; }
+  .pill { display:inline-block; background:#F06292; color:#fff; font-size:12px; padding:3px 12px; border-radius:20px; }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:13px; }
+  table th { background:#FCE4EC; color:#AD1457; padding:8px 6px; text-align:left; border-bottom:2px solid #F8BBD0; }
+  table td { padding:8px 6px; border-bottom:1px solid #FCE4EC; color:#444; }
+  .foot { text-align:center; font-size:12px; color:#C2185B; opacity:.7; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="dot"></span><h1>桥桥工作台 · 多端数据同步实现原理</h1>
+  <p>手机 / 电脑 / iPad 数据怎么互通的？一份给自己的技术备忘录</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2><span class="num">1</span>一句话原理</h2>
+    <p>工作台本身是个<strong>纯前端网页</strong>（HTML + JS + localStorage），没有自己的服务器。它把 <strong>GitHub 仓库当成一个"云端数据库"</strong>：你的每条数据都存成浏览器里的 <span class="key">localStorage</span>，改动了就自动上传到 GitHub 的一个 <span class="key">userData.json</span> 文件；换设备打开时，再从 GitHub 把这个文件下载下来填进本地。</p>
+    <p><span class="pill">核心公式</span> 本机 localStorage ⇄ GitHub 的 userData.json（直连 API，不经过任何中间服务器）</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>整体架构</h2>
+    <div class="flow">
+      <div class="step">手机浏览器<br>localStorage</div>
+      <span class="arrow">⇄</span>
+      <div class="step">GitHub API<br>userData.json</div>
+      <span class="arrow">⇄</span>
+      <div class="step">iPad / 电脑<br>localStorage</div>
+    </div>
+    <ul>
+      <li><strong>本机存储</strong>：16 个用户数据 key（待办、台账、笔记、打卡…）存浏览器 <span class="key">localStorage</span>，关掉页面数据还在。</li>
+      <li><strong>云端存储</strong>：GitHub 仓库 <span class="key">qiao-zhen/qiao-zhen.github.io</span> 里的 <span class="key">userData.json</span>，就是所有设备的"公共备份"。</li>
+      <li><strong>传输</strong>：网页用浏览器 <span class="key">fetch</span> 直连 <span class="key">api.github.com</span>（PUT 写 / GET 读），<strong>不经过 Cloudflare 等中间 Worker</strong>（国内连不上）。</li>
+      <li><strong>身份</strong>：一个 GitHub fine-grained Token（只授权该仓库 Contents 读写），存在你本机浏览器，<strong>不上传、不写进任何文件</strong>。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>写入（同步到云端）怎么实现</h2>
+    <p>每次你在页面里新增 / 修改 / 删除任意模块，底层<strong>拦截了浏览器的保存动作</strong>：</p>
+    <div class="code">// 拦截 Storage.setItem，自动触发上传（防抖 0.7 秒）
+Storage.prototype.setItem = function(k, v){
+  origSetItem.apply(this, arguments);
+  if (SYNC_KEYS.indexOf(k) >= 0 && getGithubToken()) {
+    scheduleCloudPush();   // 0.7s 内没再改动才真正发请求
+  }
+};</div>
+    <p>真正上传时用 <span class="key">PUT</span> 把整个 userData.json 写回 GitHub：</p>
+    <div class="code">PUT https://api.github.com/repos/qiao-zhen/qiao-zhen.github.io/contents/userData.json
+Headers: Authorization: Bearer &lt;你的token&gt;
+Body: {
+  "message": "auto sync",
+  "content": &lt;base64(UTF-8 编码的 JSON)&gt;,
+  "sha": &lt;先 GET 拿到的文件 sha，防止冲突&gt;
+}</div>
+    <ul>
+      <li><strong>防抖 0.7 秒</strong>：狂敲键盘不会刷接口，停手才传。</li>
+      <li><strong>先取 sha 再写</strong>：GitHub 要求带旧版本号，避免两人同时改把对方覆盖（冲突时返回 409，会重试）。</li>
+      <li><strong>Token 输入即存</strong>：顶栏「☁ 同步」填一次，关掉再开还在。</li>
+    </ul>
+    <div class="ok">✅ 所以"同步到云端"是<strong>全自动</strong>的——你正常用页面，数据就一直在往 GitHub 跑，不用点按钮。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span>读取（拉取云端数据）怎么实现</h2>
+    <p>读取分两种模式，由 <span class="key">force</span> 参数控制：</p>
+    <table>
+      <tr><th>场景</th><th>触发</th><th>行为</th></tr>
+      <tr><td>自动拉取</td><td>每次打开页面</td><td><span class="key">force=false</span> → <strong>只填空缺</strong>，本地已有数据绝不覆盖</td></tr>
+      <tr><td>手动拉取</td><td>点「拉取云端数据」</td><td><span class="key">force=true</span> → <strong>整份覆盖</strong>本地</td></tr>
+    </table>
+    <p><strong>读哪份数据（关键修复点）</strong>：曾经"拉取"优先读 GitHub Pages 静态文件（<span class="key">qiao-zhen.github.io/userData.json</span>），那份有 CDN 缓存 + 部署延迟，永远是旧版——导致你删了待办又被旧版拉回来。</p>
+    <div class="warn">⚠️ 现已改为：<strong>拉取优先读 API</strong>（和"写入"同一个地址，数据最新），GitHub Pages 只作无 Token 时的兜底，且兜底也强制"只填空缺"。从此读写同源，删了就不会复活。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span>多设备实际流程</h2>
+    <p>以"手机改了待办，iPad 打开看"为例：</p>
+    <div class="flow">
+      <div class="step">① 手机改数据</div>
+      <span class="arrow">→</span>
+      <div class="step">② 0.7s 后自动<br>传 GitHub</div>
+      <span class="arrow">→</span>
+      <div class="step">③ iPad 打开<br>自动拉取</div>
+      <span class="arrow">→</span>
+      <div class="step">④ iPad 拿到<br>最新数据</div>
+    </div>
+    <ul>
+      <li>iPad 该模块<strong>是空的</strong>（新设备 / 清过浏览器）→ 自动把你手机的数据填进来 ✅</li>
+      <li>iPad 自己<strong>也有旧数据</strong> → 默认不覆盖；想要手机最新版就点一下「拉取云端数据」整份替换。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">6</span>踩过的坑 & 已修复</h2>
+    <ul>
+      <li><strong>读写不同源（已修）</strong>：拉取读 Pages 旧版 → 已改为读 API 同源。</li>
+      <li><strong>示例数据覆盖真实（已修）</strong>：<span class="key">ensureFallbackData</span> 原本会把内置示例强行写回，冲掉你的真实数据 → 改为<strong>只填 localStorage 里为 null 的键</strong>，绝不覆盖已有数据。</li>
+      <li><strong>Token 不持久（已修）</strong>：原本只在拉取时存 → 改为输入框 <span class="key">oninput</span> 实时存本地。</li>
+      <li><strong>.nojekyll 必须空文件（铁律）</strong>：带任何内容会让 GitHub Pages 构建报错、网站一直停在旧版。必须 0 字节。</li>
+      <li><strong>推送不同步 userData.json</strong>：刷新 AI 内容只推 <span class="key">data.json</span>；你的真实同步数据在 <span class="key">userData.json</span>，绝不拿本地副本覆盖云端。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">7</span>你能做什么 / 不能做什么</h2>
+    <ul>
+      <li>✅ 多设备（手机/电脑/iPad）共用同一份数据</li>
+      <li>✅ 断网时本地照常用，联网后自动补齐</li>
+      <li>✅ 手动点「同步到云端 / 拉取云端数据」可强制收发</li>
+      <li>❌ 没有"实时秒同步"：靠保存触发 + 0.7s 防抖，不是 WebSocket 长连接</li>
+      <li>❌ 多人同时狂改同一模块可能冲突（GitHub 409 重试，偶尔需手动再拉一次）</li>
+      <li>❌ 别在待办 / 台账里写密码、银行卡号等敏感信息（云端是公开仓库文件）</li>
+    </ul>
+  </div>
+
+  <div class="foot">桥桥工作台 · 技术备忘录 · 纯前端 + GitHub API 直连</div>
+</div>
+</body>
+</html>
