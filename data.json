@@ -28,7 +28,7 @@
     },
     {
       "name": "华夏黄金ETF联接A",
-      "code": "000217",
+      "code": "008701",
       "amount": 259.2,
       "type": "gold",
       "cost": 261.65,
@@ -56,7 +56,7 @@
   "fundQuotes": {
     "020602": { "fundcode": "020602", "name": "易方达中证红利低波动ETF联接发起式A", "gszzl": 0.12, "dwjz": 1.0676, "gztime": "2026-08-06" },
     "017641": { "fundcode": "017641", "name": "摩根标普500指数(QDII)人民币A", "gszzl": -0.14, "dwjz": 1.7132, "gztime": "2026-08-06" },
-    "000217": { "fundcode": "000217", "name": "华安黄金ETF联接C", "gszzl": 0.5, "dwjz": 3.1312, "gztime": "2026-08-07" },
+    "008701": { "fundcode": "008701", "name": "华夏黄金ETF联接A", "gszzl": 2.36, "dwjz": 2.0403, "gztime": "2026-08-06" },
     "016452": { "fundcode": "016452", "name": "南方纳斯达克100指数发起(QDII)A", "gszzl": -0.37, "dwjz": 2.2836, "gztime": "2026-08-06" }
   },
   "financeNews": [
