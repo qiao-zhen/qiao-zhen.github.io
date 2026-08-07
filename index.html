@@ -250,7 +250,7 @@
         .sec-btns { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; min-width:0; }
         .sec-btns .pill-btn { flex:1 1 0; justify-content:center; padding:9px 16px; font-size:14px; }
         /* 知识库笔记：按钮移到标题下一行、靠右对齐（粘贴在左、复制在右） */
-        .kb-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-bottom:12px; }
+        .kb-actions { display:flex; gap:10px; justify-content:flex-start; flex-wrap:wrap; margin-bottom:12px; }
 
         /* ===== Toast 通知 ===== */
         .toast {
@@ -577,8 +577,8 @@
                 <div class="page-title"><i class="fa fa-book ico"></i> 知识库笔记</div>
             </div>
             <div class="kb-actions">
-                <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
                 <button class="pill-btn" onclick="openCopyModal()"><i class="fa fa-copy"></i> 复制笔记</button>
+                <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
             <div class="filter-row" id="kb-filter">
@@ -1112,7 +1112,7 @@
 </div>
 
 <!-- 待办新增/编辑弹窗 -->
-<div class="modal-overlay" id="todoModal" onclick="if(event.target===this)document.getElementById('todoModal').style.display='none'">
+<div class="modal-overlay" id="todoModal" onclick="if(event.target===this && !isStrayPickerClick())document.getElementById('todoModal').style.display='none'">
     <div class="modal">
         <button class="close" onclick="document.getElementById('todoModal').style.display='none'">×</button>
         <h3 id="todoModalTitle">新增待办</h3>
@@ -3484,14 +3484,27 @@ injectFormCloseButtons();
 wrapForms();
 
 // 移动端：点击页面空白处收起键盘（iOS Safari 点非输入区域不会自动收起）
+// 记录日期/时间类原生控件失焦时刻，用于拦截其系统picker关闭时误触发的遮罩点击
+var _lastPickerBlur = 0;
+document.addEventListener('blur', function(e){
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && ['date','datetime-local','time','month','week'].indexOf(t.type) >= 0){
+        _lastPickerBlur = Date.now();
+    }
+}, true);
+function isStrayPickerClick(){ return (Date.now() - _lastPickerBlur) < 500; }
 document.addEventListener('touchstart', function(e){
     var active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && !active.isContentEditable){
-        var t = e.target;
-        if (t !== active && t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA' && !t.isContentEditable){
-            active.blur();
-        }
-    }
+    if (!active) return;
+    var tag = active.tagName;
+    if (!((tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && !active.isContentEditable)) return;
+    // 下拉/日期/时间等原生控件有系统级 picker，点选无法被 DOM 捕获，绝不能强制 blur，否则 picker 会立刻关闭
+    if (tag === 'SELECT' || (active.type && ['date','datetime-local','time','month','week'].indexOf(active.type) >= 0)) return;
+    var t = e.target;
+    if (t === active) return;
+    if (t.closest && t.closest('input,textarea,select,button,label,a')) return;
+    if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.tagName === 'BUTTON' || t.isContentEditable) return;
+    active.blur();
 }, { passive:true });
 
 // ===================== 通用编辑系统 =====================
