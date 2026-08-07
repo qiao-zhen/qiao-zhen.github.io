@@ -1270,14 +1270,21 @@ function getSha(token, cb){
     .catch(function(){ clearTimeout(timer); cb(null); });
 }
 // 把云端快照写入本机
-function applyCloudSnap(snap){
+// onlyEmpty=true（自动拉取）时：只填充本地为空的 key，绝不覆盖本地已有数据
+// onlyEmpty=false（手动「拉取云端数据」按钮）时：整份覆盖
+function applyCloudSnap(snap, onlyEmpty){
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
-    if (snap[k] !== undefined){
-      // 云端 null 值统一转为空数组，防止 render 函数读 null.length 崩溃
-      var val = (snap[k] === null) ? [] : snap[k];
-      try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
+    if (snap[k] === undefined) return;
+    if (onlyEmpty){
+      var local = null;
+      try { local = localStorage.getItem(k); } catch(e){}
+      // 本地已有数据（非 null 且非 "null"/"[]" 空壳）→ 保留本地，不覆盖
+      if (local !== null && local !== undefined && local !== 'null' && local !== '[]') return;
     }
+    // 云端 null 值统一转为空数组，防止 render 函数读 null.length 崩溃
+    var val = (snap[k] === null) ? [] : snap[k];
+    try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
   });
   window.__cloudSkip = false;
   renderSyncModules();
@@ -1285,7 +1292,7 @@ function applyCloudSnap(snap){
   try { showTodoNotify(); } catch(e){}
 }
 // 回退：经 api.github.com 拉取（需 Token，国内常不稳）
-function hydrateFromApi(token){
+function hydrateFromApi(token, force){
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
   var ctrl = new AbortController();
   var timer = setTimeout(function(){ ctrl.abort(); }, 15000);
@@ -1301,7 +1308,7 @@ function hydrateFromApi(token){
       if (j.sha) window.__cloudSha = j.sha;
       var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ setSyncStatus('云端数据解析失败'); return; }
       if (!snap || typeof snap !== 'object'){ setSyncStatus('云端数据格式异常'); return; }
-      applyCloudSnap(snap);
+      applyCloudSnap(snap, !force);
       setSyncStatus('已从云端载入最新数据 ✓');
     })
     .catch(function(err){
@@ -1316,7 +1323,8 @@ function hydrateFromApi(token){
     .finally(function(){ clearTimeout(timer); });
 }
 // 拉取云端数据：优先走 GitHub Pages 同源静态读取（国内更稳、无需 Token、无 CORS）
-function cloudHydrate(){
+// force=true（手动「拉取云端数据」按钮）= 整份覆盖本机；force=false/缺省（自动拉取）= 只填空缺，不覆盖本机已有数据
+function cloudHydrate(force){
   setSyncStatus('正在拉取云端数据…');
   var pagesUrl = 'https://qiao-zhen.github.io/userData.json?t=' + Date.now();
   var ctrl = new AbortController();
@@ -1333,7 +1341,7 @@ function cloudHydrate(){
       if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap);
+      applyCloudSnap(snap, !force);
       setSyncStatus('已从云端载入最新数据 ✓（'+text.length+'字符）');
     })
     .catch(function(err){
@@ -1347,7 +1355,7 @@ function cloudHydrate(){
         setSyncStatus('云端不可达且无Token，已保留本机数据（'+msg+'）');
         return;
       }
-      hydrateFromApi(token);
+      hydrateFromApi(token, force);
     });
 }
 function renderSyncModules(){
@@ -1374,8 +1382,8 @@ function openSyncSettings(){
 }
 function saveSyncSettings(){
   saveTokenLive();
-  // 拉取优先走 GitHub Pages 同源（无需 Token）；Token 仅用于「上传到云端」
-  cloudHydrate();
+  // 手动「拉取云端数据」按钮：整份覆盖本机（用户显式选择）
+  cloudHydrate(true);
 }
 function forceSyncNow(){
   saveTokenLive();
@@ -3691,8 +3699,8 @@ function loadRemoteData(){
         });
 }
 
-// 每会话首次加载时，无条件用内嵌云端快照填充 localStorage（不依赖网络、不判断是否为空）
-// 用 sessionStorage 标记防止同会话重复写入覆盖用户手动修改
+// 每会话首次加载时，仅当本机某 key 从未写入过（全新设备/首次使用）才用内嵌快照填充，
+// 绝不覆盖用户已有的真实数据（防止关闭 App 后 sessionStorage 清空、示例数据覆盖真实编辑）
 function ensureFallbackData(){
   if (typeof __CLOUD_FALLBACK === 'undefined' || !__CLOUD_FALLBACK) return;
   try {
@@ -3700,7 +3708,10 @@ function ensureFallbackData(){
   } catch(e){ return; }
   try {
     SYNC_KEYS.forEach(function(k){
-      if (__CLOUD_FALLBACK[k] !== undefined){
+      if (__CLOUD_FALLBACK[k] === undefined) return;
+      var local = null;
+      try { local = localStorage.getItem(k); } catch(e){}
+      if (local === null){  // 仅本机从未写入过该 key 才填充；用户清空成 [] 或已有数据都不动
         localStorage.setItem(k, JSON.stringify(__CLOUD_FALLBACK[k]));
       }
     });
@@ -3732,7 +3743,7 @@ document.addEventListener('DOMContentLoaded', function(){
     safe('renderBodyNote', renderBodyNote);
     safe('loadRemoteData', loadRemoteData);
     safe('showTodoNotify', showTodoNotify);
-    cloudHydrate();         // 异步联网更新（成功则刷新为最新，失败也不影响已显示的数据）
+    cloudHydrate(false);    // 自动联网更新：仅填空缺（新设备），绝不覆盖本机已有数据（防止云端旧数据抹掉本地新编辑）
 });
 // 云端数据内嵌兜底：当网络 fetch 全部失败时，直接使用此处预置的云端快照（无需联网）
 var __CLOUD_FALLBACK = {"todoList":[{"text":"让workbuddy将我的手机和电脑ipad多端同步数据要如何实现呢","prio":"中","time":"10:11","due":"明天","date":"2026-08-06","done":false,"createdAt":1785986469536},{"text":"搭建workbuddy教程","prio":"高","time":"09:50","due":"明天吧","date":"2026-08-06","done":false,"createdAt":1785986529536},{"title":"接入飞书","text":"试试接入飞书将我的知识库笔记按照分类上传到飞书对应分类上面做记录，看看能不能实现","prio":"高","createdAt":1785986649536,"due":"今天","remind":"","date":"2026-08-06","done":false},{"text":"学习trae","prio":"高","time":"07:02","due":"今天","date":"2026-08-05","done":false,"createdAt":1785986829536},{"text":"了解学习codex","prio":"低","time":"","due":"","date":"2026-08-05","done":false,"createdAt":1785986889536},{"text":"把我的工作台生成一个skill","prio":"高","time":"","due":"明天","date":"2026-08-05","done":false,"createdAt":1785986949536},{"text":"洗牙","prio":"中","due":"这个月","date":"2026-08-05","done":false,"createdAt":1785987009536},{"text":"带一件外套到公司中午睡觉好冷","prio":"高","due":"明天","date":"2026-08-05","done":false,"createdAt":1785987069536},{"text":"帮忙给姐姐做工作台","prio":"低","due":"","date":"2026-08-04","done":false,"createdAt":1785987129536},{"text":"洗内裤","prio":"高","due":"今天","date":"2026-08-04","done":true,"createdAt":1785987189536},{"text":"分享做的工作台内容展示更新到ai账号","prio":"高","due":"明天","date":"2026-08-03","done":true,"createdAt":1785987249536},{"text":"运镜动漫","prio":"中","due":"","date":"2026-08-03","done":false,"createdAt":1785987309536},{"text":"学习liv\u2006t\u2006b","prio":"中","due":"","date":"2026-08-03","done":false,"createdAt":1785987369536}],"knowledgeBase":[],"accountObserve":null,"workReview":null,"productList":[],"scriptList":null,"promptList":null,"recordList":[],"sideIdeas":[],"evalList":[],"testList":[],"archiveList":null,"assetList":[{"name":"南方纳斯达克100ETF发起联接(QDII)A人民币","code":"016452","amount":787.49,"type":"nasdaq","cost":804.23,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"华夏黄金ETF联接A","code":"000217","amount":259.2,"type":"gold","cost":261.65,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"摩根标普500指数A(QDII)A","code":"017641","amount":300.21,"type":"qdii","cost":300,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"易方达红利低波动ETF发起式联接(ETF联接)A","code":"020602","amount":2294.19,"type":"dividend","cost":2220,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"code":"021842","name":"广发全球精选股票(QDII)C人民币","amount":1202.59,"cost":1256,"type":"other","plan":"","judge":"观察中","dca":{"enabled":true,"daily":50,"acc":50,"lastDate":"2026-08-06"}}],"rebalanceList":null,"bodyNoteList":[],"checkinRecords":{}};
