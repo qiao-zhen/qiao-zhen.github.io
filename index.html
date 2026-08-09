@@ -1816,6 +1816,7 @@ function saveProduct(){
     editOrInsert('productList', item);
     infoInput.value='';
     document.getElementById('form-product').classList.add('hidden');
+    var ovp = document.getElementById('form-product_ov'); if (ovp) ovp.style.display = 'none';
     showToast(_editState.key?'选品已更新':'选品已保存');
     renderProduct();
 }
@@ -1909,6 +1910,7 @@ function saveScript(){
     editOrInsert('scriptList', item);
     document.getElementById('scr-title').value=''; document.getElementById('scr-content').value=''; document.getElementById('scr-prompt').value='';
     document.getElementById('form-script').classList.add('hidden');
+    var ovsc = document.getElementById('form-script_ov'); if (ovsc) ovsc.style.display = 'none';
     showToast(_editState.key?'脚本已更新':'脚本已保存');
     renderScript();
 }
@@ -1945,6 +1947,7 @@ function savePrompt(){
     document.getElementById('pr-title').value=''; document.getElementById('pr-content').value='';
     document.querySelectorAll('#pr-tags span').forEach(function(t){ t.classList.remove('sel'); });
     document.getElementById('form-prompt').classList.add('hidden');
+    var ovpr = document.getElementById('form-prompt_ov'); if (ovpr) ovpr.style.display = 'none';
     showToast(_editState.key?'提示词已更新':'提示词已保存');
     renderPrompt();
 }
@@ -2023,6 +2026,7 @@ function saveRecord(){
     editOrInsert('recordList', item);
     ['rec-title','rec-play','rec-like','rec-ctr','rec-deal','rec-analysis'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-record').classList.add('hidden');
+    var ovr = document.getElementById('form-record_ov'); if (ovr) ovr.style.display = 'none';
     showToast(_editState.key?'记录已更新':'发布记录已保存');
     renderRecord();
 }
@@ -2058,6 +2062,7 @@ function saveSideIdea(){
     _editState.key = null; _editState.idx = null;
     f.querySelector('textarea').value=''; f.querySelectorAll('input')[0].value='';
     f.classList.add('hidden');
+    var ovsi = document.getElementById('form-sideidea_ov'); if (ovsi) ovsi.style.display = 'none';
     showToast('脑洞已保存');
     renderSideIdeas();
 }
@@ -2088,6 +2093,7 @@ function saveEval(){
     editOrInsert('evalList', item);
     ['ev-info','ev-case','ev-link'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-eval').classList.add('hidden');
+    var ove = document.getElementById('form-eval_ov'); if (ove) ove.style.display = 'none';
     showToast(_editState.key?'项目已更新':'项目已保存');
     renderEval();
 }
@@ -2113,6 +2119,7 @@ function saveTest(){
     editOrInsert('testList', item);
     ['te-name','te-process','te-feedback'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-test').classList.add('hidden');
+    var ovt = document.getElementById('form-test_ov'); if (ovt) ovt.style.display = 'none';
     showToast(_editState.key?'测试记录已更新':'测试记录已保存');
     renderTest();
 }
@@ -2138,6 +2145,7 @@ function saveArchive(){
     editOrInsert('archiveList', item);
     document.getElementById('ar-name').value=''; document.getElementById('ar-review').value='';
     document.getElementById('form-archive').classList.add('hidden');
+    var ova = document.getElementById('form-archive_ov'); if (ova) ova.style.display = 'none';
     showToast(_editState.key?'归档已更新':'归档已保存');
     renderArchive();
 }
@@ -2763,6 +2771,7 @@ function saveRebalance(){
     editOrInsert('rebalanceList', item);
     ['rb-target','rb-time','rb-share','rb-logic'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-rebalance').classList.add('hidden');
+    var ovrb = document.getElementById('form-rebalance_ov'); if (ovrb) ovrb.style.display = 'none';
     showToast(_editState.key?'调仓记录已更新':'调仓记录已保存');
     renderRebalance();
 }
@@ -2916,6 +2925,7 @@ function saveBodyNote(){
     editOrInsert('bodyNoteList', item);
     document.getElementById('bn-date').value=''; document.getElementById('bn-content').value='';
     document.getElementById('form-bodynote').classList.add('hidden');
+    var ovbn = document.getElementById('form-bodynote_ov'); if (ovbn) ovbn.style.display = 'none';
     showToast(_editState.key?'记录已更新':'观察记录已保存');
     renderBodyNote();
 }
