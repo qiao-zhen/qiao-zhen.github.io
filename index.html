@@ -1187,6 +1187,17 @@ window.__cloudSkip = false;
 window.__cloudSha = null;
 function b64enc(str){ return btoa(unescape(encodeURIComponent(str))); }
 function b64dec(b64){ try { return decodeURIComponent(escape(atob(b64))); } catch(e){ return ''; } }
+// 剔除演示/测试脏数据（"洗内裤"、"云端同步测试"等），避免脏数据在云端与本机之间互相污染
+function _scrubSnap(snap){
+  if (!snap || typeof snap !== 'object') return snap;
+  if (Array.isArray(snap.todoList)){
+    snap.todoList = snap.todoList.filter(function(t){
+      var s = ((t && (t.text || t.title)) || '') + '';
+      return s.indexOf('洗内裤') < 0 && s.indexOf('云端同步测试') < 0;
+    });
+  }
+  return snap;
+}
 // 拦截所有 localStorage 写入：命中用户数据 key 且已配置 Token，则防抖推云端
 (function(){
   var _orig = Storage.prototype.setItem;
@@ -1205,6 +1216,7 @@ function cloudPush(force, cb){
   if (!token){ if(cb) cb(false); return; }
   var snap = {};
   SYNC_KEYS.forEach(function(k){ try { snap[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ snap[k] = null; } });
+  _scrubSnap(snap);
   var payload = JSON.stringify(snap);
   var btn = document.getElementById('syncBtn');
   if (btn) btn.classList.add('syncing');
@@ -1281,6 +1293,7 @@ function _localIsDemo(k, localRaw){
 // onlyEmpty=true（自动拉取/兜底，无Token Pages）时：只填充本地为空的 key；但本地若是内置演示占位则被云端覆盖（杜绝"洗内裤"残留）
 // onlyEmpty=false（手动「拉取云端数据」按钮 / 带Token API拉取）时：整份覆盖本机，以云端为准（演示占位/本地残留项一律清除，确保拿到云端干净版本）
 function applyCloudSnap(snap, onlyEmpty){
+  snap = _scrubSnap(snap);
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
     if (snap[k] === undefined) return;
@@ -2209,7 +2222,7 @@ var financeNewsData = [
 function renderFinanceNews(){
     var html='';
     financeNewsData.forEach(function(item){
-        var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
+        var full = item.content;
         html += '<div class="news-card" data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
             '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
@@ -3295,7 +3308,7 @@ function openNewsModal(el){
     var url = card.dataset.url || '';
     document.getElementById('modalTitle').textContent = title;
     var contentHtml = escHtml(content);
-    if (url) contentHtml += '<br><br>📎 <a href="'+escAttr(url)+'" target="_blank" rel="noopener">查看原文：'+escHtml(url)+'</a>';
+    if (url) contentHtml += '<br><br><a href="'+escAttr(url)+'" target="_blank" rel="noopener" style="display:inline-block;padding:6px 16px;background:#F06292;color:#fff;border-radius:16px;font-size:13px;text-decoration:none;">🔗 查看原文</a>';
     document.getElementById('modalContent').innerHTML = contentHtml;
     document.getElementById('modalOverlay').classList.add('show');
 }
