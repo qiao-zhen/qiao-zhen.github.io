@@ -1123,7 +1123,8 @@
         <button class="close" onclick="document.getElementById('kbModal').style.display='none'">×</button>
         <h3 id="kbModalTitle">粘贴内容生成卡片</h3>
         <div class="form-item"><label>标题（选填，留空自动取首行）</label><input type="text" id="kb-title" placeholder="给这张卡片起个名字，例如：美联储9月降息预期"></div>
-        <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..."></textarea></div>
+        <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..." oninput="autoExtractKbUrl()"></textarea></div>
+        <div class="form-item"><label>原文链接（抖音 / 小红书 / 文章，选填）</label><input type="text" id="kb-url" placeholder="粘贴链接后，卡片上将出现「打开原文」按钮直接跳转查看" oninput="saveKbUrlLive()"></div>
         <div class="form-item"><label>分类</label>
             <select id="kb-category">
                 <option>理财</option>
@@ -1509,12 +1510,15 @@ function saveKnowledge(){
     var category = (document.getElementById('kb-category')||{}).value || 'AI';
     var titleInput = (document.getElementById('kb-title')||{}).value || '';
     titleInput = titleInput.trim();
+    var url = (document.getElementById('kb-url')||{}).value || '';
+    url = url.trim();
     var autoTitle = (content.split('\n')[0] || '').slice(0,30) || '粘贴笔记';
     var title = titleInput || autoTitle;
     var item = { title:title, category:category, content:content, date:todayStr() };
+    if (url) item.url = url;
     if (_editState.key === 'knowledgeBase' && _editState.idx != null){
         var arr = getKnowledgeList();
-        if (arr[_editState.idx]){ arr[_editState.idx].content = content; arr[_editState.idx].category = category; arr[_editState.idx].title = title; }
+        if (arr[_editState.idx]){ arr[_editState.idx].content = content; arr[_editState.idx].category = category; arr[_editState.idx].title = title; if (url) arr[_editState.idx].url = url; else delete arr[_editState.idx].url; }
         setKnowledgeList(arr);
         showToast('已更新');
     } else {
@@ -1524,11 +1528,20 @@ function saveKnowledge(){
     _editState.key = null; _editState.idx = null;
     document.getElementById('kb-title').value='';
     document.getElementById('kb-content').value='';
+    document.getElementById('kb-url').value='';
     document.getElementById('kbModalTitle').textContent='粘贴内容生成卡片';
     document.getElementById('kbSaveBtn').innerHTML='<i class="fa fa-check"></i> 生成卡片';
     document.getElementById('kbModal').style.display='none';
     renderKnowledgeBase();
 }
+// 从粘贴内容自动识别首个 http(s) 链接，填入「原文链接」框（仅当链接框为空时），实现"粘链接即带跳转"
+function autoExtractKbUrl(){
+    var c = (document.getElementById('kb-content')||{}).value || '';
+    var m = c.match(/https?:\/\/[^\s"'<>]+/i);
+    var urlInput = document.getElementById('kb-url');
+    if (urlInput && !urlInput.value.trim() && m){ urlInput.value = m[0]; }
+}
+function saveKbUrlLive(){ /* 链接输入即时保留，无需额外处理 */ }
 function filterKnowledge(cat, el){
     kbFilterCat = cat;
     document.querySelectorAll('#kb-filter .filter-chip').forEach(function(c){c.classList.remove('sel');});
@@ -1538,39 +1551,42 @@ function filterKnowledge(cat, el){
 function copyCard(idx){
     var arr = getKnowledgeList();
     var it = arr[idx]; if (!it) return;
-    copyTextToClipboard('【'+it.category+'】'+(it.title||'')+'\n'+it.content);
+    var md = '### '+(it.title||'未命名')+(it.date?('（'+it.date+'）'):'')+'\n\n'+(it.content||'');
+    if (it.url) md += '\n\n🔗 [打开原文]('+it.url.replace(/\)/g,'%29')+')';
+    copyTextToClipboard(md);
 }
 function exportCard(idx){
     var arr = getKnowledgeList();
     var it = arr[idx]; if (!it) return;
     var title = (it.title||'note').replace(/[\\/?:*<>|"]/g,'_');
     var md = '# '+(it.title||'未命名')+'（'+(it.category||'')+'）\n\n> 记录于 '+(it.date||'')+'\n\n'+(it.content||'');
+    if (it.url) md += '\n\n🔗 [打开原文]('+it.url.replace(/\)/g,'%29')+')';
     downloadText(title+'.md', md);
 }
-// 复制知识库笔记：选分类→呈现该分类全部资料→一键复制（用户自行粘贴到飞书）
+// 复制知识库笔记：选分类→呈现该分类全部资料→一键复制（Markdown 格式，便于粘贴到飞书）
 function formatOneNote(it){
-    var s = '■ ' + (it.title || '未命名') + (it.date ? ('（' + it.date + '）') : '');
-    s += '\n' + (it.content || '');
-    if (it.url) s += '\n📎 原文：' + it.url;
+    var s = '### ' + (it.title || '未命名') + (it.date ? ('（' + it.date + '）') : '');
+    s += '\n\n' + (it.content || '');
+    if (it.url) s += '\n\n🔗 [打开原文](' + it.url.replace(/\)/g,'%29') + ')';
     return s;
 }
 function buildCopyText(cat){
     var arr = getKnowledgeList();
     if (!arr.length) return '';
-    var lines = [];
-    if (cat === 'all'){
-        KB_CATS.forEach(function(c){
-            var g = arr.filter(function(i){ return i.category === c; });
-            if (!g.length) return;
-            lines.push('【' + c + '】');
-            g.forEach(function(it){ lines.push(formatOneNote(it)); lines.push(''); });
-        });
-        var unc = arr.filter(function(i){ return KB_CATS.indexOf(i.category) < 0; });
-        if (unc.length){ lines.push('【未分类】'); unc.forEach(function(it){ lines.push(formatOneNote(it)); lines.push(''); }); }
-    } else {
-        arr.filter(function(i){ return i.category === cat; }).forEach(function(it){ lines.push(formatOneNote(it)); lines.push(''); });
+    var out = [];
+    function catBlock(name, list){
+        if (!list.length) return;
+        out.push('## 【' + name + '】');
+        list.forEach(function(it){ out.push(formatOneNote(it)); });
     }
-    return lines.join('\n').replace(/\n+$/,'');
+    if (cat === 'all'){
+        KB_CATS.forEach(function(c){ catBlock(c, arr.filter(function(i){ return i.category === c; })); });
+        var unc = arr.filter(function(i){ return KB_CATS.indexOf(i.category) < 0; });
+        catBlock('未分类', unc);
+    } else {
+        catBlock(cat, arr.filter(function(i){ return i.category === cat; }));
+    }
+    return out.join('\n\n');
 }
 function openCopyModal(){
     var cat = (typeof kbFilterCat !== 'undefined' && kbFilterCat) ? kbFilterCat : 'all';
@@ -1590,7 +1606,7 @@ function selectCopyCat(cat, el){
 function updateCopyCount(cat){
     var arr = getKnowledgeList();
     var n = (cat === 'all') ? arr.length : arr.filter(function(i){ return i.category === cat; }).length;
-    document.getElementById('copyKbCount').textContent = '当前共 ' + n + ' 条笔记，复制后粘贴到飞书即可';
+    document.getElementById('copyKbCount').textContent = '当前共 ' + n + ' 条笔记，已按 Markdown 格式整理，复制后粘贴到飞书即可';
 }
 function copyKbText(){
     var txt = document.getElementById('copyKbText').value;
@@ -1645,7 +1661,8 @@ function renderKnowledgeBase(){
     var html='';
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
+        var linkExtra = (item.url && item.url.trim()) ? '<a href="'+escAttr(item.url.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-block;margin:6px 0 2px;padding:4px 12px;background:#F06292;color:#fff;border-radius:14px;font-size:12px;text-decoration:none;">🔗 打开原文</a>' : '';
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -1654,6 +1671,7 @@ function openKbModal(){
     _editState.key = null; _editState.idx = null;
     document.getElementById('kb-title').value='';
     document.getElementById('kb-content').value='';
+    document.getElementById('kb-url').value='';
     document.getElementById('kbModalTitle').textContent = '粘贴内容生成卡片';
     document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 生成卡片';
     document.getElementById('kbModal').style.display='flex';
@@ -1665,6 +1683,7 @@ function openEditKnowledge(idx){
     document.getElementById('kbModalTitle').textContent = '编辑卡片';
     document.getElementById('kb-title').value = it.title || '';
     document.getElementById('kb-content').value = it.content || '';
+    document.getElementById('kb-url').value = it.url || '';
     var sel = document.getElementById('kb-category'); if (sel && it.category) sel.value = it.category;
     document.getElementById('kbSaveBtn').innerHTML = '<i class="fa fa-check"></i> 保存修改';
     document.getElementById('kbModal').style.display='flex';
