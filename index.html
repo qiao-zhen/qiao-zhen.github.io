@@ -281,9 +281,10 @@
         .todo-notify { position:absolute; top:0; right:0; width:188px; max-width:calc(100vw - 20px); transform-origin:top right; transition:transform .28s ease, opacity .25s ease; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:10px; box-shadow:0 8px 24px rgba(233,30,99,.20); padding:8px 9px; display:flex; align-items:flex-start; gap:6px; cursor:pointer; pointer-events:auto; }
         .todo-notify:hover { background:#FFF4F8; }
         .todo-notify-icon { font-size:15px; line-height:1.2; }
-        .todo-notify-body { flex:1; min-width:0; }
+        .todo-notify-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
         .todo-notify-title { font-size:12px; font-weight:700; color:#C2185B; margin-bottom:1px; }
-        .todo-notify-text { font-size:12.5px; font-weight:600; color:#333; line-height:1.35; flex:1; min-width:0; word-break:break-word; }
+        .todo-notify-tag { font-size:11px; font-weight:700; color:#C2185B; letter-spacing:.3px; }
+        .todo-notify-text { font-size:12.5px; font-weight:600; color:#333; line-height:1.35; min-width:0; word-break:break-word; }
         .todo-notify-close { width:20px; height:20px; border:none; background:transparent; color:#BBB; font-size:16px; line-height:1; cursor:pointer; flex-shrink:0; }
         .todo-notify-close:hover { color:#E91E63; }
         .news-card.flash { animation: flashHl 2.2s ease-out; }
@@ -1224,7 +1225,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1614';
+var BUILD_VER = '20260809-1617';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1857,7 +1858,7 @@ function renderKnowledgeBase(){
     var all = getKnowledgeList();
     var wrap = document.getElementById('knowledgeList');
     var arr = (kbFilterCat==='all') ? all : all.filter(function(i){ return i.category===kbFilterCat; });
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-book"></i></div><p>暂无知识库笔记</p><p class="sub">点「粘贴」把内容粘进来即生成卡片 · 数据存本地浏览器</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-book"></i></div><p>暂无知识库笔记</p><p class="sub">点「粘贴」把内容粘进来即生成卡片 · 已开启同步则自动存云端，否则仅存本地浏览器</p></div>'; return; }
     var html='';
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
@@ -3353,7 +3354,10 @@ function showTodoNotify(){
             card.setAttribute('data-idx', d.i);
             card.onclick = (function(idx){ return function(){ gotoTodoFromNotify(idx); dismissNotify(idx); }; })(d.i);
             card.innerHTML =
-                '<div class="todo-notify-text">'+escHtml(t)+'</div>'+
+                '<div class="todo-notify-body">'+
+                    '<div class="todo-notify-tag">⏰ 已到截止</div>'+
+                    '<div class="todo-notify-text">'+escHtml(t)+'</div>'+
+                '</div>'+
                 '<button class="todo-notify-close" onclick="event.stopPropagation();dismissNotify('+d.i+')">×</button>';
             stack.appendChild(card);
         });
