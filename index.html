@@ -1234,10 +1234,53 @@ function cleanLocalDirty(){
 })();
 var _pushTimer = null;
 function scheduleCloudPush(){
-  // 云端尚未拉取完成 → 一律不自动推送（防止本机空数据覆盖云端真实数据）
-  if (!window.__cloudReady){ if(window.console) console.warn('[sync] 云端未就绪，已拦截本次自动推送（防止空数据覆盖）'); return; }
+  // 云端尚未拉取完成 → 不立即推送（防止本机空数据覆盖云端真实数据），
+  // 但【不丢弃】：登记为「待推送」，等拉取成功开闸后自动补推一次，保证用户此刻的修改不丢。
+  if (!window.__cloudReady){
+    window.__pendingPush = true;
+    if(window.console) console.warn('[sync] 云端未就绪，本次修改已登记为待推送，拉取完成后自动上传');
+    try { setSyncStatus('云端拉取中…你的修改已排队，拉取完成后自动上传'); } catch(e){}
+    return;
+  }
   if(_pushTimer) clearTimeout(_pushTimer);
   _pushTimer = setTimeout(function(){ cloudPush(false); }, 700);
+}
+// 【窗口期基线】页面启动、云端还没拉回来的这 1~2 秒里，用户可能已经动手改了数据。
+// 随后云端"整份覆盖"会把这些修改冲掉。为此在拉取前先拍一张本机基线快照，
+// 覆盖时对比基线，把"这段窗口期里真正新增的条目"追加回去（旧的、已删的绝不复活）。
+window.__gateBaseline = null;
+function captureGateBaseline(){
+  var b = {};
+  SYNC_KEYS.forEach(function(k){ try { b[k] = localStorage.getItem(k); } catch(e){ b[k] = null; } });
+  window.__gateBaseline = b;
+}
+// 相对基线找出"窗口期新增、且云端没有"的条目（用整条 JSON 指纹比对，精确不误伤）
+function _windowNewItems(k, cloudVal){
+  if (!window.__gateBaseline) return [];
+  var cur = null, baseArr = null;
+  try { cur = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){}
+  try { baseArr = JSON.parse(window.__gateBaseline[k] || 'null'); } catch(e){}
+  if (!Array.isArray(cur) || cur.length === 0) return [];
+  var seen = {};
+  if (Array.isArray(baseArr)) baseArr.forEach(function(it){ try { seen[JSON.stringify(it)] = 1; } catch(e){} });
+  if (Array.isArray(cloudVal)) cloudVal.forEach(function(it){ try { seen[JSON.stringify(it)] = 1; } catch(e){} });
+  return cur.filter(function(it){ var f; try { f = JSON.stringify(it); } catch(e){ return false; } return !seen[f]; });
+}
+// 开闸：云端拉取成功后调用。若期间用户有过修改（__pendingPush），立即补推一次。
+function openCloudGate(reason){
+  window.__cloudReady = true;
+  if (window.__pendingPush){
+    window.__pendingPush = false;
+    if(window.console) console.log('[sync] 开闸('+(reason||'')+')，补推拉取期间的本机修改');
+    try { setSyncStatus('云端已就绪，正在上传你刚才的修改…'); } catch(e){}
+    setTimeout(function(){ cloudPush(false); }, 300);
+  }
+}
+// 关闸失败提示：拉取失败时本会话不自动上传，明确告知用户，避免"以为同步了其实没有"
+function warnCloudGateClosed(msg){
+  window.__cloudReady = false;
+  try { setSyncStatus('⚠ ' + msg + '｜本次不会自动上传（保护云端数据）。修改仅存本机，联网后点 ☁ 手动同步'); } catch(e){}
+  try { showToast('⚠ 云端未连上，改动只存在本机，暂不上传'); } catch(e){}
 }
 var _lastPushFailToast = 0;
 function _isBlank(v){
@@ -1373,6 +1416,10 @@ function _localIsDemo(k, localRaw){
 // onlyEmpty=false（手动「拉取云端数据」按钮 / 带Token API拉取）时：整份覆盖本机，以云端为准（演示占位/本地残留项一律清除，确保拿到云端干净版本）
 function applyCloudSnap(snap, onlyEmpty){
   snap = _scrubSnap(snap);
+  // 是否需要"抢救窗口期新增"：仅当闸门关闭期间用户确实改过数据（__pendingPush）才启用，
+  // 且只追加相对基线的新条目，绝不复活已删除的旧数据
+  var rescueWindow = (!onlyEmpty && window.__pendingPush === true);
+  var rescuedCount = 0;
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
     if (snap[k] === undefined) return;
@@ -1385,13 +1432,23 @@ function applyCloudSnap(snap, onlyEmpty){
       if (localExists && !_localIsDemo(k, localRaw)) return;
       try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     } else {
-      // 手动「拉取云端数据」：整份覆盖本机（用户显式拉取，得到云端干净版本）
+      // 整份覆盖本机（云端权威）；若处于抢救模式，把窗口期新增的条目追加回来
+      if (rescueWindow && Array.isArray(val)){
+        var extra = _windowNewItems(k, val);
+        if (extra.length){ val = extra.concat(val); rescuedCount += extra.length; }
+      }
       try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     }
   });
+  if (rescuedCount > 0){
+    try { showToast('🛡 已保住你刚才新增的 '+rescuedCount+' 条（同步窗口期修改未丢失）'); } catch(e){}
+  }
   window.__cloudSkip = false;
-  // 云端数据已成功载入本机 → 开闸，此后本机改动才允许自动推送云端
-  window.__cloudReady = true;
+  // 云端数据已成功载入本机 → 开闸，此后本机改动才允许自动推送云端；
+  // 若拉取期间用户已有修改，openCloudGate 会自动补推，不会丢
+  // 仅"权威整份覆盖"(onlyEmpty=false，来自 API 实时读取)才开闸；
+  // Pages 兜底(onlyEmpty=true)数据可能因 CDN 缓存滞后，不开闸，避免用旧数据回推覆盖较新的云端
+  if (!onlyEmpty) openCloudGate('applyCloudSnap');
   renderSyncModules();
   // 云端数据载入/恢复后，重新判定待办提醒（避免同步覆盖后漏弹通知）
   try { showTodoNotify(); } catch(e){}
@@ -1401,12 +1458,12 @@ function hydrateFromApi(token, force, fallbackToPages){
   var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
   var ctrl = new AbortController();
   var timer = setTimeout(function(){ ctrl.abort(); }, 15000);
-  setSyncStatus('正经 API 拉取云端数据…');
+  setSyncStatus('正在经 API 拉取云端数据…');
   fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token }, signal: ctrl.signal })
     .then(function(r){
       // 云端确实还没有这个文件 → 允许开闸（首次创建不存在"覆盖"风险）
-      if (r.status===404){ window.__cloudReady = true; setSyncStatus('云端暂无数据，已保留本机存储'); return; }
-      if (!r.ok){ setSyncStatus('拉取失败：Token 无效或无权限（需 Contents 读写）'); return; }
+      if (r.status===404){ openCloudGate('404-首次'); setSyncStatus('云端暂无数据，已保留本机存储'); return; }
+      if (!r.ok){ warnCloudGateClosed('拉取失败：Token 无效或无权限（需 Contents 读写）'); return; }
       return r.json();
     })
     .then(function(j){
@@ -1418,7 +1475,7 @@ function hydrateFromApi(token, force, fallbackToPages){
       setSyncStatus('已从云端载入最新数据 ✓');
     })
     .catch(function(err){
-      if (err && err.name === 'AbortError'){ setSyncStatus('API拉取超时（15秒）'); }
+      if (err && err.name === 'AbortError'){ warnCloudGateClosed('API拉取超时（15秒）'); }
       else {
         var em = err && err.message ? String(err.message).slice(0,60) : '';
         // API 失败且要求回退 Pages：用 onlyEmpty 安全模式（只填空缺，避免旧版整份覆盖复活已删项）
@@ -1427,8 +1484,7 @@ function hydrateFromApi(token, force, fallbackToPages){
           return fetchPagesOnlyEmpty();
         }
         // API 也失败：保留本机已有数据，不拿内置示例覆盖；闸门保持关闭（本次不自动上传，保护云端）
-        setSyncStatus('云端同步失败，已保留本机数据（'+em+'）');
-        try { showToast('⚠️ 云端读取失败，本次改动不会自动上传（保护云端数据）。恢复网络后点顶部☁重试'); } catch(e){}
+        warnCloudGateClosed('云端同步失败（'+em+'）');
         return;
       }
     })
@@ -1450,8 +1506,7 @@ function fetchPagesOnlyEmpty(){
       setSyncStatus('已从 Pages 兜底载入（仅填空缺，未覆盖本机）');
     })
     .catch(function(err){
-      setSyncStatus('云端不可达，已保留本机数据（'+(err&&err.message?err.message:'')+'）');
-      try { showToast('⚠️ 云端不可达，本次改动不会自动上传（保护云端数据）'); } catch(e){}
+      warnCloudGateClosed('云端不可达（'+(err&&err.message?err.message:'')+'）');
     })
     .finally(function(){ clearTimeout(timer); });
 }
@@ -1486,7 +1541,7 @@ function cloudHydrate(force){
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
       applyCloudSnap(snap, false); // 无 Token 走 Pages 也整份覆盖本机（云端权威）
-      setSyncStatus('已从云端载入数据 ✓（'+text.length+'字符，仅填空缺）');
+      setSyncStatus('已从云端载入数据 ✓（'+text.length+' 字符，已整份覆盖本机）');
     })
     .catch(function(err){
       var msg = err && err.message ? String(err.message) : 'unknown';
@@ -3937,6 +3992,7 @@ function ensureFallbackData(){
 document.addEventListener('DOMContentLoaded', function(){
     ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
     cleanLocalDirty();       // 首屏渲染前先抹掉本机可能残留的演示/测试脏数据（洗内裤等），绝不显示
+    captureGateBaseline();   // 拍下本机基线：用于在"云端拉取完成前"用户所做的新增不被随后的整份覆盖冲掉
     // 每个渲染模块独立隔离：任一模块报错不影响其它模块，且最关心的数据优先渲染
     function safe(name, fn){ try { fn(); } catch(e){ if(window.console) console.error('[render:'+name+']', e); } }
     safe('renderAsset', renderAsset);          // 持仓台账（用户最关心，优先）
