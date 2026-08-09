@@ -1228,7 +1228,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1640';
+var BUILD_VER = '20260809-1645';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -3512,7 +3512,7 @@ function openNewsModal(el){
     document.getElementById('modalTitle').textContent = title;
     var contentHtml = escHtml(content);
     var actions = '<div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; align-items:center;">';
-    if (url) actions += '<a href="'+escAttr(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:#F06292;color:#fff;border-radius:20px;font-size:14px;text-decoration:none;">🔗 查看原文</a>';
+    if (url) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener" style="text-decoration:none;">🔗 查看原文</a>';
     actions += '<button class="pill-btn ghost" onclick="closeModal()">关闭</button>';
     actions += '</div>';
     contentHtml += actions;
