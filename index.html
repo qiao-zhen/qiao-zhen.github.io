@@ -3537,12 +3537,15 @@ function ensureFormOverlay(formId){
 }
 function showForm(formId){
     var ov = ensureFormOverlay(formId);
-    if (ov) ov.style.display = 'flex';
+    if (ov){ ov.style.display = 'flex'; var f=document.getElementById(formId); if(f) f.classList.remove('hidden'); }
 }
 function toggleForm(formId){
     var ov = ensureFormOverlay(formId);
     if (!ov) return;
-    ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex';
+    var willShow = (ov.style.display !== 'flex');
+    ov.style.display = willShow ? 'flex' : 'none';
+    var f = document.getElementById(formId);
+    if (f){ if (willShow) f.classList.remove('hidden'); else f.classList.add('hidden'); }
 }
 function hideAllForms(){
     document.querySelectorAll('.form-modal').forEach(function(ov){ ov.style.display = 'none'; });
