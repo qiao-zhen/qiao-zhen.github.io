@@ -1271,8 +1271,13 @@ function applyCloudSnap(snap, onlyEmpty){
     if (onlyEmpty){
       var local = null;
       try { local = localStorage.getItem(k); } catch(e){}
-      // 本地已有数据（非 null 且非 "null"/"[]" 空壳）→ 保留本地，不覆盖
-      if (local !== null && local !== undefined && local !== 'null' && local !== '[]') return;
+      // 本地已有数据（非 null 且非 "null"/"[]" 空壳）→ 默认保留本地，不覆盖（清缓存/无Token时也不丢本地编辑）
+      if (local !== null && local !== undefined && local !== 'null' && local !== '[]'){
+        // 例外：本地值恰为内置演示占位("洗内裤"等)时才允许被云端覆盖，避免演示项残留
+        var _isDemo = false;
+        try { if (sessionStorage.getItem('__fb_injected')==='1' && typeof __CLOUD_FALLBACK!=='undefined' && __CLOUD_FALLBACK && JSON.stringify(__CLOUD_FALLBACK[k])===local) _isDemo = true; } catch(e){}
+        if (!_isDemo) return;
+      }
     }
     // 云端 null 值统一转为空数组，防止 render 函数读 null.length 崩溃
     var val = (snap[k] === null) ? [] : snap[k];
@@ -1300,7 +1305,7 @@ function hydrateFromApi(token, force, fallbackToPages){
       if (j.sha) window.__cloudSha = j.sha;
       var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ setSyncStatus('云端数据解析失败'); return; }
       if (!snap || typeof snap !== 'object'){ setSyncStatus('云端数据格式异常'); return; }
-      applyCloudSnap(snap, false); // 自动/手动拉取均整份覆盖本机，确保云端真实数据一定生效（覆盖内置演示占位）
+      applyCloudSnap(snap, !force); // 自动(force=false)=只填空缺; 手动"拉取云端数据"(force=true)=整份覆盖
       setSyncStatus('已从云端载入最新数据 ✓');
     })
     .catch(function(err){
@@ -1341,9 +1346,10 @@ function fetchPagesOnlyEmpty(){
 }
 // 拉取云端数据：
 // 【方案B·读写同源】优先走 API（与"同步到云端"写入同一份，数据最新）
-// 无 Token 时退而读 Pages 同源静态文件（仓库公开，无需 Token 即可读取）→ 同样整份覆盖本机
-// 关键修复：无论有无 Token，只要云端成功返回，就整份覆盖本地——杜绝内置演示数据(如"洗内裤")在新设备/清缓存后残留
-// （onlyEmpty 仅作 API 失败时的 Pages 兜底，避免 API 写源不可达时用可能滞后的 Pages 覆盖）
+// 无 Token 时退而读 Pages 同源静态文件（仓库公开，无需 Token 即可读取）
+// 覆盖策略(见 applyCloudSnap)：本地为空 / 本地恰为内置演示占位("洗内裤"等) → 云端覆盖；
+//   本地已有真实编辑 → 仅填空缺(onlyEmpty)，绝不覆盖，避免清缓存/无Token时丢失本地新增。
+// 写回云端需要 Token；无 Token 时本地新增仅留本机，重新填 Token 后即自动同步。
 function cloudHydrate(force){
   var token = getGithubToken();
   if (token){
@@ -1368,7 +1374,7 @@ function cloudHydrate(force){
       if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap, false); // 无 Token 也从 Pages 整份恢复真实数据（仓库公开可读取；覆盖演示占位，避免"洗内裤"等演示项残留）
+      applyCloudSnap(snap, true); // 无 Token 时 onlyEmpty（保留本地真实编辑）；演示占位由 applyCloudSnap 内部 demo 判定覆盖
       setSyncStatus('已从云端载入数据 ✓（'+text.length+'字符，仅填空缺）');
     })
     .catch(function(err){
@@ -2173,9 +2179,8 @@ function renderFinanceNews(){
     var html='';
     financeNewsData.forEach(function(item){
         var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
-        var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
         html += '<div class="news-card" data-mod="finance" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+ urlHtml +
+            '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
