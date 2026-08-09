@@ -615,7 +615,7 @@
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、更新节奏、作品链接、爆款视频要点（结构 / 钩子 / 怎么爆的，自行分析后填这里）、我的借鉴思路</div>
             <div class="card form-card hidden" id="form-account">
-                <h4>新增对标账号</h4>
+                <h4>新增对标账号<button type="button" class="form-close" onclick="document.getElementById('form-account_ov').style.display='none'" aria-label="关闭">×</button></h4>
                 <div class="form-row">
                     <div class="form-item"><label>账号名称</label><input type="text" placeholder="对方账号昵称"></div>
                     <div class="form-item"><label>更新节奏</label><input type="text" placeholder="例如 日更 / 周更3条"></div>
@@ -1716,6 +1716,7 @@ function saveAccountObserve(){
     renderAccountObserve();
 }
 function renderAccountObserve(){
+    RENDER_MAP['accountObserve'] = renderAccountObserve;
     var arr = getAccountList();
     var wrap = document.getElementById('accountObserveList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-binoculars"></i></div><p>暂无对标账号</p><p class="sub">点「新增对标账号」开始记录你的标杆账号</p></div>'; return; }
@@ -1757,6 +1758,7 @@ function saveWorkReview(){
     renderWorkReview();
 }
 function renderWorkReview(){
+    RENDER_MAP['workReview'] = renderWorkReview;
     var arr = getWorkList();
     var wrap = document.getElementById('workReviewList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-pie-chart"></i></div><p>暂无作品复盘</p><p class="sub">点「新增复盘」开始记录每条视频的数据和问题判断</p></div>'; return; }
