@@ -1711,10 +1711,9 @@ function refreshOperationIdeas(){ loadRemoteData(); }
 function renderOperationIdeas(){
     var html='';
     operationIdeasData.forEach(function(item){
-        var full = item.content + (item.url ? '\n\n📎 原文链接：' + item.url : '');
-        var urlHtml = '<div class="n-link">📎 原文：<a href="'+escAttr(item.url)+'" target="_blank" rel="noopener">'+escHtml(item.url)+'</a></div>';
+        var full = item.content; // 原 url 为早期硬编码编造占位链接(抖音无此页面)，违反"禁止假数据"铁律，已不再渲染
         html += '<div class="news-card" data-mod="ops" data-key="'+escAttr(item.title)+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date)+'" data-url="'+escAttr(item.url)+'">'+
-            '<div class="n-title">'+escHtml(item.title)+'</div>'+ urlHtml +
+            '<div class="n-title">'+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
