@@ -638,28 +638,29 @@
             <div class="card form-card hidden" id="form-work">
                 <h4>新增作品复盘</h4>
                 <div class="form-row">
-                    <div class="form-item"><label>视频标题</label><input type="text" placeholder="视频标题"></div>
-                    <div class="form-item"><label>发布时间</label><input type="text" placeholder="yyyy/mm/dd HH:MM"></div>
+                    <div class="form-item"><label>视频标题</label><input type="text" id="work-title" placeholder="视频标题"></div>
+                    <div class="form-item"><label>发布时间</label><input type="text" id="work-posttime" placeholder="yyyy/mm/dd HH:MM"></div>
                 </div>
-                <div class="form-item"><label>抖音链接（粘贴后卡片可一键打开原视频）</label><input type="text" placeholder="粘贴抖音视频链接"></div>
+                <div class="form-item"><label>抖音链接（粘贴后卡片可一键打开原视频）</label><input type="text" id="work-link" placeholder="粘贴抖音视频链接"></div>
                 <div class="form-row">
-                    <div class="form-item"><label>播放量</label><input type="text" placeholder="例如 12.3w"></div>
-                    <div class="form-item"><label>完播率</label><input type="text" placeholder="例如 35%"></div>
+                    <div class="form-item"><label>播放量</label><input type="text" id="work-play" placeholder="例如 12.3w"></div>
+                    <div class="form-item"><label>完播率</label><input type="text" id="work-finish" placeholder="例如 35%"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-item"><label>收藏数</label><input type="text" placeholder="例如 3200"></div>
-                    <div class="form-item"><label>评论数</label><input type="text" placeholder="例如 280"></div>
+                    <div class="form-item"><label>收藏数</label><input type="text" id="work-fav" placeholder="例如 3200"></div>
+                    <div class="form-item"><label>评论数</label><input type="text" id="work-comment" placeholder="例如 280"></div>
                 </div>
-                <div class="form-item"><label>问题判断</label>
-                    <select>
-                        <option>钩子不行</option>
-                        <option>选题不行</option>
-                        <option>内容价值不足</option>
-                        <option>节奏拖沓</option>
-                        <option>其他</option>
-                    </select>
+                <div class="form-item"><label>问题判断（自己写文字）</label><input type="text" id="work-issue-text" placeholder="例如：开头3秒没留住人，完播掉得快"></div>
+                <div class="form-item"><label>问题标签（点击标记，可多选）</label>
+                    <div class="tag-row" id="work-issue-tags">
+                        <span class="filter-chip" onclick="toggleTag(this)">钩子不足</span>
+                        <span class="filter-chip" onclick="toggleTag(this)">选题不足</span>
+                        <span class="filter-chip" onclick="toggleTag(this)">内容价值不足</span>
+                        <span class="filter-chip" onclick="toggleTag(this)">节奏拖沓</span>
+                        <span class="filter-chip" onclick="toggleTag(this)">其他</span>
+                    </div>
                 </div>
-                <div class="form-item"><label>下一次优化调整点</label><textarea style="min-height:100px" placeholder="具体下次要怎么改"></textarea></div>
+                <div class="form-item"><label>下一次优化调整点</label><textarea id="work-optimize" style="min-height:100px" placeholder="具体下次要怎么改"></textarea></div>
                 <button class="save-btn" onclick="saveWorkReview()"><i class="fa fa-check"></i> 保存复盘</button>
             </div>
             <div id="workReviewList"></div>
@@ -1749,13 +1750,17 @@ function setWorkList(arr){ localStorage.setItem('workReview', JSON.stringify(arr
 function saveWorkReview(){
     var f = document.getElementById('form-work');
     var ins = f.querySelectorAll('input');
-    var sel = f.querySelector('select');
     var ta = f.querySelector('textarea');
     var title = ins[0].value.trim();
     if (!title){ showToast('请填写视频标题'); return; }
-    var item = { title:title, postTime:ins[1].value.trim(), link:ins[2].value.trim(), play:ins[3].value.trim(), finish:ins[4].value.trim(), fav:ins[5].value.trim(), comment:ins[6].value.trim(), issue:sel.value, optimize:ta.value.trim(), date:todayStr() };
+    var issueText = (document.getElementById('work-issue-text').value || '').trim();
+    var issueTags = [];
+    document.querySelectorAll('#work-issue-tags .sel').forEach(function(t){ issueTags.push(t.textContent); });
+    var item = { title:title, postTime:ins[1].value.trim(), link:ins[2].value.trim(), play:ins[3].value.trim(), finish:ins[4].value.trim(), fav:ins[5].value.trim(), comment:ins[6].value.trim(), issueText:issueText, issueTags:issueTags, optimize:ta.value.trim(), date:todayStr() };
     editOrInsert('workReview', item);
     ins.forEach(function(i){i.value='';}); ta.value='';
+    document.getElementById('work-issue-text').value='';
+    document.querySelectorAll('#work-issue-tags span').forEach(function(t){ t.classList.remove('sel'); });
     f.classList.add('hidden');
     showToast(_editState.key?'复盘已更新':'作品复盘已保存');
     renderWorkReview();
@@ -1767,10 +1772,14 @@ function renderWorkReview(){
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-pie-chart"></i></div><p>暂无作品复盘</p><p class="sub">点「新增复盘」开始记录每条视频的数据和问题判断</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
+        var issueText = item.issueText || item.issue || '';
+        var issueTags = (item.issueTags||[]).join('、');
+        var issueDisplay = (issueText ? (issueText + (issueTags ? '\n【标签：'+issueTags+'】' : '')) : (issueTags ? '【标签：'+issueTags+'】' : '-'));
         var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
             '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
-            '\n\n⚠️ 问题判断：' + item.issue + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
-        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, url:item.link,
+            '\n\n⚠️ 问题判断：\n' + issueDisplay + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
+        var cardContent = '⚠️ 问题判断：\n' + issueDisplay;
+        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
             editAction:"openEdit('workReview',"+i+")" });
     });
@@ -3584,7 +3593,13 @@ var EDIT_CONFIG = {
         q:true, // 用 querySelectorAll 按顺序
         props:['name','updateFreq','link','hotVideo','learn'] },
     workReview:{ f:'form-work', t:'编辑复盘',
-        q:true, props:['title','pubTime','link','playRate','finishRate','favCount','commentCount','issue','optimize'] },
+        fld:[['work-title','title'],['work-posttime','postTime'],['work-link','link'],['work-play','play'],['work-finish','finish'],['work-fav','fav'],['work-comment','comment'],['work-issue-text','issueText'],['work-optimize','optimize']],
+        onEdit:function(form, it){
+            document.querySelectorAll('#work-issue-tags span').forEach(function(t){ t.classList.remove('sel'); });
+            (it.issueTags||[]).forEach(function(tag){
+                document.querySelectorAll('#work-issue-tags span').forEach(function(t){ if(t.textContent===tag) t.classList.add('sel'); });
+            });
+        } },
     productList:{ f:'form-product', t:'编辑选品',
         q:true, props:['info','style','season','price'] },
     scriptList:{ f:'form-script', t:'编辑脚本',
@@ -3639,6 +3654,7 @@ function openEdit(key, idx){
     }
     // 改标题
     var h4 = form.querySelector('h4'); if(h4) h4.textContent = c.t;
+    if(c.onEdit) c.onEdit(form, it);
     showForm(form.id);
 }
 function openNewForm(key){
@@ -3649,6 +3665,7 @@ function openNewForm(key){
     form.querySelectorAll('input').forEach(function(e){if(e.type!=='hidden')e.value='';});
     form.querySelectorAll('select').forEach(function(e){e.selectedIndex=0;});
     form.querySelectorAll('textarea').forEach(function(e){e.value='';});
+    form.querySelectorAll('.sel').forEach(function(e){e.classList.remove('sel');});
     var h4 = form.querySelector('h4'); if(h4) h4.textContent = h4.textContent.replace(/^编辑/,'新增');
     showForm(form.id);
 }
