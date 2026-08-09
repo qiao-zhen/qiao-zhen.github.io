@@ -131,10 +131,10 @@
         .news-card .n-title { font-size:14px; font-weight:bold; color:#E91E63; margin-bottom:4px; }
         .news-card .n-content { font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
         .news-card .n-foot { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#999; flex-wrap:wrap; gap:6px; }
-        .news-card .n-foot .right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .news-card .n-foot .actions { display:flex; gap:10px; opacity:0; transition:opacity .2s; }
+        .news-card .n-foot .right { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+        .news-card .n-foot .actions { display:flex; gap:0; opacity:0; transition:opacity .2s; }
         .news-card:hover .n-foot .actions { opacity:1; }
-        .news-card .n-foot .actions span { cursor:pointer; color:#F06292; }
+        .news-card .n-foot .actions span { cursor:pointer; color:#F06292; white-space:nowrap; }
         .news-card .n-foot .actions span:hover { color:#E91E63; }
         .idx-actions { display:flex; gap:14px; margin-top:10px; font-size:12px; }
         .idx-actions span { cursor:pointer; color:#F06292; }
@@ -586,7 +586,7 @@
                 <button class="pill-btn" onclick="openCopyModal()"><i class="fa fa-copy"></i> 复制笔记</button>
                 <button class="pill-btn" onclick="openKbModal()"><i class="fa fa-clipboard"></i> 粘贴</button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 纯本地保存</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 把对话里 AI 分析好的内容粘贴进来即存为卡片 · 分类：理财 / 养生 / AI / 运营 · 每张卡片可复制导出 · 已开启同步则自动存云端，否则仅存本地浏览器</div>
             <div class="filter-row" id="kb-filter">
                 <span class="filter-chip sel" data-cat="all" onclick="filterKnowledge('all',this)">全部</span>
                 <span class="filter-chip" data-cat="理财" onclick="filterKnowledge('理财',this)">理财</span>
@@ -1241,7 +1241,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1720';
+var BUILD_VER = '20260809-1735';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1933,9 +1933,7 @@ function renderOperationIdeas(){
             '<div class="n-title">'+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-'<div class="right"><span class="actions">'+
-'<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
-            '</span><span class="actions"><span data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('ops',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+'<div class="right"><span class="actions"><span data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('ops',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="actions"><span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
     truncateAllNews();
@@ -2130,9 +2128,7 @@ function renderIdeaLib(){
             '<div class="n-title">'+escHtml(item.title)+' '+statusLabel+holdNote+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+(item.date||'动态更新')+'</span>'+
-            '<div class="right"><span class="actions">'+
-            '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
-            '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+            '<div class="right"><span class="actions"><span data-mod="idea" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('idea',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="actions"><span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('ideaLibList').innerHTML = html;
     truncateAllNews();
@@ -2431,9 +2427,7 @@ function renderFinanceNews(){
             '<div class="n-title"><i class="fa fa-graduation-cap" style="color:#F06292"></i> '+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-'<div class="right"><span class="actions">'+
-'<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
-            '</span><span class="actions"><span data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('finance',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+'<div class="right"><span class="actions"><span data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('finance',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="actions"><span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('financeNewsList').innerHTML = html;
     truncateAllNews();
@@ -3498,7 +3492,7 @@ function _wbGetSet(k){ try { return JSON.parse(localStorage.getItem(k) || '{}');
 function _wbSetSet(k,o){ try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){} }
 var WB_FAV='wb_fav';
 function isFav(m,t){ return !!_wbGetSet(WB_FAV)[m+'::'+t]; }
-function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var card = btn.closest('.news-card'); var s=_wbGetSet(WB_FAV), key=m+'::'+k; var wasFav = !!s[key]; if (wasFav){ delete s[key]; } else { var snap = { mod:m, title:(card?card.dataset.title:''), content:(card?card.dataset.content:''), url:(card?card.dataset.url:''), date:(card?card.dataset.date:''), favAt:todayStr() }; s[key]=snap; } _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); renderFavoritesSafe(); try { if (getGithubToken()) scheduleCloudPush(); } catch(e){} showToast(wasFav ? '已取消收藏' : '已收藏 ✓'); }
+function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var card = btn.closest('.news-card'); var s=_wbGetSet(WB_FAV), key=m+'::'+k; var wasFav = !!s[key]; if (wasFav){ delete s[key]; } else { var snap = { mod:m, title:(card?card.dataset.title:''), content:(card?card.dataset.content:''), url:(card?card.dataset.url:''), date:(card?card.dataset.date:''), favAt:todayStr() }; s[key]=snap; } _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='idea')renderIdeaLib(); else if(m==='index')renderIndexTrack(); renderFavoritesSafe(); try { if (getGithubToken()) scheduleCloudPush(); } catch(e){} showToast(wasFav ? '已取消收藏' : '已收藏 ✓'); }
 
 function renderFavoritesSafe(){ try { renderFavorites(); } catch(e){} }
 function renderFavorites(){
@@ -3514,7 +3508,7 @@ function renderFavorites(){
   keys.forEach(function(key){
     var f = s[key];
     if (!f || !f.title) return;
-    var srcLabel = f.mod==='ops' ? '运营思路&选题' : (f.mod==='finance' ? '理财每日新知' : (f.mod||''));
+    var srcLabel = f.mod==='ops' ? '运营思路&选题' : (f.mod==='finance' ? '理财每日新知' : (f.mod==='idea' ? '选题素材库' : (f.mod||'')));
     html += '<div class="news-card" data-mod="'+escAttr(f.mod||'')+'" data-key="'+escAttr(f.title)+'" data-title="'+escAttr(f.title)+'" data-content="'+escAttr(f.content||'')+'" data-date="'+escAttr(f.date||'')+'" data-url="'+escAttr(f.url||'')+'">'+
       '<div class="n-title">'+escHtml(f.title)+'<span class="source-tag">'+escHtml(srcLabel)+'</span></div>'+
       '<div class="n-content"></div>'+
