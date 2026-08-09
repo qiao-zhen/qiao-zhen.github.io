@@ -637,19 +637,17 @@
             <div class="tip"><i class="fa fa-info-circle"></i> 每发布完视频后填写 · 判断是钩子不行 / 选题不行 / 内容价值不足 · 写下一次优化调整点</div>
             <div class="card form-card hidden" id="form-work">
                 <h4>新增作品复盘</h4>
-                <div class="form-row">
-                    <div class="form-item"><label>视频标题</label><input type="text" id="work-title" placeholder="视频标题"></div>
-                    <div class="form-item"><label>发布时间</label><input type="text" id="work-posttime" placeholder="yyyy/mm/dd HH:MM"></div>
-                </div>
+                <div class="form-item"><label>视频标题</label><input type="text" id="work-title" placeholder="视频标题"></div>
                 <div class="form-item"><label>抖音链接（粘贴后卡片可一键打开原视频）</label><input type="text" id="work-link" placeholder="粘贴抖音视频链接"></div>
                 <div class="form-row">
                     <div class="form-item"><label>播放量</label><input type="text" id="work-play" placeholder="例如 12.3w"></div>
-                    <div class="form-item"><label>完播率</label><input type="text" id="work-finish" placeholder="例如 35%"></div>
+                    <div class="form-item"><label>点赞数</label><input type="text" id="work-like" placeholder="例如 5200"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-item"><label>收藏数</label><input type="text" id="work-fav" placeholder="例如 3200"></div>
                     <div class="form-item"><label>评论数</label><input type="text" id="work-comment" placeholder="例如 280"></div>
                 </div>
+                <div class="form-item"><label>转发数</label><input type="text" id="work-share" placeholder="例如 150"></div>
                 <div class="form-item"><label>问题判断（自己写文字）</label><input type="text" id="work-issue-text" placeholder="例如：开头3秒没留住人，完播掉得快"></div>
                 <div class="form-item"><label>问题标签（点击标记，可多选）</label>
                     <div class="tag-row" id="work-issue-tags">
@@ -1748,20 +1746,28 @@ function deleteAccount(idx){
 function getWorkList(){ return JSON.parse(localStorage.getItem('workReview') || '[]'); }
 function setWorkList(arr){ localStorage.setItem('workReview', JSON.stringify(arr)); }
 function saveWorkReview(){
-    var f = document.getElementById('form-work');
-    var ins = f.querySelectorAll('input');
-    var ta = f.querySelector('textarea');
-    var title = ins[0].value.trim();
+    var title = (document.getElementById('work-title').value || '').trim();
     if (!title){ showToast('请填写视频标题'); return; }
     var issueText = (document.getElementById('work-issue-text').value || '').trim();
     var issueTags = [];
     document.querySelectorAll('#work-issue-tags .sel').forEach(function(t){ issueTags.push(t.textContent); });
-    var item = { title:title, postTime:ins[1].value.trim(), link:ins[2].value.trim(), play:ins[3].value.trim(), finish:ins[4].value.trim(), fav:ins[5].value.trim(), comment:ins[6].value.trim(), issueText:issueText, issueTags:issueTags, optimize:ta.value.trim(), date:todayStr() };
+    var item = {
+        title:title,
+        link:(document.getElementById('work-link').value||'').trim(),
+        play:(document.getElementById('work-play').value||'').trim(),
+        like:(document.getElementById('work-like').value||'').trim(),
+        fav:(document.getElementById('work-fav').value||'').trim(),
+        comment:(document.getElementById('work-comment').value||'').trim(),
+        share:(document.getElementById('work-share').value||'').trim(),
+        issueText:issueText, issueTags:issueTags,
+        optimize:(document.getElementById('work-optimize').value||'').trim(),
+        date:todayStr()
+    };
     editOrInsert('workReview', item);
-    ins.forEach(function(i){i.value='';}); ta.value='';
-    document.getElementById('work-issue-text').value='';
+    ['work-title','work-link','work-play','work-like','work-fav','work-comment','work-share','work-issue-text','work-optimize'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
     document.querySelectorAll('#work-issue-tags span').forEach(function(t){ t.classList.remove('sel'); });
-    f.classList.add('hidden');
+    document.getElementById('form-work').classList.add('hidden');
+    var ov = document.getElementById('form-work_ov'); if (ov) ov.style.display = 'none';
     showToast(_editState.key?'复盘已更新':'作品复盘已保存');
     renderWorkReview();
 }
@@ -1775,8 +1781,8 @@ function renderWorkReview(){
         var issueText = item.issueText || item.issue || '';
         var issueTags = (item.issueTags||[]).join('、');
         var issueDisplay = (issueText ? (issueText + (issueTags ? '\n【标签：'+issueTags+'】' : '')) : (issueTags ? '【标签：'+issueTags+'】' : '-'));
-        var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
-            '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
+        var full = '视频标题：' + item.title +
+            '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  点赞：' + (item.like||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') + '  转发：' + (item.share||'-') +
             '\n\n⚠️ 问题判断：\n' + issueDisplay + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
         var cardContent = '⚠️ 问题判断：\n' + issueDisplay;
         html += buildCard({ key:'workReview', idx:i, title:item.title, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
@@ -3593,7 +3599,7 @@ var EDIT_CONFIG = {
         q:true, // 用 querySelectorAll 按顺序
         props:['name','updateFreq','link','hotVideo','learn'] },
     workReview:{ f:'form-work', t:'编辑复盘',
-        fld:[['work-title','title'],['work-posttime','postTime'],['work-link','link'],['work-play','play'],['work-finish','finish'],['work-fav','fav'],['work-comment','comment'],['work-issue-text','issueText'],['work-optimize','optimize']],
+        fld:[['work-title','title'],['work-link','link'],['work-play','play'],['work-like','like'],['work-fav','fav'],['work-comment','comment'],['work-share','share'],['work-issue-text','issueText'],['work-optimize','optimize']],
         onEdit:function(form, it){
             document.querySelectorAll('#work-issue-tags span').forEach(function(t){ t.classList.remove('sel'); });
             (it.issueTags||[]).forEach(function(tag){
