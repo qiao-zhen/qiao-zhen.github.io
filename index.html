@@ -641,6 +641,7 @@
                     <div class="form-item"><label>视频标题</label><input type="text" placeholder="视频标题"></div>
                     <div class="form-item"><label>发布时间</label><input type="text" placeholder="yyyy/mm/dd HH:MM"></div>
                 </div>
+                <div class="form-item"><label>抖音链接（粘贴后卡片可一键打开原视频）</label><input type="text" placeholder="粘贴抖音视频链接"></div>
                 <div class="form-row">
                     <div class="form-item"><label>播放量</label><input type="text" placeholder="例如 12.3w"></div>
                     <div class="form-item"><label>完播率</label><input type="text" placeholder="例如 35%"></div>
@@ -1749,7 +1750,7 @@ function saveWorkReview(){
     var ta = f.querySelector('textarea');
     var title = ins[0].value.trim();
     if (!title){ showToast('请填写视频标题'); return; }
-    var item = { title:title, postTime:ins[1].value.trim(), play:ins[2].value.trim(), finish:ins[3].value.trim(), fav:ins[4].value.trim(), comment:ins[5].value.trim(), issue:sel.value, optimize:ta.value.trim(), date:todayStr() };
+    var item = { title:title, postTime:ins[1].value.trim(), link:ins[2].value.trim(), play:ins[3].value.trim(), finish:ins[4].value.trim(), fav:ins[5].value.trim(), comment:ins[6].value.trim(), issue:sel.value, optimize:ta.value.trim(), date:todayStr() };
     editOrInsert('workReview', item);
     ins.forEach(function(i){i.value='';}); ta.value='';
     f.classList.add('hidden');
@@ -1766,7 +1767,9 @@ function renderWorkReview(){
         var full = '视频标题：' + item.title + '\n发布时间：' + (item.postTime||'-') +
             '\n\n📊 数据表现：\n播放：' + (item.play||'-') + '  完播：' + (item.finish||'-') + '\n收藏：' + (item.fav||'-') + '  评论：' + (item.comment||'-') +
             '\n\n⚠️ 问题判断：' + item.issue + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
-        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, editAction:"openEdit('workReview',"+i+")" });
+        html += buildCard({ key:'workReview', idx:i, title:item.title, sub:item.issue, content:full, date:item.date, url:item.link,
+            extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
+            editAction:"openEdit('workReview',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -3578,7 +3581,7 @@ var EDIT_CONFIG = {
         q:true, // 用 querySelectorAll 按顺序
         props:['name','updateFreq','link','hotVideo','learn'] },
     workReview:{ f:'form-work', t:'编辑复盘',
-        q:true, props:['title','pubTime','playRate','finishRate','favCount','commentCount','issue'] },
+        q:true, props:['title','pubTime','link','playRate','finishRate','favCount','commentCount','issue','optimize'] },
     productList:{ f:'form-product', t:'编辑选品',
         q:true, props:['info','style','season','price'] },
     scriptList:{ f:'form-script', t:'编辑脚本',
