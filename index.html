@@ -1198,6 +1198,25 @@ function _scrubSnap(snap){
   }
   return snap;
 }
+// 启动即清理本机 localStorage 可能残留的演示/测试脏数据（洗内裤、云端同步测试等），
+// 确保首屏渲染前就抹掉，绝不显示；且写回时跳过云端推送（避免把污染又推上去）
+function cleanLocalDirty(){
+  try {
+    var raw = localStorage.getItem('todoList');
+    if (!raw) return;
+    var arr; try { arr = JSON.parse(raw); } catch(e){ return; }
+    if (!Array.isArray(arr)) return;
+    var cleaned = arr.filter(function(t){
+      var s = ((t && (t.text || t.title)) || '') + '';
+      return s.indexOf('洗内裤') < 0 && s.indexOf('云端同步测试') < 0;
+    });
+    if (cleaned.length !== arr.length){
+      window.__cloudSkip = true;
+      try { localStorage.setItem('todoList', JSON.stringify(cleaned)); } catch(e){}
+      window.__cloudSkip = false;
+    }
+  } catch(e){}
+}
 // 拦截所有 localStorage 写入：命中用户数据 key 且已配置 Token，则防抖推云端
 (function(){
   var _orig = Storage.prototype.setItem;
@@ -3850,6 +3869,7 @@ function ensureFallbackData(){
 // ===================== 初始化 =====================
 document.addEventListener('DOMContentLoaded', function(){
     ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
+    cleanLocalDirty();       // 首屏渲染前先抹掉本机可能残留的演示/测试脏数据（洗内裤等），绝不显示
     // 每个渲染模块独立隔离：任一模块报错不影响其它模块，且最关心的数据优先渲染
     function safe(name, fn){ try { fn(); } catch(e){ if(window.console) console.error('[render:'+name+']', e); } }
     safe('renderAsset', renderAsset);          // 持仓台账（用户最关心，优先）
