@@ -276,7 +276,9 @@
         .form-modal { position:fixed; inset:0; z-index:10000; background:transparent; display:none; align-items:center; justify-content:center; padding:14px; }
         .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
         /* 右上角待办提醒通知 */
-        .todo-notify { position:absolute; top:10px; right:10px; z-index:12000; max-width:230px; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:none; align-items:flex-start; gap:7px; cursor:pointer; }
+        .todo-notify-stack { position:fixed; top:10px; right:10px; z-index:12000; display:none; flex-direction:column; gap:10px; max-width:240px; pointer-events:none; }
+        .todo-notify-stack.show { display:flex; }
+        .todo-notify { position:relative; top:auto; right:auto; width:240px; max-width:calc(100vw - 20px); background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:flex; align-items:flex-start; gap:7px; cursor:pointer; pointer-events:auto; }
         .todo-notify:hover { background:#FFF4F8; }
         .todo-notify-icon { font-size:15px; line-height:1.2; }
         .todo-notify-body { flex:1; min-width:0; }
@@ -559,14 +561,7 @@
 
     <!-- 主内容 -->
     <div class="main" id="main">
-    <div id="todoNotify" class="todo-notify" onclick="gotoTodoFromNotify()">
-      <div class="todo-notify-icon">🔔</div>
-      <div class="todo-notify-body">
-        <div class="todo-notify-title" id="todoNotifyTitle">待办提醒</div>
-        <div class="todo-notify-text" id="todoNotifyText"></div>
-      </div>
-      <button class="todo-notify-close" onclick="event.stopPropagation();closeTodoNotify()">×</button>
-    </div>
+    <div id="todoNotifyStack" class="todo-notify-stack"></div>
 
     <div id="homeEmpty" class="home-empty">
       <div class="he-icon">🗂️</div>
@@ -3111,26 +3106,35 @@ function showTodoNotify(){
         if (due.length === 0) return;
         due.sort(function(a,b){ return a.rd - b.rd; });   // 截止最早 = 最急
         window.__notifyTargets = due;
-        var box = document.getElementById('todoNotify');
-        var titleEl = document.getElementById('todoNotifyTitle');
-        var txt = document.getElementById('todoNotifyText');
-        if (!box || !txt) return;
-        var speech;
-        if (due.length === 1){
-            var t = due[0].it.title || due[0].it.text || '待办';
-            if(titleEl) titleEl.textContent = '待办提醒 · 已到截止';
-            txt.textContent = '📌 「' + t + '」已到截止时间，点击查看';
-            speech = '「' + t + '」已到截止时间，快点完成哦';
-        } else {
-            var top = due[0].it;
-            var topTitle = top.title || top.text || '待办';
-            if(titleEl) titleEl.textContent = '待办提醒 · 共 '+due.length+' 条已到截止';
-            txt.textContent = '📌 最急：「' + topTitle + '」(' + fmtRemind(top.remind) + ')，点击查看';
-            speech = '你有 ' + due.length + ' 条待办已到截止时间，快点完成哦';
-        }
-        box.style.display = 'flex';
-        speakReminder(speech);
+        var stack = document.getElementById('todoNotifyStack');
+        if (!stack) return;
+        stack.innerHTML = '';
+        due.forEach(function(d){
+            var t = d.it.title || d.it.text || '待办';
+            var card = document.createElement('div');
+            card.className = 'todo-notify';
+            card.setAttribute('data-idx', d.i);
+            card.onclick = (function(idx){ return function(){ gotoTodoFromNotify(idx); }; })(d.i);
+            card.innerHTML =
+                '<div class="todo-notify-icon">🔔</div>'+
+                '<div class="todo-notify-body">'+
+                    '<div class="todo-notify-title">待办提醒 · 已到截止</div>'+
+                    '<div class="todo-notify-text">📌 「'+escHtml(t)+'」('+escHtml(fmtRemind(d.it.remind))+')，点击查看</div>'+
+                '</div>'+
+                '<button class="todo-notify-close" onclick="event.stopPropagation();dismissNotify('+d.i+')">×</button>';
+            stack.appendChild(card);
+        });
+        stack.classList.add('show');
+        if (due.length === 1) speakReminder('「'+(due[0].it.title||due[0].it.text||'待办')+'」已到截止时间，快点完成哦');
+        else speakReminder('你有 '+due.length+' 条待办已到截止时间，快点完成哦');
     }catch(e){}
+}
+function dismissNotify(idx){
+    var stack = document.getElementById('todoNotifyStack');
+    if (!stack) return;
+    var card = stack.querySelector('.todo-notify[data-idx="'+idx+'"]');
+    if (card) card.remove();
+    if (stack.children.length === 0) stack.classList.remove('show');
 }
 function speakReminder(text){
     try{
@@ -3141,22 +3145,20 @@ function speakReminder(text){
         window.speechSynthesis.speak(u);
     }catch(e){}
 }
-function closeTodoNotify(){ var b=document.getElementById('todoNotify'); if(b) b.style.display='none'; }
-function gotoTodoFromNotify(){
-    var targets = window.__notifyTargets || [];
-    closeTodoNotify();
+function closeTodoNotify(){
+    var s = document.getElementById('todoNotifyStack');
+    if (s){ s.classList.remove('show'); s.innerHTML = ''; }
+}
+function gotoTodoFromNotify(idx){
     var el = document.querySelector('.sub-item[data-page="todo-list"]');
     showPage('todo-list', el);
-    var t = targets.length ? targets[0] : null;  // targets 已按截止时间升序，[0] 即最急/唯一条
     setTimeout(function(){
         renderTodo();
-        if (t){
-            var card = document.getElementById('todo-card-' + t.i);
-            if (card){
-                card.scrollIntoView({ block:'center' });
-                card.classList.add('flash');
-                setTimeout(function(){ card.classList.remove('flash'); }, 2200);
-            }
+        var card = document.getElementById('todo-card-' + idx);
+        if (card){
+            card.classList.add('hl');                 // 与全局搜索一致的红色边框高亮
+            card.scrollIntoView({ behavior:'smooth', block:'center' });
+            setTimeout(function(){ card.classList.remove('hl'); }, 2400);
         }
     }, 320);
 }
