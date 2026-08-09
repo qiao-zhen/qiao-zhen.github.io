@@ -1,1 +1,206 @@
-{"todoList":[{"text":"让workbuddy将我的手机和电脑ipad多端同步数据要如何实现呢","prio":"中","time":"10:11","due":"明天","date":"2026-08-06","done":false,"createdAt":1785986469536},{"text":"搭建workbuddy教程","prio":"高","time":"09:50","due":"明天吧","date":"2026-08-06","done":true,"createdAt":1785986529536},{"text":"学习trae","prio":"高","time":"07:02","due":"今天","date":"2026-08-05","done":false,"createdAt":1785986829536},{"text":"了解学习codex","prio":"低","time":"","due":"","date":"2026-08-05","done":false,"createdAt":1785986889536},{"text":"把我的工作台生成一个skill","prio":"高","time":"","due":"明天","date":"2026-08-05","done":false,"createdAt":1785986949536},{"text":"洗牙","prio":"中","due":"这个月","date":"2026-08-05","done":false,"createdAt":1785987009536},{"text":"带一件外套到公司中午睡觉好冷","prio":"高","due":"明天","date":"2026-08-05","done":false,"createdAt":1785987069536},{"text":"帮忙给姐姐做工作台","prio":"低","due":"","date":"2026-08-04","done":false,"createdAt":1785987129536},{"text":"洗内裤","prio":"高","due":"今天","date":"2026-08-04","done":true,"createdAt":1785987189536},{"text":"分享做的工作台内容展示更新到ai账号","prio":"高","due":"明天","date":"2026-08-03","done":true,"createdAt":1785987249536},{"text":"运镜动漫","prio":"中","due":"","date":"2026-08-03","done":false,"createdAt":1785987309536},{"text":"学习liv t b","prio":"中","due":"","date":"2026-08-03","done":false,"createdAt":1785987369536}],"knowledgeBase":[{"title":"是你说话","category":"运营","content":"那就只适合","date":"2026-08-09"}],"accountObserve":[{"name":"不喝九","updateFreq":"","link":"https://v.douyin.com/FEBzZ-WbWi8/ kPK:/ 11/27 :7pm G@v.Fu","hotVideo":"以胡楚靓工作台开头抛开钩子，然后讲解很多人不知道怎么开始做工作台分享自己的skill，讲解如何使用skill，然后最后说如果有做出来的作品，分享到评论","learn":"框架借鉴，视频的剪辑手法借鉴，skill弄成讲解自己的","date":"2026-08-09"}],"workReview":[{"title":"手机版工作台分享","link":"https://v.douyin.com/aWfDQGykNY8/ :7pm k@p.dA gOX:/ 09/10","play":"1.3w","like":"229","fav":"114","comment":"48","share":"","issueText":"分享给别人提示词之后别人打开链接失效，或者没有数据，评论区很多人问要提示词我只给了少部分人，但是他们互相问要提示词，我害怕流量丢失没有评论了，但是豆包告诉我这无法阻止也没办法","issueTags":["节奏拖沓"],"optimize":"换一个封面","date":"2026-08-09"},{"title":"电脑版分享工作台","link":"https://v.douyin.com/s-lWm-nAMn4/ 03/31 i@c.NJ wSy:/ :7pm","play":"1711","like":"15","fav":"15","comment":"0","share":"","issueText":"整体画面观感不好，图片文字看不清楚，而且上面的文字闪烁太快，看不清楚","issueTags":["钩子不足","内容价值不足"],"optimize":"后面改为手机录频，文字清晰，不会画质模糊或者画面比例对不上，然后所有的视频统一一下封面","date":"2026-08-09"}],"productList":[],"scriptList":[],"promptList":[],"recordList":[],"sideIdeas":[],"evalList":[],"testList":[],"archiveList":[],"assetList":[{"name":"南方纳斯达克100ETF发起联接(QDII)A人民币","code":"016452","amount":787.49,"type":"nasdaq","cost":804.23,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"华夏黄金ETF联接A","code":"008701","amount":259.2,"type":"gold","cost":261.65,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"摩根标普500指数(QDII)A","code":"017641","amount":300.21,"type":"qdii","cost":300,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"name":"易方达中证红利低波动ETF联接发起式A","code":"020602","amount":2294.19,"type":"dividend","cost":2220,"plan":"","judge":"","dca":{"enabled":false,"daily":0,"lastDate":"2026-08-03","acc":0},"date":"2026-08-03","done":false},{"code":"021842","name":"广发全球精选股票(QDII)C人民币","amount":1352.59,"cost":1256,"type":"other","plan":"","judge":"观察中","dca":{"enabled":true,"daily":50,"acc":200,"lastDate":"2026-08-09"}}],"rebalanceList":[],"bodyNoteList":[],"checkinRecords":{}}
+{
+  "todoList": [
+    {
+      "text": "让workbuddy将我的手机和电脑ipad多端同步数据要如何实现呢",
+      "prio": "中",
+      "time": "10:11",
+      "due": "明天",
+      "date": "2026-08-06",
+      "done": false,
+      "createdAt": 1785986469536
+    },
+    {
+      "text": "搭建workbuddy教程",
+      "prio": "高",
+      "time": "09:50",
+      "due": "明天吧",
+      "date": "2026-08-06",
+      "done": false,
+      "createdAt": 1785986529536
+    },
+    {
+      "title": "接入飞书",
+      "text": "试试接入飞书将我的知识库笔记按照分类上传到飞书对应分类上面做记录，看看能不能实现",
+      "prio": "高",
+      "createdAt": 1785986649536,
+      "due": "今天",
+      "remind": "",
+      "date": "2026-08-06",
+      "done": false
+    },
+    {
+      "text": "学习trae",
+      "prio": "高",
+      "time": "07:02",
+      "due": "今天",
+      "date": "2026-08-05",
+      "done": false,
+      "createdAt": 1785986829536
+    },
+    {
+      "text": "了解学习codex",
+      "prio": "低",
+      "time": "",
+      "due": "",
+      "date": "2026-08-05",
+      "done": false,
+      "createdAt": 1785986889536
+    },
+    {
+      "text": "把我的工作台生成一个skill",
+      "prio": "高",
+      "time": "",
+      "due": "明天",
+      "date": "2026-08-05",
+      "done": false,
+      "createdAt": 1785986949536
+    },
+    {
+      "text": "洗牙",
+      "prio": "中",
+      "due": "这个月",
+      "date": "2026-08-05",
+      "done": false,
+      "createdAt": 1785987009536
+    },
+    {
+      "text": "带一件外套到公司中午睡觉好冷",
+      "prio": "高",
+      "due": "明天",
+      "date": "2026-08-05",
+      "done": false,
+      "createdAt": 1785987069536
+    },
+    {
+      "text": "帮忙给姐姐做工作台",
+      "prio": "低",
+      "due": "",
+      "date": "2026-08-04",
+      "done": false,
+      "createdAt": 1785987129536
+    },
+    {
+      "text": "分享做的工作台内容展示更新到ai账号",
+      "prio": "高",
+      "due": "明天",
+      "date": "2026-08-03",
+      "done": true,
+      "createdAt": 1785987249536
+    },
+    {
+      "text": "运镜动漫",
+      "prio": "中",
+      "due": "",
+      "date": "2026-08-03",
+      "done": false,
+      "createdAt": 1785987309536
+    },
+    {
+      "text": "学习liv t b",
+      "prio": "中",
+      "due": "",
+      "date": "2026-08-03",
+      "done": false,
+      "createdAt": 1785987369536
+    }
+  ],
+  "knowledgeBase": [],
+  "accountObserve": null,
+  "workReview": null,
+  "productList": [],
+  "scriptList": null,
+  "promptList": null,
+  "recordList": [],
+  "sideIdeas": [],
+  "evalList": [],
+  "testList": [],
+  "archiveList": null,
+  "assetList": [
+    {
+      "name": "南方纳斯达克100ETF发起联接(QDII)A人民币",
+      "code": "016452",
+      "amount": 787.49,
+      "type": "nasdaq",
+      "cost": 804.23,
+      "plan": "",
+      "judge": "",
+      "dca": {
+        "enabled": false,
+        "daily": 0,
+        "lastDate": "2026-08-03",
+        "acc": 0
+      },
+      "date": "2026-08-03",
+      "done": false
+    },
+    {
+      "name": "华夏黄金ETF联接A",
+      "code": "000217",
+      "amount": 259.2,
+      "type": "gold",
+      "cost": 261.65,
+      "plan": "",
+      "judge": "",
+      "dca": {
+        "enabled": false,
+        "daily": 0,
+        "lastDate": "2026-08-03",
+        "acc": 0
+      },
+      "date": "2026-08-03",
+      "done": false
+    },
+    {
+      "name": "摩根标普500指数A(QDII)A",
+      "code": "017641",
+      "amount": 300.21,
+      "type": "qdii",
+      "cost": 300,
+      "plan": "",
+      "judge": "",
+      "dca": {
+        "enabled": false,
+        "daily": 0,
+        "lastDate": "2026-08-03",
+        "acc": 0
+      },
+      "date": "2026-08-03",
+      "done": false
+    },
+    {
+      "name": "易方达红利低波动ETF发起式联接(ETF联接)A",
+      "code": "020602",
+      "amount": 2294.19,
+      "type": "dividend",
+      "cost": 2220,
+      "plan": "",
+      "judge": "",
+      "dca": {
+        "enabled": false,
+        "daily": 0,
+        "lastDate": "2026-08-03",
+        "acc": 0
+      },
+      "date": "2026-08-03",
+      "done": false
+    },
+    {
+      "code": "021842",
+      "name": "广发全球精选股票(QDII)C人民币",
+      "amount": 1202.59,
+      "cost": 1256,
+      "type": "other",
+      "plan": "",
+      "judge": "观察中",
+      "dca": {
+        "enabled": true,
+        "daily": 50,
+        "acc": 50,
+        "lastDate": "2026-08-06"
+      }
+    }
+  ],
+  "rebalanceList": null,
+  "bodyNoteList": [],
+  "checkinRecords": {}
+}
