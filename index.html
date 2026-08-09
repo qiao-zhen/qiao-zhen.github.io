@@ -249,6 +249,12 @@
         .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
         .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
         .pill-btn.ghost:hover { background:#FCE4EC; }
+        /* 查看全文弹窗底部按钮：放大并左右对齐，查看原文去掉蓝字 */
+        .modal-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center; }
+        .modal-actions .pill-btn { font-size:14px; padding:9px 20px; }
+        .modal-actions .pill-btn.ghost { font-size:14px; padding:9px 20px; }
+        .modal .content a.pill-btn { color:#FFF; text-decoration:none; }
+        .modal .content a.pill-btn:hover { color:#FFF; text-decoration:none; }
         /* 对标账号卡片：可点击跳转抖音的作品链接 */
         .acc-link { display:inline-block; margin:6px 0 2px; color:#E91E63; font-size:13px; font-weight:600; text-decoration:none; }
         .acc-link:hover { text-decoration:underline; }
@@ -1228,7 +1234,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1645';
+var BUILD_VER = '20260809-1655';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -3511,8 +3517,8 @@ function openNewsModal(el){
     var url = card.dataset.url || '';
     document.getElementById('modalTitle').textContent = title;
     var contentHtml = escHtml(content);
-    var actions = '<div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; align-items:center;">';
-    if (url) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener" style="text-decoration:none;">🔗 查看原文</a>';
+    var actions = '<div class="modal-actions">';
+    if (url) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener">🔗 查看原文</a>';
     actions += '<button class="pill-btn ghost" onclick="closeModal()">关闭</button>';
     actions += '</div>';
     contentHtml += actions;
