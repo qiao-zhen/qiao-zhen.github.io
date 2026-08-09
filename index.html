@@ -1724,7 +1724,6 @@ function renderAccountObserve(){
     arr.forEach(function(item, i){
         var full = '账号：' + item.name + '\n记录日期：' + item.date +
             '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') +
-            (item.link ? ('\n\n🔗 作品链接：\n' + item.link) : '') +
             '\n\n🔥 爆款视频要点（结构 / 钩子 / 怎么爆的）：\n' + (item.hotVideo||'-') +
             '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
         html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:full, date:item.date, url:item.link,
