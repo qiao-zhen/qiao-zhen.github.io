@@ -1437,11 +1437,12 @@ function buildCard(o){
     var contentAttr = escAttr(o.content || '');
     var dateAttr = escAttr(o.date || '');
     var urlAttr = escAttr(o.url || '');
+    var modalAttr = escAttr(o.modal || '');
     var subHtml = o.sub ? '<span class="'+(o.subClass||'source-tag')+'">'+escHtml(o.sub)+'</span>' : '';
     var extraHtml = o.extra || '';
     var titleHtml = escHtml(o.title);
     var titleCls = 'n-title' + (o.subRight ? ' sub-right' : '');
-    return '<div class="news-card'+(done?' done':'')+'"'+(o.id?' id="'+escAttr(o.id)+'"':'')+' data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
+    return '<div class="news-card'+(done?' done':'')+'"'+(o.id?' id="'+escAttr(o.id)+'"':'')+' data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-modal="'+modalAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
         '<div class="'+titleCls+'">'+titleHtml+subHtml+'</div>'+
         extraHtml+
         '<div class="n-content"></div>'+
@@ -1727,7 +1728,9 @@ function renderAccountObserve(){
             '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') +
             '\n\n🔥 爆款视频要点（结构 / 钩子 / 怎么爆的）：\n' + (item.hotVideo||'-') +
             '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
-        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:full, date:item.date, url:item.link,
+        var cardContent = '🔥 爆款视频要点（结构 / 钩子 / 怎么爆的）：\n' + (item.hotVideo||'-') +
+            '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
+        html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
             editAction:"openEdit('accountObserve',"+i+")" });
     });
@@ -3222,7 +3225,7 @@ function toggleMCP(){
 function openNewsModal(el){
     var card = el.closest('.news-card');
     var title = card.dataset.title || '';
-    var content = card.dataset.content || '';
+    var content = card.dataset.modal || card.dataset.content || '';
     var url = card.dataset.url || '';
     document.getElementById('modalTitle').textContent = title;
     var contentHtml = escHtml(content);
