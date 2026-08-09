@@ -239,8 +239,11 @@
         .modal h3 { color:#E91E63; font-size:16px; margin-bottom:10px; padding-right:28px; }
         .modal .content { color:#333; line-height:1.7; font-size:14px; white-space:pre-wrap; }
         .modal .content a { color:#1976D2; word-break:break-all; }
-        .modal .close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:4px 8px; }
+        .modal .close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:4px 8px; z-index:10; }
         .modal .close:hover { color:#E91E63; }
+        .modal.news-modal { overflow:visible; display:flex; flex-direction:column; max-height:85vh; }
+        .modal.news-modal .content { overflow-y:auto; max-height:calc(85vh - 64px); padding-right:6px; }
+        .modal.news-modal .close { position:absolute; top:8px; right:12px; z-index:10; }
         .modal .export-sub { font-size:12px; color:#AD1457; margin:-4px 0 10px; line-height:1.5; }
         .modal .export-textarea { width:100%; height:42vh; border:1px solid #F8BBD0; border-radius:8px; padding:10px; font-size:12px; line-height:1.5; font-family:Consolas,Menlo,monospace; resize:none; box-sizing:border-box; color:#333; background:#FFF8FB; }
         .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
@@ -1073,7 +1076,7 @@
 
 <!-- 弹窗 -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
-    <div class="modal">
+    <div class="modal news-modal">
         <button class="close" onclick="closeModal()">×</button>
         <h3 id="modalTitle"></h3>
         <div class="content" id="modalContent"></div>
@@ -1225,7 +1228,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1630';
+var BUILD_VER = '20260809-1640';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
