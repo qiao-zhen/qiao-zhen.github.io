@@ -1261,9 +1261,24 @@ function getSha(token, cb){
     .then(function(r){ clearTimeout(timer); if(r.status===404) return cb(null); if(!r.ok) return cb(null); return r.json().then(function(j){ cb(j&&j.sha?j.sha:null); }); })
     .catch(function(){ clearTimeout(timer); cb(null); });
 }
+// 判断本机某 key 的存储值是否纯属内置演示占位（"洗内裤"等）；若是则应被云端真实数据覆盖
+// 用"成员比对"而非会话标记——避免新设备/清缓存后标记丢失导致演示项杀不死
+function _localIsDemo(k, localRaw){
+  try {
+    if (typeof __CLOUD_FALLBACK === 'undefined' || !__CLOUD_FALLBACK) return false;
+    var fb = __CLOUD_FALLBACK[k];
+    if (fb === undefined) return false;
+    if (JSON.stringify(fb) === localRaw) return true; // 整份等于兜底快照
+    var arr; try { arr = JSON.parse(localRaw || '[]'); } catch(e){ return false; }
+    if (!Array.isArray(arr) || arr.length === 0) return false;
+    var _sig = function(it){ return (it && (it.id || it.createdAt)) ? String(it.id || it.createdAt) : '::' + JSON.stringify(it); };
+    var fbSet = {}; (fb||[]).forEach(function(it){ fbSet[_sig(it)] = true; });
+    return arr.every(function(it){ return fbSet[_sig(it)]; }); // 本地每一项都属于 demo 集合
+  } catch(e){ return false; }
+}
 // 把云端快照写入本机
-// onlyEmpty=true（自动拉取）时：只填充本地为空的 key，绝不覆盖本地已有数据
-// onlyEmpty=false（手动「拉取云端数据」按钮）时：整份覆盖
+// onlyEmpty=true（自动拉取/兜底，无Token Pages）时：只填充本地为空的 key；但本地若是内置演示占位则被云端覆盖（杜绝"洗内裤"残留）
+// onlyEmpty=false（手动「拉取云端数据」按钮 / 带Token API拉取）时：整份覆盖本机，以云端为准（演示占位/本地残留项一律清除，确保拿到云端干净版本）
 function applyCloudSnap(snap, onlyEmpty){
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
@@ -1271,41 +1286,14 @@ function applyCloudSnap(snap, onlyEmpty){
     var localRaw = null;
     try { localRaw = localStorage.getItem(k); } catch(e){}
     var localExists = (localRaw !== null && localRaw !== undefined && localRaw !== 'null' && localRaw !== '[]');
+    var val = (snap[k] === null) ? [] : snap[k];
     if (onlyEmpty){
       // 自动拉取：本地已有真实数据则不覆盖（清缓存/无Token时也不丢本地编辑）
-      if (localExists){
-        // 例外：本地值恰为内置演示占位("洗内裤"等)时才允许被云端覆盖，避免演示项残留
-        var _isDemo = false;
-        try { if (sessionStorage.getItem('__fb_injected')==='1' && typeof __CLOUD_FALLBACK!=='undefined' && __CLOUD_FALLBACK && JSON.stringify(__CLOUD_FALLBACK[k])===localRaw) _isDemo = true; } catch(e){}
-        if (!_isDemo) return;
-      }
-      var val0 = (snap[k] === null) ? [] : snap[k];
-      try { localStorage.setItem(k, JSON.stringify(val0)); } catch(e){}
+      if (localExists && !_localIsDemo(k, localRaw)) return;
+      try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     } else {
-      // 手动「拉取云端数据」：合并而非整份覆盖——保留本机未同步的编辑，仅补齐云端有而本机没有的项，绝不静默丢数据
-      try {
-        var _isDemo2 = false;
-        try { if (sessionStorage.getItem('__fb_injected')==='1' && typeof __CLOUD_FALLBACK!=='undefined' && __CLOUD_FALLBACK && JSON.stringify(__CLOUD_FALLBACK[k])===localRaw) _isDemo2 = true; } catch(e){}
-        if (_isDemo2){
-          localStorage.setItem(k, JSON.stringify((snap[k]===null)?[]:snap[k]));
-        } else {
-          var localArr = []; try { localArr = JSON.parse(localRaw || '[]') || []; } catch(e){ localArr = []; }
-          var cloudArr = (snap[k] === null) ? [] : (Array.isArray(snap[k]) ? snap[k] : []);
-          if (!Array.isArray(localArr)) localArr = [];
-          if (localArr.length === 0){
-            localStorage.setItem(k, JSON.stringify(cloudArr));
-          } else if (cloudArr.length > 0){
-            function _sig(it){ return (it && (it.id || it.createdAt)) ? String(it.id || it.createdAt) : '::' + JSON.stringify(it); }
-            var _seen = {}; localArr.forEach(function(it){ _seen[_sig(it)] = true; });
-            var _merged = localArr.slice();
-            cloudArr.forEach(function(it){ var s = _sig(it); if(!_seen[s]){ _seen[s] = true; _merged.push(it); } });
-            localStorage.setItem(k, JSON.stringify(_merged));
-          }
-        }
-      } catch(e){
-        // 合并失败：退回只填空缺，绝不丢本机已有数据
-        try { if(!localExists) localStorage.setItem(k, JSON.stringify((snap[k]===null)?[]:snap[k])); } catch(e2){}
-      }
+      // 手动「拉取云端数据」：整份覆盖本机（用户显式拉取，得到云端干净版本）
+      try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     }
   });
   window.__cloudSkip = false;
@@ -1399,7 +1387,7 @@ function cloudHydrate(force){
       if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap, true); // 无 Token 时 onlyEmpty（保留本地真实编辑）；演示占位由 applyCloudSnap 内部 demo 判定覆盖
+      applyCloudSnap(snap, !force); // 无 Token 时走 Pages：手动拉取(force=true)=整份覆盖；自动加载(force=false)=只填空缺(演示占位仍会被覆盖)
       setSyncStatus('已从云端载入数据 ✓（'+text.length+'字符，仅填空缺）');
     })
     .catch(function(err){
