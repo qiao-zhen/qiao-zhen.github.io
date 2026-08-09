@@ -1185,6 +1185,11 @@ var GH_OWNER='qiao-zhen', GH_REPO='qiao-zhen.github.io', GH_BRANCH='main', GH_PA
 function getGithubToken(){ try { return (localStorage.getItem('syncGithubToken')||'').trim(); } catch(e){ return ''; } }
 window.__cloudSkip = false;
 window.__cloudSha = null;
+// 【关键安全闸门】页面刚打开时本机数据可能为空（清缓存/新设备/兜底注入），
+// 若此时自动推送，会把"空数据"写上云端，瞬间清空云端所有真实记录（曾发生过：14条待办被推成0条）。
+// 因此：必须等云端拉取完成（__cloudReady=true）后，才允许任何自动推送。
+// 拉取失败时保持 false —— 宁可本次不同步，也绝不允许覆盖云端。
+window.__cloudReady = false;
 function b64enc(str){ return btoa(unescape(encodeURIComponent(str))); }
 function b64dec(b64){ try { return decodeURIComponent(escape(atob(b64))); } catch(e){ return ''; } }
 // 剔除演示/测试脏数据（"洗内裤"、"云端同步测试"等），避免脏数据在云端与本机之间互相污染
@@ -1228,17 +1233,72 @@ function cleanLocalDirty(){
   };
 })();
 var _pushTimer = null;
-function scheduleCloudPush(){ if(_pushTimer) clearTimeout(_pushTimer); _pushTimer = setTimeout(function(){ cloudPush(false); }, 700); }
+function scheduleCloudPush(){
+  // 云端尚未拉取完成 → 一律不自动推送（防止本机空数据覆盖云端真实数据）
+  if (!window.__cloudReady){ if(window.console) console.warn('[sync] 云端未就绪，已拦截本次自动推送（防止空数据覆盖）'); return; }
+  if(_pushTimer) clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(function(){ cloudPush(false); }, 700);
+}
 var _lastPushFailToast = 0;
+function _isBlank(v){
+  if (v === null || v === undefined) return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === 'object') return Object.keys(v).length === 0;
+  return false;
+}
+// 【防空覆盖守卫】上传前先读云端：凡"本机为空、云端有数据"的字段，一律以云端为准（不清空），
+// 并把云端值写回本机。杜绝"页面显示空 → 推空 → 云端真实数据被清光"的事故。
+function guardBlankOverwrite(snap, token, cb){
+  var apiBase = 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_PATH;
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 12000);
+  fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token }, cache:'no-store', signal: ctrl.signal })
+    .then(function(r){ clearTimeout(timer); if(!r.ok) return null; return r.json(); })
+    .then(function(j){
+      if (!j || !j.content){ cb(snap, 0); return; }
+      var remote = null;
+      try { remote = JSON.parse(b64dec(String(j.content).replace(/\s/g,''))); } catch(e){ remote = null; }
+      if (!remote || typeof remote !== 'object'){ cb(snap, -1); return; }
+      if (j.sha) window.__cloudSha = j.sha;
+      var rescued = 0;
+      window.__cloudSkip = true;
+      SYNC_KEYS.forEach(function(k){
+        if (_isBlank(snap[k]) && !_isBlank(remote[k])){
+          snap[k] = remote[k]; rescued++;
+          try { localStorage.setItem(k, JSON.stringify(remote[k])); } catch(e){}
+        }
+      });
+      window.__cloudSkip = false;
+      cb(snap, rescued);
+    })
+    .catch(function(){ clearTimeout(timer); cb(snap, -1); });
+}
 function cloudPush(force, cb){
   var token = getGithubToken();
   if (!token){ if(cb) cb(false); return; }
   var snap = {};
   SYNC_KEYS.forEach(function(k){ try { snap[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ snap[k] = null; } });
   _scrubSnap(snap);
-  var payload = JSON.stringify(snap);
   var btn = document.getElementById('syncBtn');
   if (btn) btn.classList.add('syncing');
+  guardBlankOverwrite(snap, token, function(safeSnap, rescued){
+    // 云端状态未知（读取失败）且本机存在空字段 → 放弃本次上传，宁可不同步也不能清空云端
+    if (rescued === -1){
+      var anyBlank = SYNC_KEYS.some(function(k){ return _isBlank(safeSnap[k]); });
+      if (anyBlank){
+        if(btn) btn.classList.remove('syncing');
+        try { setSyncStatus('已取消上传：读不到云端且本机有空字段（保护云端数据不被清空）'); } catch(e){}
+        if(cb) cb(false); return;
+      }
+    }
+    if (rescued > 0){
+      try { renderSyncModules(); } catch(e){}
+      try { showToast('🛡 已保护 '+rescued+' 项云端数据，未被本机空数据覆盖'); } catch(e){}
+    }
+    _doCloudPut(token, JSON.stringify(safeSnap), force, btn, cb);
+  });
+}
+function _doCloudPut(token, payload, force, btn, cb){
   pushToGithub(token, payload, function(ok){
     if(btn) btn.classList.remove('syncing');
     // 自动推送(force=false)失败时给一次可见提示（30秒内不重复），避免静默丢数据
@@ -1330,6 +1390,8 @@ function applyCloudSnap(snap, onlyEmpty){
     }
   });
   window.__cloudSkip = false;
+  // 云端数据已成功载入本机 → 开闸，此后本机改动才允许自动推送云端
+  window.__cloudReady = true;
   renderSyncModules();
   // 云端数据载入/恢复后，重新判定待办提醒（避免同步覆盖后漏弹通知）
   try { showTodoNotify(); } catch(e){}
@@ -1342,7 +1404,8 @@ function hydrateFromApi(token, force, fallbackToPages){
   setSyncStatus('正经 API 拉取云端数据…');
   fetch(apiBase, { headers:{ 'Authorization':'Bearer '+token }, signal: ctrl.signal })
     .then(function(r){
-      if (r.status===404){ setSyncStatus('云端暂无数据，已保留本机存储'); return; }
+      // 云端确实还没有这个文件 → 允许开闸（首次创建不存在"覆盖"风险）
+      if (r.status===404){ window.__cloudReady = true; setSyncStatus('云端暂无数据，已保留本机存储'); return; }
       if (!r.ok){ setSyncStatus('拉取失败：Token 无效或无权限（需 Contents 读写）'); return; }
       return r.json();
     })
@@ -1363,8 +1426,9 @@ function hydrateFromApi(token, force, fallbackToPages){
           setSyncStatus('API拉取失败，改用 Pages 兜底（只填空缺）…');
           return fetchPagesOnlyEmpty();
         }
-        // API 也失败：保留本机已有数据，不拿内置示例覆盖
+        // API 也失败：保留本机已有数据，不拿内置示例覆盖；闸门保持关闭（本次不自动上传，保护云端）
         setSyncStatus('云端同步失败，已保留本机数据（'+em+'）');
+        try { showToast('⚠️ 云端读取失败，本次改动不会自动上传（保护云端数据）。恢复网络后点顶部☁重试'); } catch(e){}
         return;
       }
     })
@@ -1387,6 +1451,7 @@ function fetchPagesOnlyEmpty(){
     })
     .catch(function(err){
       setSyncStatus('云端不可达，已保留本机数据（'+(err&&err.message?err.message:'')+'）');
+      try { showToast('⚠️ 云端不可达，本次改动不会自动上传（保护云端数据）'); } catch(e){}
     })
     .finally(function(){ clearTimeout(timer); });
 }
@@ -3854,6 +3919,7 @@ function ensureFallbackData(){
     if (sessionStorage.getItem('__fb_injected') === '1') return;
   } catch(e){ return; }
   try {
+    window.__cloudSkip = true;   // 兜底注入绝不触发云端推送（防止把空兜底推上云端覆盖真实数据）
     SYNC_KEYS.forEach(function(k){
       if (__CLOUD_FALLBACK[k] === undefined) return;
       var local = null;
@@ -3862,8 +3928,9 @@ function ensureFallbackData(){
         localStorage.setItem(k, JSON.stringify(__CLOUD_FALLBACK[k]));
       }
     });
+    window.__cloudSkip = false;
     sessionStorage.setItem('__fb_injected', '1');
-  } catch(e){}
+  } catch(e){ window.__cloudSkip = false; }
 }
 
 // ===================== 初始化 =====================
