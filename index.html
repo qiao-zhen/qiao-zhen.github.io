@@ -1147,6 +1147,7 @@
         <button class="save-btn" onclick="saveSyncSettings()"><i class="fa fa-download"></i> 拉取云端数据</button>
         <button class="save-btn" style="background:#AD1457;margin-top:8px" onclick="forceSyncNow()"><i class="fa fa-refresh"></i> 立即同步到云端</button>
         <div class="sync-status" id="syncStatus"></div>
+        <div class="sync-hint" style="margin-top:10px;font-size:12px;color:#999">页面版本：<span id="buildVer">-</span>（排查问题时把这串发给助手，可确认是否已加载最新代码）</div>
     </div>
 </div>
 
@@ -1222,13 +1223,29 @@ function cleanLocalDirty(){
     }
   } catch(e){}
 }
+// 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
+var BUILD_VER = '20260809-1450';
+// 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
+// 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
+// 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
+window.__lastUserGesture = 0;
+window.__keyWriteByUser = {};   // key -> 该 key 最近一次写入是否由用户操作触发
+(function(){
+  ['pointerdown','mousedown','touchstart','keydown'].forEach(function(ev){
+    try { document.addEventListener(ev, function(){ window.__lastUserGesture = Date.now(); }, true); } catch(e){}
+  });
+})();
 // 拦截所有 localStorage 写入：命中用户数据 key 且已配置 Token，则防抖推云端
 (function(){
   var _orig = Storage.prototype.setItem;
   Storage.prototype.setItem = function(k, v){
     var res = _orig.apply(this, arguments);
     if (window.__cloudSkip) return res;
-    if (SYNC_KEYS.indexOf(k) !== -1 && getGithubToken()) scheduleCloudPush();
+    if (SYNC_KEYS.indexOf(k) !== -1){
+      // 写入发生在用户操作后 10 秒内 → 认定为用户主动编辑（含主动删除）
+      window.__keyWriteByUser[k] = (Date.now() - (window.__lastUserGesture || 0)) < 10000;
+      if (getGithubToken()) scheduleCloudPush();
+    }
     return res;
   };
 })();
@@ -1307,6 +1324,12 @@ function guardBlankOverwrite(snap, token, cb){
       window.__cloudSkip = true;
       SYNC_KEYS.forEach(function(k){
         if (_isBlank(snap[k]) && !_isBlank(remote[k])){
+          // 用户确实动手清空的（伴随点击/触摸/按键）→ 尊重用户，允许清空同步到云端
+          if (window.__keyWriteByUser && window.__keyWriteByUser[k] === true){
+            if (window.console) console.log('[sync] '+k+' 由用户主动清空，允许同步');
+            return;
+          }
+          // 无用户操作却变空 → 判定异常，用云端数据救回，绝不清空云端
           snap[k] = remote[k]; rescued++;
           try { localStorage.setItem(k, JSON.stringify(remote[k])); } catch(e){}
         }
@@ -1420,6 +1443,7 @@ function applyCloudSnap(snap, onlyEmpty){
   // 且只追加相对基线的新条目，绝不复活已删除的旧数据
   var rescueWindow = (!onlyEmpty && window.__pendingPush === true);
   var rescuedCount = 0;
+  var blankGuarded = 0;   // 云端为空但本机有数据 → 被守住未清空的字段数
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
     if (snap[k] === undefined) return;
@@ -1432,6 +1456,13 @@ function applyCloudSnap(snap, onlyEmpty){
       if (localExists && !_localIsDemo(k, localRaw)) return;
       try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     } else {
+      // 【拉取端防空覆盖】云端该字段为空、而本机有真实数据 → 绝不覆盖成空。
+      // 场景：Pages/CDN 滞后或云端被误清 → 页面拉回空数据 → 本机数据被抹掉（曾导致待办清单整个消失）。
+      // 云端非空时照常整份覆盖（保证"洗内裤"等本地脏数据仍被云端权威清掉）。
+      if (_isBlank(val) && localExists){
+        blankGuarded++;
+        return;
+      }
       // 整份覆盖本机（云端权威）；若处于抢救模式，把窗口期新增的条目追加回来
       if (rescueWindow && Array.isArray(val)){
         var extra = _windowNewItems(k, val);
@@ -1442,6 +1473,10 @@ function applyCloudSnap(snap, onlyEmpty){
   });
   if (rescuedCount > 0){
     try { showToast('🛡 已保住你刚才新增的 '+rescuedCount+' 条（同步窗口期修改未丢失）'); } catch(e){}
+  }
+  if (blankGuarded > 0){
+    try { showToast('🛡 云端有 '+blankGuarded+' 项是空的，已保留本机数据未被清空'); } catch(e){}
+    if (window.console) console.warn('[sync] 防空覆盖生效，守住字段数：', blankGuarded);
   }
   window.__cloudSkip = false;
   // 云端数据已成功载入本机 → 开闸，此后本机改动才允许自动推送云端；
@@ -1524,30 +1559,43 @@ function cloudHydrate(force){
     hydrateFromApi(token, force, true); // 第3参：API 失败则 Pages 兜底(仅填空缺)
     return;
   }
-  // 无 Token：Pages 同源读取（仅填空缺，避免旧版覆盖）
-  setSyncStatus('正在拉取云端数据（Pages）…');
-  var pagesUrl = 'https://qiao-zhen.github.io/userData.json?t=' + Date.now();
-  var ctrl = new AbortController();
-  var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
-  fetch(pagesUrl, { cache:'no-store', signal: ctrl.signal })
-    .then(function(r){
-      if(!r.ok) throw new Error('pages-HTTP'+r.status);
-      return r.text();
-    })
-    .then(function(text){
-      clearTimeout(timer);
-      if(!text || typeof text !== 'string'){ throw new Error('null-response'); }
-      if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
-      var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
-      if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap, false); // 无 Token 走 Pages 也整份覆盖本机（云端权威）
-      setSyncStatus('已从云端载入数据 ✓（'+text.length+' 字符，已整份覆盖本机）');
-    })
-    .catch(function(err){
-      var msg = err && err.message ? String(err.message) : 'unknown';
-      setSyncStatus('Pages读取失败('+msg+')，已保留本机数据');
-    })
-    .finally(function(){ clearTimeout(timer); });
+  // 无 Token：多通道依次尝试读取（任一成功即止）。
+  // 单通道的教训：github.io 在国内常被 DNS 污染、且 Pages 构建有滞后，
+  // 一条道走到黑会导致"拉不到 / 拉到旧数据"，进而页面空白。
+  setSyncStatus('正在拉取云端数据…');
+  var channels = [
+    { name:'Pages',    url:'https://qiao-zhen.github.io/userData.json?t=' + Date.now() },
+    { name:'jsDelivr', url:'https://cdn.jsdelivr.net/gh/qiao-zhen/qiao-zhen.github.io@main/userData.json?t=' + Date.now() },
+    { name:'raw',      url:'https://raw.githubusercontent.com/qiao-zhen/qiao-zhen.github.io/main/userData.json?t=' + Date.now() }
+  ];
+  (function tryChannel(i){
+    if (i >= channels.length){
+      setSyncStatus('云端读取失败（三条通道均不可达），已保留本机数据');
+      try { showToast('⚠ 云端读不到，页面显示的是本机数据'); } catch(e){}
+      return;
+    }
+    var ch = channels[i];
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+    fetch(ch.url, { cache:'no-store', signal: ctrl.signal })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP'+r.status); return r.text(); })
+      .then(function(text){
+        clearTimeout(timer);
+        if(!text || typeof text !== 'string' || text.length < 10) throw new Error('empty');
+        var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
+        if (!snap || typeof snap !== 'object') throw new Error('fmt');
+        // 整份覆盖本机（云端权威）；applyCloudSnap 内的防空覆盖会保证"云端空不清本机"
+        applyCloudSnap(snap, false);
+        setSyncStatus('已从云端载入数据 ✓（来源：'+ch.name+'）');
+      })
+      .catch(function(err){
+        clearTimeout(timer);
+        var msg = err && err.message ? String(err.message) : 'unknown';
+        if (window.console) console.warn('[sync] 通道 '+ch.name+' 失败：'+msg+'，尝试下一条');
+        setSyncStatus(ch.name+' 读取失败('+msg+')，尝试下一条通道…');
+        tryChannel(i + 1);
+      });
+  })(0);
 }
 function renderSyncModules(){
   var fns = [
@@ -3990,6 +4038,8 @@ function ensureFallbackData(){
 
 // ===================== 初始化 =====================
 document.addEventListener('DOMContentLoaded', function(){
+    try { var bv=document.getElementById('buildVer'); if(bv) bv.textContent = BUILD_VER; } catch(e){}
+    if (window.console) console.log('[桥桥工作台] 页面版本 ' + BUILD_VER);
     ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
     cleanLocalDirty();       // 首屏渲染前先抹掉本机可能残留的演示/测试脏数据（洗内裤等），绝不显示
     captureGateBaseline();   // 拍下本机基线：用于在"云端拉取完成前"用户所做的新增不被随后的整份覆盖冲掉
