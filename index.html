@@ -276,9 +276,9 @@
         .form-modal { position:fixed; inset:0; z-index:10000; background:transparent; display:none; align-items:center; justify-content:center; padding:14px; }
         .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
         /* 右上角待办提醒通知 */
-        .todo-notify-stack { position:fixed; top:10px; right:10px; z-index:12000; display:none; flex-direction:column; gap:10px; max-width:240px; pointer-events:none; }
-        .todo-notify-stack.show { display:flex; }
-        .todo-notify { position:relative; top:auto; right:auto; width:240px; max-width:calc(100vw - 20px); background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:flex; align-items:flex-start; gap:7px; cursor:pointer; pointer-events:auto; }
+        .todo-notify-stack { position:fixed; top:10px; right:10px; z-index:12000; display:none; width:240px; height:0; pointer-events:none; }
+        .todo-notify-stack.show { display:block; }
+        .todo-notify { position:absolute; top:0; right:0; width:240px; max-width:calc(100vw - 20px); transform-origin:top right; transition:transform .28s ease, opacity .25s ease; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:flex; align-items:flex-start; gap:7px; cursor:pointer; pointer-events:auto; }
         .todo-notify:hover { background:#FFF4F8; }
         .todo-notify-icon { font-size:15px; line-height:1.2; }
         .todo-notify-body { flex:1; min-width:0; }
@@ -1224,7 +1224,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1450';
+var BUILD_VER = '20260809-1540';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -3351,19 +3351,19 @@ function showTodoNotify(){
             var card = document.createElement('div');
             card.className = 'todo-notify';
             card.setAttribute('data-idx', d.i);
-            card.onclick = (function(idx){ return function(){ gotoTodoFromNotify(idx); }; })(d.i);
+            card.onclick = (function(idx){ return function(){ gotoTodoFromNotify(idx); dismissNotify(idx); }; })(d.i);
             card.innerHTML =
                 '<div class="todo-notify-icon">🔔</div>'+
                 '<div class="todo-notify-body">'+
                     '<div class="todo-notify-title">待办提醒 · 已到截止</div>'+
-                    '<div class="todo-notify-text">📌 「'+escHtml(t)+'」('+escHtml(fmtRemind(d.it.remind))+')，点击查看</div>'+
+                    '<div class="todo-notify-text">📌 「'+escHtml(t)+'」('+escHtml(fmtRemind(d.it.remind))+')，点我跳转并关闭</div>'+
                 '</div>'+
                 '<button class="todo-notify-close" onclick="event.stopPropagation();dismissNotify('+d.i+')">×</button>';
             stack.appendChild(card);
         });
         stack.classList.add('show');
-        if (due.length === 1) speakReminder('「'+(due[0].it.title||due[0].it.text||'待办')+'」已到截止时间，快点完成哦');
-        else speakReminder('你有 '+due.length+' 条待办已到截止时间，快点完成哦');
+        layoutNotifyStack();
+        // 仅弹通知卡片，不再朗读语音（用户要求去掉声音）
     }catch(e){}
 }
 function dismissNotify(idx){
@@ -3371,17 +3371,28 @@ function dismissNotify(idx){
     if (!stack) return;
     var card = stack.querySelector('.todo-notify[data-idx="'+idx+'"]');
     if (card) card.remove();
+    layoutNotifyStack();
     if (stack.children.length === 0) stack.classList.remove('show');
 }
-function speakReminder(text){
-    try{
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(text);
-        u.lang = 'zh-CN'; u.rate = 1.0; u.pitch = 1.0;
-        window.speechSynthesis.speak(u);
-    }catch(e){}
+// 叠加卡片布局：所有卡片叠放在同一位置（仅顶部完整可见，其余向下微露边缘），
+// 关掉顶部一张后剩余卡片自动上移补位，形成"牌堆"效果。
+function layoutNotifyStack(){
+    var stack = document.getElementById('todoNotifyStack');
+    if (!stack) return;
+    var cards = stack.querySelectorAll('.todo-notify');
+    var n = cards.length;
+    if (n === 0){ stack.style.height = '0px'; return; }
+    var peek = 14;                       // 每张向下微露的像素，制造"牌堆"层次感
+    var h0 = cards[0].offsetHeight || 56;
+    stack.style.height = (h0 + (n - 1) * peek) + 'px';
+    for (var i = 0; i < n; i++){
+        var c = cards[i];
+        c.style.zIndex = (1000 + n - i); // 顶部卡片层级最高
+        c.style.transform = 'translateY(' + (i * peek) + 'px) scale(' + (1 - Math.min(i, 6) * 0.03) + ')';
+    }
 }
+// 语音提醒已移除：仅保留视觉通知卡片（用户要求去掉声音）
+
 function closeTodoNotify(){
     var s = document.getElementById('todoNotifyStack');
     if (s){ s.classList.remove('show'); s.innerHTML = ''; }
