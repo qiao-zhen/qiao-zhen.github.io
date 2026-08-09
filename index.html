@@ -276,9 +276,9 @@
         .form-modal { position:fixed; inset:0; z-index:10000; background:transparent; display:none; align-items:center; justify-content:center; padding:14px; }
         .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
         /* 右上角待办提醒通知 */
-        .todo-notify-stack { position:fixed; top:10px; right:10px; z-index:12000; display:none; width:240px; height:0; pointer-events:none; }
+        .todo-notify-stack { position:fixed; top:70px; right:10px; z-index:12000; display:none; width:188px; height:0; pointer-events:none; }
         .todo-notify-stack.show { display:block; }
-        .todo-notify { position:absolute; top:0; right:0; width:240px; max-width:calc(100vw - 20px); transform-origin:top right; transition:transform .28s ease, opacity .25s ease; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:11px; box-shadow:0 10px 34px rgba(233,30,99,.22); padding:9px 10px; display:flex; align-items:flex-start; gap:7px; cursor:pointer; pointer-events:auto; }
+        .todo-notify { position:absolute; top:0; right:0; width:188px; max-width:calc(100vw - 20px); transform-origin:top right; transition:transform .28s ease, opacity .25s ease; background:#fff; border:1px solid #F8BBD0; border-left:4px solid #E91E63; border-radius:10px; box-shadow:0 8px 24px rgba(233,30,99,.20); padding:8px 9px; display:flex; align-items:flex-start; gap:6px; cursor:pointer; pointer-events:auto; }
         .todo-notify:hover { background:#FFF4F8; }
         .todo-notify-icon { font-size:15px; line-height:1.2; }
         .todo-notify-body { flex:1; min-width:0; }
@@ -1224,7 +1224,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1540';
+var BUILD_VER = '20260809-1550';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -3361,6 +3361,8 @@ function showTodoNotify(){
                 '<button class="todo-notify-close" onclick="event.stopPropagation();dismissNotify('+d.i+')">×</button>';
             stack.appendChild(card);
         });
+        var _hb = document.querySelector('.top-bar'); var _sr = document.querySelector('.search-top-row');
+        stack.style.top = ((_hb?_hb.offsetHeight:0) + (_sr?_sr.offsetHeight:0) + 8) + 'px';
         stack.classList.add('show');
         layoutNotifyStack();
         // 仅弹通知卡片，不再朗读语音（用户要求去掉声音）
