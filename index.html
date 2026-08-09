@@ -1300,7 +1300,7 @@ function hydrateFromApi(token, force, fallbackToPages){
       if (j.sha) window.__cloudSha = j.sha;
       var snap; try { snap = JSON.parse(b64dec(j.content)); } catch(e){ setSyncStatus('云端数据解析失败'); return; }
       if (!snap || typeof snap !== 'object'){ setSyncStatus('云端数据格式异常'); return; }
-      applyCloudSnap(snap, !force);
+      applyCloudSnap(snap, false); // 自动/手动拉取均整份覆盖本机，确保云端真实数据一定生效（覆盖内置演示占位）
       setSyncStatus('已从云端载入最新数据 ✓');
     })
     .catch(function(err){
@@ -1340,9 +1340,10 @@ function fetchPagesOnlyEmpty(){
     .finally(function(){ clearTimeout(timer); });
 }
 // 拉取云端数据：
-// 【方案B·读写同源】优先走 API（与"同步到云端"写入同一份，数据最新，杜绝 Pages 旧版覆盖复活已删项）
-// 无 Token 时退而读 Pages 同源静态文件（仅填空缺，不覆盖）
-// force=true（手动「拉取云端数据」按钮）= 整份覆盖本机；force=false/缺省（自动拉取）= 只填空缺
+// 【方案B·读写同源】优先走 API（与"同步到云端"写入同一份，数据最新）
+// 无 Token 时退而读 Pages 同源静态文件（仓库公开，无需 Token 即可读取）→ 同样整份覆盖本机
+// 关键修复：无论有无 Token，只要云端成功返回，就整份覆盖本地——杜绝内置演示数据(如"洗内裤")在新设备/清缓存后残留
+// （onlyEmpty 仅作 API 失败时的 Pages 兜底，避免 API 写源不可达时用可能滞后的 Pages 覆盖）
 function cloudHydrate(force){
   var token = getGithubToken();
   if (token){
@@ -1367,7 +1368,7 @@ function cloudHydrate(force){
       if(text.length < 10){ throw new Error('pages-empty('+text.length+')'); }
       var snap; try { snap = JSON.parse(text); } catch(e){ throw new Error('parse'); }
       if (!snap || typeof snap !== 'object'){ throw new Error('fmt'); }
-      applyCloudSnap(snap, true); // 无 Token 时强制 onlyEmpty，安全
+      applyCloudSnap(snap, false); // 无 Token 也从 Pages 整份恢复真实数据（仓库公开可读取；覆盖演示占位，避免"洗内裤"等演示项残留）
       setSyncStatus('已从云端载入数据 ✓（'+text.length+'字符，仅填空缺）');
     })
     .catch(function(err){
