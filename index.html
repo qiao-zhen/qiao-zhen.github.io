@@ -1768,7 +1768,9 @@ function saveWorkReview(){
     document.querySelectorAll('#work-issue-tags span').forEach(function(t){ t.classList.remove('sel'); });
     document.getElementById('form-work').classList.add('hidden');
     var ov = document.getElementById('form-work_ov'); if (ov) ov.style.display = 'none';
-    showToast(_editState.key?'复盘已更新':'作品复盘已保存');
+    var wasEdit = _editState.key ? true : false;
+    _editState.key = null; _editState.idx = null;
+    showToast(wasEdit?'复盘已更新':'作品复盘已保存');
     renderWorkReview();
 }
 function renderWorkReview(){
