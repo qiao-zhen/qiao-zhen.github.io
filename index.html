@@ -613,21 +613,16 @@
                 <div class="page-title"><i class="fa fa-binoculars ico"></i> 对标账号观测记录</div>
                 <button class="pill-btn" onclick="toggleForm('form-account')"><i class="fa fa-plus"></i> 新增对标账号</button>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、作品链接、爆款视频要点、开头钩子、视频结构、更新节奏 · 写下可以借鉴什么、哪些不要照搬</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、更新节奏、作品链接、爆款视频要点（结构 / 钩子 / 怎么爆的，自行分析后填这里）、我的借鉴思路</div>
             <div class="card form-card hidden" id="form-account">
                 <h4>新增对标账号</h4>
                 <div class="form-row">
                     <div class="form-item"><label>账号名称</label><input type="text" placeholder="对方账号昵称"></div>
-                    <div class="form-item"><label>作品链接（粘贴后可在卡片点击跳抖音）</label><input type="text" placeholder="粘贴抖音视频/主页链接"></div>
-                </div>
-                <div class="form-item"><label>爆款视频要点</label><textarea placeholder="对方爆款视频讲了什么、拍什么"></textarea></div>
-                <div class="form-item"><label>开头钩子</label><input type="text" placeholder="前3秒用了什么钩子"></div>
-                <div class="form-item"><label>视频结构</label><textarea placeholder="视频整体结构：开头/中间/结尾分别怎么安排"></textarea></div>
-                <div class="form-row">
                     <div class="form-item"><label>更新节奏</label><input type="text" placeholder="例如 日更 / 周更3条"></div>
                 </div>
-                <div class="form-item"><label>我可以借鉴什么</label><textarea placeholder="对自己有用的点"></textarea></div>
-                <div class="form-item"><label>哪些不要照搬</label><textarea placeholder="不适合自己的点，避免照搬"></textarea></div>
+                <div class="form-item"><label>作品链接（粘贴后可在卡片点击跳抖音）</label><input type="text" placeholder="粘贴抖音视频/主页链接"></div>
+                <div class="form-item"><label>爆款视频要点（结构 / 钩子 / 怎么爆的，自行分析后填这里）</label><textarea placeholder="对方爆款视频讲了什么、开头钩子、整体结构、怎么火的，自己分析后一并写在这"></textarea></div>
+                <div class="form-item"><label>我的借鉴思路</label><textarea placeholder="对自己有用的点、准备怎么借鉴"></textarea></div>
                 <button class="save-btn" onclick="saveAccountObserve()"><i class="fa fa-check"></i> 保存观测</button>
             </div>
             <div id="accountObserveList"></div>
@@ -1706,10 +1701,11 @@ function saveAccountObserve(){
     if (!name){ showToast('请填写账号名称'); return; }
     var item = {
         name:name,
-        link:ins[1].value.trim(),
-        hotVideo:tas[0].value.trim(), hook:ins[2].value.trim(), structure:tas[1].value.trim(),
-        updateFreq:ins[3].value.trim(),
-        learn:tas[2].value.trim(), avoid:tas[3].value.trim(), date:todayStr()
+        updateFreq:ins[1].value.trim(),
+        link:ins[2].value.trim(),
+        hotVideo:tas[0].value.trim(),
+        learn:tas[1].value.trim(),
+        date:todayStr()
     };
     editOrInsert('accountObserve', item);
     ins.forEach(function(i){i.value='';}); tas.forEach(function(t){t.value='';});
@@ -1726,10 +1722,10 @@ function renderAccountObserve(){
     var html='';
     arr.forEach(function(item, i){
         var full = '账号：' + item.name + '\n记录日期：' + item.date +
-            '\n\n🔥 爆款视频要点：\n' + (item.hotVideo||'-') + '\n\n🎣 开头钩子：\n' + (item.hook||'-') +
-            '\n\n🎬 视频结构：\n' + (item.structure||'-') + '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') +
-            '\n\n✅ 我可以借鉴：\n' + (item.learn||'-') + '\n\n❌ 不要照搬：\n' + (item.avoid||'-');
-        if (item.link) full += '\n\n🔗 作品链接：\n' + item.link;
+            '\n\n⏰ 更新节奏：' + (item.updateFreq||'-') +
+            (item.link ? ('\n\n🔗 作品链接：\n' + item.link) : '') +
+            '\n\n🔥 爆款视频要点（结构 / 钩子 / 怎么爆的）：\n' + (item.hotVideo||'-') +
+            '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
         html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
             editAction:"openEdit('accountObserve',"+i+")" });
@@ -3056,7 +3052,8 @@ function renderTodo(){
     var html='';
     sorted.forEach(function(entry){
         var item = entry.it; var i = entry.oi;
-        var full = item.due ? ('📅 截止描述：' + item.due) : '（未设置截止描述）';
+        var c = (item.text || item.title || '').trim();
+        var full = (c ? (c + '\n\n') : '') + (item.due ? ('📅 截止描述：' + item.due) : '（未设置截止描述）');
         var prioCls = item.prio==='高' ? 'prio-high' : (item.prio==='低' ? 'prio-low' : 'prio-mid');
         var sub = item.prio+'优先';
         html += buildCard({ key:'todoList', idx:i, id:'todo-card-'+i, title:item.title||item.text, sub:sub, subClass:prioCls, subRight:true, content:full, showDone:true, editAction:'openTodoModal('+i+')' });
@@ -3578,7 +3575,7 @@ var _editState = { key:null, idx:null };
 var EDIT_CONFIG = {
     accountObserve:{ f:'form-account', t:'编辑对标账号', g:getAccountList, s:setAccountList,
         q:true, // 用 querySelectorAll 按顺序
-        props:['name','link','hook','updateFreq','hotVideo','structure','learn','avoid'] },
+        props:['name','updateFreq','link','hotVideo','learn'] },
     workReview:{ f:'form-work', t:'编辑复盘',
         q:true, props:['title','pubTime','playRate','finishRate','favCount','commentCount','issue'] },
     productList:{ f:'form-product', t:'编辑选品',
