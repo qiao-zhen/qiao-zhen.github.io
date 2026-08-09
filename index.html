@@ -561,6 +561,7 @@
             <div class="group-title" onclick="toggleGroup(6)"><span class="arrow">▼</span><i class="fa fa-wrench"></i><span>通用工具</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="knowledge-base" onclick="showPage('knowledge-base',this)"><span class="ico"><i class="fa fa-book"></i></span><span>知识库笔记</span></div>
+                <div class="sub-item" data-page="favorites" onclick="showPage('favorites',this)"><span class="ico"><i class="fa fa-bookmark"></i></span><span>我的收藏</span></div>
                 <div class="sub-item" data-page="todo-list" onclick="showPage('todo-list',this)"><span class="ico"><i class="fa fa-thumb-tack"></i></span><span>今日待办清单</span></div>
             </div>
         </div>
@@ -594,6 +595,15 @@
                 <span class="filter-chip" data-cat="运营" onclick="filterKnowledge('运营',this)">运营</span>
             </div>
             <div id="knowledgeList"></div>
+        </div>
+
+        <!-- 1.5 我的收藏（理财每日新知 / 运营思路&选题素材库 收藏聚拢） -->
+        <div class="page" id="page-favorites">
+            <div class="page-header">
+                <div class="page-title"><i class="fa fa-bookmark ico"></i> 我的收藏</div>
+            </div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 这里聚拢你在「理财每日新知」和「运营思路&选题素材库」点 🔖 收藏的内容 · 已开启同步则自动存云端，否则仅存本地浏览器</div>
+            <div id="favoritesList"></div>
         </div>
 
         <!-- 2. 运营思路&选题素材库（AI抓取+刷新） -->
@@ -1188,7 +1198,7 @@ function storeSet(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 // 仅同步用户数据 key；AI 内容(data.json)仍由对话「刷新」写入，不在此列。
 // GitHub REST API 本身允许浏览器跨域调用（Access-Control-Allow-Origin: *），
 // 因此可直接从网页 PUT/GET userData.json，省去中间 Worker。
-var SYNC_KEYS = ['todoList','knowledgeBase','accountObserve','workReview','productList','scriptList','promptList','recordList','sideIdeas','evalList','testList','archiveList','assetList','rebalanceList','bodyNoteList','checkinRecords'];
+var SYNC_KEYS = ['todoList','knowledgeBase','accountObserve','workReview','productList','scriptList','promptList','recordList','sideIdeas','evalList','testList','archiveList','assetList','rebalanceList','bodyNoteList','checkinRecords','wb_fav'];
 var GH_OWNER='qiao-zhen', GH_REPO='qiao-zhen.github.io', GH_BRANCH='main', GH_PATH='userData.json';
 function getGithubToken(){ try { return (localStorage.getItem('syncGithubToken')||'').trim(); } catch(e){ return ''; } }
 window.__cloudSkip = false;
@@ -1231,7 +1241,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1700';
+var BUILD_VER = '20260809-1720';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1925,7 +1935,7 @@ function renderOperationIdeas(){
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运到灵感脑洞库</span>'+
-            '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+            '</span><span class="actions"><span data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('ops',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
     truncateAllNews();
@@ -2423,7 +2433,7 @@ function renderFinanceNews(){
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
 '<div class="right"><span class="actions">'+
 '<span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span>'+
-            '</span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+            '</span><span class="actions"><span data-mod="finance" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('finance',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('financeNewsList').innerHTML = html;
     truncateAllNews();
@@ -3479,6 +3489,7 @@ function showPage(pageId, el){
     window.scrollTo(0, 0);
     if (pageId === 'health-checkin') renderCheckinCards();
     if (pageId === 'checkin-history') renderCheckinHistory();
+    if (pageId === 'favorites') renderFavorites();
 }
 
 // ===================== 内容截断 >100字 =====================
@@ -3487,7 +3498,36 @@ function _wbGetSet(k){ try { return JSON.parse(localStorage.getItem(k) || '{}');
 function _wbSetSet(k,o){ try { localStorage.setItem(k, JSON.stringify(o)); } catch(e){} }
 var WB_FAV='wb_fav';
 function isFav(m,t){ return !!_wbGetSet(WB_FAV)[m+'::'+t]; }
-function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var s=_wbGetSet(WB_FAV),key=m+'::'+k; if(s[key]) delete s[key]; else s[key]=1; _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); }
+function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var card = btn.closest('.news-card'); var s=_wbGetSet(WB_FAV), key=m+'::'+k; var wasFav = !!s[key]; if (wasFav){ delete s[key]; } else { var snap = { mod:m, title:(card?card.dataset.title:''), content:(card?card.dataset.content:''), url:(card?card.dataset.url:''), date:(card?card.dataset.date:''), favAt:todayStr() }; s[key]=snap; } _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='index')renderIndexTrack(); renderFavoritesSafe(); try { if (getGithubToken()) scheduleCloudPush(); } catch(e){} showToast(wasFav ? '已取消收藏' : '已收藏 ✓'); }
+
+function renderFavoritesSafe(){ try { renderFavorites(); } catch(e){} }
+function renderFavorites(){
+  var wrap = document.getElementById('favoritesList');
+  if (!wrap) return;
+  var s = _wbGetSet(WB_FAV);
+  var keys = Object.keys(s).filter(function(k){ return s[k]; });
+  if (keys.length === 0){
+    wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-bookmark"></i></div><p>还没有收藏内容</p><p class="sub">在「理财每日新知」或「运营思路&选题素材库」点 🔖 收藏，这里会聚拢所有收藏</p></div>';
+    return;
+  }
+  var html='';
+  keys.forEach(function(key){
+    var f = s[key];
+    if (!f || !f.title) return;
+    var srcLabel = f.mod==='ops' ? '运营思路&选题' : (f.mod==='finance' ? '理财每日新知' : (f.mod||''));
+    html += '<div class="news-card" data-mod="'+escAttr(f.mod||'')+'" data-key="'+escAttr(f.title)+'" data-title="'+escAttr(f.title)+'" data-content="'+escAttr(f.content||'')+'" data-date="'+escAttr(f.date||'')+'" data-url="'+escAttr(f.url||'')+'">'+
+      '<div class="n-title">'+escHtml(f.title)+'<span class="source-tag">'+escHtml(srcLabel)+'</span></div>'+
+      '<div class="n-content"></div>'+
+      '<div class="n-foot"><span>'+(f.favAt?('收藏于 '+escHtml(f.favAt)):'')+'</span>'+
+      '<div class="right">'+
+      (f.url?'<span class="actions"><a href="'+escAttr(f.url)+'" target="_blank" rel="noopener" style="color:#1976D2;cursor:pointer;text-decoration:none;">🔗 打开原文</a></span>':'')+
+      '<span class="actions"><span data-mod="'+escAttr(f.mod||'')+'" data-key="'+escAttr(f.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">🔖 取消收藏</span></span>'+
+      '<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+
+      '</div></div></div>';
+  });
+  wrap.innerHTML = html;
+  truncateAllNews();
+}
 
 function truncateAllNews(){
     document.querySelectorAll('.news-card').forEach(function(card){
@@ -4085,6 +4125,7 @@ document.addEventListener('DOMContentLoaded', function(){
     safe('refreshIndexQuotes', function(){ refreshIndexQuotes(true); });
     safe('renderRebalance', renderRebalance);
     safe('renderBodyNote', renderBodyNote);
+    safe('renderFavorites', renderFavorites);
     safe('loadRemoteData', loadRemoteData);
     safe('showTodoNotify', showTodoNotify);
     cloudHydrate(false);    // 自动联网更新：整份覆盖本机（云端权威，杜绝保底/本地脏数据残留）；保底个人字段已清空，仅在云端完全不可达时短暂显示空白
