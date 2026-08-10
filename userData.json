@@ -272,7 +272,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": 1.0658
+      "netValue": 1.0658,
+      "shares": 2082.7923
     },
     {
       "code": "017641",
@@ -288,7 +289,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": 1.7233
+      "netValue": 1.7233,
+      "shares": 209.1162
     },
     {
       "code": "008701",
@@ -304,7 +306,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": 2.0504
+      "netValue": 2.0504,
+      "shares": 155.3989
     },
     {
       "code": "270042",
@@ -320,7 +323,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": null
+      "netValue": 8.2454,
+      "shares": 20.7303
     },
     {
       "code": "021190",
@@ -336,7 +340,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": null
+      "netValue": 1.4509,
+      "shares": 419.1398
     },
     {
       "code": "021000",
@@ -352,7 +357,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": null
+      "netValue": 2.3098,
+      "shares": 487.553
     },
     {
       "code": "016452",
@@ -368,7 +374,8 @@
         "lastDate": "",
         "acc": 0
       },
-      "netValue": 2.3096
+      "netValue": 2.3096,
+      "shares": 130.1481
     }
   ],
   "rebalanceList": [],
