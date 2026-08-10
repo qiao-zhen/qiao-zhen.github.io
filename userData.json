@@ -284,9 +284,12 @@
       "plan": "",
       "judge": "",
       "dca": {
-        "enabled": false,
-        "daily": 0,
-        "lastDate": "",
+        "enabled": true,
+        "freq": "daily",
+        "daily": 10,
+        "weeklyAmount": 0,
+        "weekday": 2,
+        "lastDate": "2026-08-10",
         "acc": 0
       },
       "netValue": 1.8246,
@@ -318,9 +321,12 @@
       "plan": "",
       "judge": "",
       "dca": {
-        "enabled": false,
+        "enabled": true,
+        "freq": "weekly",
         "daily": 0,
-        "lastDate": "",
+        "weeklyAmount": 100,
+        "weekday": 2,
+        "lastDate": "2026-08-10",
         "acc": 0
       },
       "netValue": 1.4509,
@@ -335,9 +341,12 @@
       "plan": "",
       "judge": "",
       "dca": {
-        "enabled": false,
-        "daily": 0,
-        "lastDate": "",
+        "enabled": true,
+        "freq": "daily",
+        "daily": 20,
+        "weeklyAmount": 0,
+        "weekday": 2,
+        "lastDate": "2026-08-10",
         "acc": 0
       },
       "netValue": 2.5853,
