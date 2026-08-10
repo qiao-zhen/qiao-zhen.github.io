@@ -310,23 +310,6 @@
       "shares": 153.06
     },
     {
-      "code": "270042",
-      "name": "广发纳斯达克100ETF联接(QDII)人民币A",
-      "amount": 170.93,
-      "cost": 170.0,
-      "type": "nasdaq",
-      "plan": "",
-      "judge": "",
-      "dca": {
-        "enabled": false,
-        "daily": 0,
-        "lastDate": "",
-        "acc": 0
-      },
-      "netValue": 8.2454,
-      "shares": 20.7303
-    },
-    {
       "code": "021190",
       "name": "南方亚太精选ETF联接(QDII)C",
       "amount": 608.13,
