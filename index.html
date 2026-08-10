@@ -890,28 +890,18 @@
                 <div class="form-item"><label>基金名称（自动补全，可改）</label><input type="text" id="as-name" placeholder="输入代码后自动识别"></div>
                 <div class="form-row">
                     <div class="form-item"><label>实际持仓金额</label><input type="text" id="as-amount" placeholder="元"></div>
-                    <div class="form-item"><label>基金类型</label>
-                        <select id="as-type">
-                            <option value="gold">黄金</option>
-                            <option value="nasdaq">纳斯达克100</option>
-                            <option value="dividend">红利低波</option>
-                            <option value="qdii">标普500跟踪摩根</option>
-                            <option value="other" selected>其它基金</option>
-                        </select>
-                    </div>
+                    <div class="form-item"><label>类型 / 板块（自动识别）</label><div id="as-type-show" style="padding:8px 10px;background:#F6F0F4;border-radius:8px;color:#5A3346;font-size:13px;min-height:18px;">—</div><input type="hidden" id="as-type"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-item"><label>成本金额（买入总本金·算总收益）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
                     <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="as-plan" placeholder="例如 30%"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-item"><label>买入日期（算份额用）</label><input type="text" id="as-buy" placeholder="yyyy/mm/dd"></div>
+                    <div class="form-item"><label>买入日期（算份额用）</label><input type="date" id="as-buy"></div>
                     <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcSharesNew()"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-item"><label>最新净值（可留空，刷新自动填）</label><input type="text" id="as-net" placeholder="元/份"></div>
-                    <div class="form-item"><label>持有份额（份）</label><input type="text" id="as-share" placeholder="填后市值=净值×份额"></div>
-                </div>
+                <input type="hidden" id="as-net">
+                <input type="hidden" id="as-share">
                 <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
                 <div class="form-btn-row">
                     <button class="save-btn" onclick="saveAsset()"><i class="fa fa-check"></i> 保存持仓</button>
@@ -945,34 +935,22 @@
                     <button class="close" onclick="document.getElementById('editModal').style.display='none'">×</button>
                     <h4>编辑基金</h4>
                     <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
-                    <div class="form-row">
-                        <div class="form-item"><label>最新净值（点「刷新跌涨」自动更新）</label><input type="text" id="ed-net" placeholder="元/份，刷新后自动填"></div>
-                        <div class="form-item"><label>持有份额（份）</label><input type="text" id="ed-share" placeholder="填后市值=净值×份额"></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-item"><label>代码</label><input type="text" id="ed-code" placeholder="6位基金代码"></div>
-                        <div class="form-item"><label>类型</label>
-                            <select id="ed-type">
-                                <option value="gold">黄金</option>
-                                <option value="nasdaq">纳斯达克100</option>
-                                <option value="dividend">红利低波</option>
-                                <option value="qdii">标普500跟踪摩根</option>
-                                <option value="other">其它基金</option>
-                            </select>
-                        </div>
-                    </div>
+                    <div class="form-item"><label>类型 / 板块（自动识别）</label><div id="ed-type-show" style="padding:8px 10px;background:#F6F0F4;border-radius:8px;color:#5A3346;font-size:13px;min-height:18px;">—</div><input type="hidden" id="ed-type"></div>
                     <div class="form-row">
                         <div class="form-item"><label>持仓金额（当前市值）</label><input type="text" id="ed-amount" placeholder="例如 5000"></div>
                         <div class="form-item"><label>成本金额（买入总本金）</label><input type="text" id="ed-cost" placeholder="不填=持仓额，用于算总盈亏"></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-item"><label>买入日期（算份额用）</label><input type="text" id="ed-buy" placeholder="yyyy/mm/dd"></div>
+                        <div class="form-item"><label>买入日期（算份额用）</label><input type="date" id="ed-buy"></div>
                         <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcSharesFromForm()"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
                     </div>
                     <div class="form-row">
                         <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="ed-plan" placeholder="例如 30%"></div>
                         <div class="form-item"><label>超配/低配判断</label><input type="text" id="ed-judge" placeholder="高抛低吸 / 长期持有 等"></div>
                     </div>
+                    <input type="hidden" id="ed-code">
+                    <input type="hidden" id="ed-net">
+                    <input type="hidden" id="ed-share">
                     <button class="save-btn" onclick="saveEditAsset()"><i class="fa fa-check"></i> 保存修改</button>
                 </div>
             </div>
@@ -1256,7 +1234,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260810-2030';
+var BUILD_VER = '20260810-2100';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1671,6 +1649,40 @@ function setSyncStatus(m){ var el = document.getElementById('syncStatus'); if(el
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// 买入日期输入框(type=date)需要 YYYY-MM-DD；老数据可能是 yyyy/mm/dd，统一转换
+function toDateInput(v){ if(!v) return ''; var s=String(v).trim().replace(/\//g,'-'); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; return ''; }
+// 从基金官方名称自动提取「板块/主题」标签（真实不杜撰，仅基于名称本身）
+function detectFundType(name){
+    name = String(name||'');
+    var KW = [
+        ['半导体','半导体'],['芯片','芯片'],['消费电子','消费电子'],['存储','存储芯片'],
+        ['CPU','CPU'],['算力','算力'],['人工智能','人工智能'],['AI','AI'],['机器人','机器人'],
+        ['纳斯达克','纳斯达克'],['纳指','纳斯达克'],['标普','标普500'],['道琼斯','道琼斯'],['恒生','恒生'],
+        ['黄金','黄金'],['红利低波','红利低波'],['红利','红利'],['低波','低波'],
+        ['海外科技','海外科技'],['智能','智能'],['科技','科技'],
+        ['医药','医药'],['医疗','医疗'],['创新药','创新药'],['中药','中药'],
+        ['新能源','新能源'],['光伏','光伏'],['锂电','锂电'],['新能源车','新能源车'],
+        ['军工','军工'],['有色','有色'],['煤炭','煤炭'],['钢铁','钢铁'],['化工','化工'],
+        ['银行','银行'],['证券','证券'],['保险','保险'],['白酒','白酒'],['消费','消费'],
+        ['农业','农业'],['养殖','养殖'],['地产','地产'],['基建','基建'],['建材','建材'],
+        ['传媒','传媒'],['游戏','游戏'],['云计算','云计算'],['5G','5G'],['通信','通信'],
+        ['大数据','大数据'],['区块链','区块链'],['数字经济','数字经济'],
+        ['全球','全球'],['QDII','QDII'],['ETF','ETF'],['指数','指数'],['量化','量化'],
+        ['可转债','可转债'],['债券','债券'],['货币','货币']
+    ];
+    var tags=[];
+    KW.forEach(function(k){ if(name.indexOf(k[0])>=0 && tags.indexOf(k[1])<0) tags.push(k[1]); });
+    // 若同时匹配了「红利低波」与「红利」，去掉更泛的「红利」避免重复
+    if(tags.indexOf('红利低波')>=0 && tags.indexOf('红利')>=0) tags.splice(tags.indexOf('红利'),1);
+    if(tags.indexOf('标普500')>=0 && tags.indexOf('标普')>=0) tags.splice(tags.indexOf('标普'),1);
+    if(tags.indexOf('纳斯达克')>=0 && tags.indexOf('纳指')>=0) tags.splice(tags.indexOf('纳指'),1);
+    return tags.slice(0,4).join(' · ');
+}
+function applyTypeName(name){
+    var t = detectFundType(name);
+    var h = document.getElementById('as-type'); if(h) h.value = t;
+    var s = document.getElementById('as-type-show'); if(s) s.textContent = t || '—';
+}
 
 // 渲染映射：store key -> 对应渲染函数（用于「已完成」/删除后重渲染）
 var RENDER_MAP = {};
@@ -2459,6 +2471,7 @@ window.jsonpgz = function(d){
         saveFundCache();
         var nm = document.getElementById('as-name');
         if (nm && !nm.value.trim() && d.name) nm.value = d.name;
+        if (d.name) applyTypeName(d.name);
         var q = document.getElementById('as-quote');
         if (q){
             var nav = d.gsz || d.dwjz;
@@ -2475,7 +2488,7 @@ function autoFillFundName(){
     if (!/^\d{6}$/.test(code)) return;
     var nm = document.getElementById('as-name');
     if (fundQuote[code] && fundQuote[code].name && !nm.value.trim()){
-        nm.value = fundQuote[code].name; return;
+        nm.value = fundQuote[code].name; applyTypeName(fundQuote[code].name); return;
     }
     if (_autoFillTimer) clearTimeout(_autoFillTimer);
     var triedFallback = false;
@@ -2491,6 +2504,7 @@ function autoFillFundName(){
                 if(!fundQuote[code]) fundQuote[code]={};
                 fundQuote[code].name=fS_name; fundQuote[code].fundcode=code;
                 saveFundCache();
+                applyTypeName(fS_name);
             }else if(!nm.value.trim()){
                 showToast('自动识别失败，可手动填写名称');
             }
@@ -2500,7 +2514,7 @@ function autoFillFundName(){
     }
     var s=document.createElement('script');
     s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
-    s.onload=function(){ s.remove(); if(typeof fS_name!=='undefined' && fS_name){ if(!nm.value.trim()) nm.value=fS_name; if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=fS_name; fundQuote[code].fundcode=code; saveFundCache(); } };
+    s.onload=function(){ s.remove(); if(typeof fS_name!=='undefined' && fS_name){ if(!nm.value.trim()) nm.value=fS_name; if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=fS_name; fundQuote[code].fundcode=code; saveFundCache(); applyTypeName(fS_name); } };
     s.onerror=function(){ s.remove(); showToast('自动识别失败，可手动填写名称'); };
     document.body.appendChild(s);
     _autoFillTimer = setTimeout(function(){ if(!nm.value.trim()&&!triedFallback) doFallback(); }, 4000);
@@ -2612,7 +2626,7 @@ function renderAsset(){
         var tpsSign = totalProfitSum>0 ? '+' : '';
         sumWrap.innerHTML = '总持仓 <b>¥'+fmt(total)+'</b> · 今日总收益 <b class="'+tpCls+'">'+tpSign+fmt(todayProfit)+'</b>'
             + ' · 累计总收益 <b class="'+tpsCls+'">'+tpsSign+fmt(totalProfitSum)+'</b>'
-            + (enabledDaily>0 ? (' · 今日定投 <b>¥'+fmt(enabledDaily)+'</b> · 定投累计 <b>¥'+fmt(dcaAccTotal)+'</b>') : '')
+            + (enabledDaily>0 ? (' · 今日定投 <b>¥'+fmt(enabledDaily)+'</b>') : '')
             + (arr.length>0 ? (' · '+arr.length+' 只') : '');
     }
     var wrap = document.getElementById('assetList');
@@ -2643,7 +2657,7 @@ function renderAsset(){
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
         if (item.buyDate) subParts.push('买入 '+item.buyDate);
-        if (item.dca && (parseFloat(item.dca.daily)||0)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天 · 累计 ¥'+fmt(parseFloat(item.dca.acc)||0));
+        if (item.dca && (parseFloat(item.dca.daily)||0)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天');
         var sub = subParts.join(' · ');
         var nvTxt = (item.netValue!==undefined && item.netValue!=='' && parseFloat(item.netValue)>0) ? fmt(item.netValue) : '—';
         var shTxt = (item.shares!==undefined && item.shares!=='' && parseFloat(item.shares)>0) ? fmt(item.shares) : '—';
@@ -2745,25 +2759,30 @@ function saveDCAFromModal(){
 function openEditAsset(idx){
     _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
+    var ty = it.name ? detectFundType(it.name) : (it.type||'');
     document.getElementById('ed-name').value = it.name||'';
     document.getElementById('ed-code').value = it.code||'';
-    document.getElementById('ed-type').value = it.type||'other';
+    document.getElementById('ed-type').value = ty||'';
+    var ts = document.getElementById('ed-type-show'); if(ts) ts.textContent = ty || '—';
     document.getElementById('ed-amount').value = it.amount||'';
     document.getElementById('ed-cost').value = (it.cost!==undefined && it.cost!=='') ? it.cost : (it.amount||'');
     document.getElementById('ed-plan').value = it.plan||'';
     document.getElementById('ed-judge').value = it.judge||'';
     document.getElementById('ed-net').value = (it.netValue!==undefined && it.netValue!=='') ? it.netValue : '';
     document.getElementById('ed-share').value = (it.shares!==undefined && it.shares!=='') ? it.shares : '';
-    document.getElementById('ed-buy').value = (it.buyDate!==undefined && it.buyDate!=='') ? it.buyDate : '';
-    // 净值/跌涨已在卡片展示，编辑弹窗不再重复显示
+    document.getElementById('ed-buy').value = toDateInput(it.buyDate);
+    // 净值/份额/代码由系统自动维护，编辑弹窗不再重复显示
     document.getElementById('editModal').style.display='flex';
 }
 function openEditAssetNew(code, name){
     var arr = storeGet('assetList', []);
     for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); openEditAsset(i); return; } }
     _assetNewMode = true; _assetMenuIdx = -1;
+    var ty = name ? detectFundType(name) : '';
     document.getElementById('ed-name').value = name||'';
     document.getElementById('ed-code').value = code||'';
+    document.getElementById('ed-type').value = ty||'';
+    var ts = document.getElementById('ed-type-show'); if(ts) ts.textContent = ty || '—';
     document.getElementById('ed-net').value = '';
     document.getElementById('ed-share').value = '';
     document.getElementById('ed-amount').value = '';
@@ -3051,7 +3070,7 @@ function doQuickAdd(code){
     var arr = storeGet('assetList', []);
     for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); document.getElementById('quickCode').value=''; return; } }
     var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || ('基金 '+code);
-    arr.push({ code:code, name:name, amount:0, cost:0, type:'other', plan:'', judge:'', dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()} });
+    arr.push({ code:code, name:name, amount:0, cost:0, type:detectFundType(name), plan:'', judge:'', dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()} });
     storeSet('assetList', arr);
     document.getElementById('quickCode').value='';
     renderAsset();
@@ -4062,6 +4081,7 @@ function toggleForm(formId){
     ov.style.display = willShow ? 'flex' : 'none';
     var f = document.getElementById(formId);
     if (f){ if (willShow) f.classList.remove('hidden'); else f.classList.add('hidden'); }
+    if (willShow && formId==='form-asset'){ var ab=document.getElementById('as-buy'); if(ab && !ab.value) ab.value = todayStr(); }
 }
 function hideAllForms(){
     document.querySelectorAll('.form-modal').forEach(function(ov){ ov.style.display = 'none'; });
