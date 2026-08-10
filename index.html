@@ -924,7 +924,24 @@
                     <button class="close" onclick="document.getElementById('dcaModal').style.display='none'">×</button>
                     <h4 id="dcaTitle">定投设置</h4>
                     <div class="form-item"><label>基金</label><div id="dcaName" style="font-size:14px;color:#5A3346;"></div></div>
-                    <div class="form-item"><label>每日定投金额（元，0 = 关闭）</label><input type="number" id="dcaInput" min="0" step="1" placeholder="例如 50"></div>
+                    <div class="form-item"><label>定投频率</label>
+                        <select id="dcaFreq" onchange="onDcaFreqChange()">
+                            <option value="daily">每日</option>
+                            <option value="weekly">每周</option>
+                        </select>
+                    </div>
+                    <div class="form-item" id="dcaDailyWrap"><label>每日定投金额（元，0 = 关闭）</label><input type="number" id="dcaInput" min="0" step="1" placeholder="例如 50"></div>
+                    <div class="form-item" id="dcaWeeklyWrap" style="display:none">
+                        <label>每周定投（选星期几 + 金额）</label>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <select id="dcaWeekday">
+                                <option value="0">周日</option><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option><option value="6">周六</option>
+                            </select>
+                            <span>定投</span>
+                            <input type="number" id="dcaWeeklyInput" min="0" step="1" placeholder="金额" style="width:90px;">
+                            <span>元</span>
+                        </div>
+                    </div>
                     <div class="form-item"><label>当前状态</label><div id="dcaState" style="font-size:13px;color:#8A6A78;"></div></div>
                     <button class="save-btn" onclick="saveDCAFromModal()"><i class="fa fa-check"></i> 保存定投</button>
                 </div>
@@ -1234,7 +1251,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260810-2100';
+var BUILD_VER = '20260810-2215';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2526,6 +2543,10 @@ function fmt(n){ n = parseFloat(n)||0; return n.toLocaleString('zh-CN',{minimumF
 function getMV(it){ var nv=parseFloat(it.netValue)||0, sh=parseFloat(it.shares)||0; if(nv>0 && sh>0) return nv*sh; return parseFloat(it.amount)||0; }
 function getCost(it){ var c=it.cost; if(c!==undefined && c!==null && c!=='') return parseFloat(c)||0; return getMV(it); }
 function dateDiff(a,b){ try{ var x=new Date(a.replace(/-/g,'/')), y=new Date(b.replace(/-/g,'/')); return Math.max(0, Math.round((y-x)/86400000)); }catch(e){ return 0; } }
+function addDays(s, n){ try{ var d=new Date(String(s).replace(/-/g,'/')); d.setDate(d.getDate()+n); var mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return d.getFullYear()+'-'+mm+'-'+dd; }catch(e){ return s; } }
+function fundSettleDays(type){ if(type==='qdii'||type==='nasdaq') return 2; return 0; } // QDII T+2 延期，A股/黄金 T+0 扣款
+var WEEK_CN = ['日','一','二','三','四','五','六'];
+function dcaBadgeText(d){ if(!d||!d.enabled) return ''; var amt = (d.freq==='weekly') ? (parseFloat(d.weeklyAmount)||0) : (parseFloat(d.daily)||0); if(amt<=0) return ''; if(d.freq==='weekly') return '定投 每周'+WEEK_CN[(d.weekday||0)]+' ¥'+fmt(amt); return '定投 每日 ¥'+fmt(amt); }
 
 function saveAsset(){
     var code = document.getElementById('as-code').value.trim();
@@ -2559,25 +2580,32 @@ function saveAsset(){
     renderAsset();
 }
 
-// 定投：每次打开页面时，按"距上次入账的天数"自动累加
+// 定投：按频率(每日/每周X)自动累加；尊重 15:00 分界与 QDII T+2 延期
 function runDCA(){
-    var arr = storeGet('assetList'); var changed=false; var today=todayStr();
+    var arr = storeGet('assetList'); var changed=false;
+    var now = new Date(); var today=todayStr(); var h=now.getHours();
     arr.forEach(function(it){
         var d = it.dca;
-        if (d && d.enabled && (parseFloat(d.daily)>0)){
-            if (!d.lastDate) d.lastDate = today;
-            if (d.lastDate !== today){
-                var days = dateDiff(d.lastDate, today);
-                if (days>0){
-                    var add = days * (parseFloat(d.daily)||0);
-                    it.amount = (parseFloat(it.amount)||0) + add;
-                    var _nv = parseFloat(it.netValue)||0;
-                    if (_nv>0){ it.shares = (parseFloat(it.shares)||0) + add/_nv; }
-                    d.acc = (parseFloat(d.acc)||0) + add;
-                    d.lastDate = today; changed=true;
-                }
-            }
+        if (!d || !d.enabled) return;
+        var amt = (d.freq==='weekly') ? (parseFloat(d.weeklyAmount)||0) : (parseFloat(d.daily)||0);
+        if (amt<=0) return;
+        if (!d.lastDate) d.lastDate = today;
+        var settle = fundSettleDays(it.type);
+        var cursor = d.lastDate;
+        while (dateDiff(cursor, today) > 0){
+            var next = addDays(cursor, 1);
+            if (d.freq==='weekly' && (new Date(next.replace(/-/g,'/')).getDay() !== (d.weekday||0))){ cursor = next; continue; }
+            var postDay = addDays(next, settle);
+            if (next===today && h>=15) postDay = addDays(postDay, 1); // 今日 15:00 后操作 → 顺延一天
+            if (dateDiff(postDay, today) >= 0){ // 已到账才记账；QDII 未到账则保留待下次
+                it.amount = (parseFloat(it.amount)||0) + amt;
+                var _nv = parseFloat(it.netValue)||0;
+                if (_nv>0){ it.shares = (parseFloat(it.shares)||0) + amt/_nv; }
+                d.acc = (parseFloat(d.acc)||0) + amt;
+                changed=true; cursor = next;
+            } else { break; }
         }
+        d.lastDate = cursor;
     });
     if (changed) storeSet('assetList', arr);
 }
@@ -2657,7 +2685,7 @@ function renderAsset(){
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
         if (item.buyDate) subParts.push('买入 '+item.buyDate);
-        if (item.dca && (parseFloat(item.dca.daily)||0)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天');
+        var _dcaBadge = dcaBadgeText(item.dca); if (_dcaBadge) subParts.push(_dcaBadge);
         var sub = subParts.join(' · ');
         var nvTxt = (item.netValue!==undefined && item.netValue!=='' && parseFloat(item.netValue)>0) ? fmt(item.netValue) : '—';
         var shTxt = (item.shares!==undefined && item.shares!=='' && parseFloat(item.shares)>0) ? fmt(item.shares) : '—';
@@ -2733,26 +2761,39 @@ function openDCA(idx){
     _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     document.getElementById('dcaName').textContent = it.name + (it.code?('（'+it.code+'）'):'');
-    document.getElementById('dcaInput').value = (it.dca && it.dca.daily) || 0;
-    document.getElementById('dcaState').textContent = (it.dca && it.dca.enabled) ? ('已开启，累计入账 ¥'+fmt(it.dca.acc||0)) : '未开启';
+    var d = it.dca || {enabled:false, freq:'daily', daily:0, weeklyAmount:0, weekday:2, lastDate:'', acc:0};
+    document.getElementById('dcaFreq').value = d.freq||'daily';
+    document.getElementById('dcaInput').value = (parseFloat(d.daily)||0);
+    document.getElementById('dcaWeekday').value = (d.weekday!==undefined && d.weekday!==null) ? String(d.weekday) : '2';
+    document.getElementById('dcaWeeklyInput').value = (parseFloat(d.weeklyAmount)||0);
+    onDcaFreqChange();
+    document.getElementById('dcaState').textContent = (d && d.enabled) ? ('已开启，累计入账 ¥'+fmt(d.acc||0)) : '未开启';
     document.getElementById('dcaModal').style.display='flex';
+}
+function onDcaFreqChange(){
+    var f = document.getElementById('dcaFreq').value;
+    document.getElementById('dcaDailyWrap').style.display = (f==='daily') ? '' : 'none';
+    document.getElementById('dcaWeeklyWrap').style.display = (f==='weekly') ? '' : 'none';
 }
 function saveDCAFromModal(){
     var idx = _assetMenuIdx; if(idx<0) return;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
-    if (!it.dca) it.dca={enabled:false, daily:0, lastDate:todayStr(), acc:0};
-    var v = parseFloat(document.getElementById('dcaInput').value)||0;
-    it.dca.daily = v;
-    if (v>0){
+    if (!it.dca) it.dca={enabled:false, freq:'daily', daily:0, weeklyAmount:0, weekday:2, lastDate:todayStr(), acc:0};
+    var freq = document.getElementById('dcaFreq').value;
+    it.dca.freq = freq;
+    var amt = (freq==='weekly') ? (parseFloat(document.getElementById('dcaWeeklyInput').value)||0) : (parseFloat(document.getElementById('dcaInput').value)||0);
+    if (freq==='weekly'){ it.dca.weeklyAmount = amt; it.dca.daily = 0; it.dca.weekday = parseInt(document.getElementById('dcaWeekday').value,10)||0; }
+    else { it.dca.daily = amt; it.dca.weeklyAmount = 0; }
+    if (amt>0){
         it.dca.enabled = true;
-        // 关键修复：开启/调整定投时，把入账时钟重置为「今天」，避免从建仓日回溯补记多天金额
-        it.dca.lastDate = todayStr();
+        it.dca.lastDate = todayStr(); // 重置入账时钟为今天，避免从建仓日回溯补记
     } else {
         it.dca.enabled = false;
     }
     storeSet('assetList', arr);
     document.getElementById('dcaModal').style.display='none';
-    showToast(v>0?('已设定每日定投 ¥'+fmt(v)+'（从今天起累计）'):'已关闭定投');
+    var lbl = (freq==='weekly') ? ('每周'+WEEK_CN[it.dca.weekday]+' ¥'+fmt(amt)) : ('每日 ¥'+fmt(amt));
+    showToast(amt>0?('已设定'+lbl+'（从今天起累计）'):'已关闭定投');
     renderAsset();
 }
 // ===== 编辑弹窗 =====
