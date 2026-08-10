@@ -1251,7 +1251,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260810-2215';
+var BUILD_VER = '20260810-2240';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1674,7 +1674,7 @@ function detectFundType(name){
     var KW = [
         ['半导体','半导体'],['芯片','芯片'],['消费电子','消费电子'],['存储','存储芯片'],
         ['CPU','CPU'],['算力','算力'],['人工智能','人工智能'],['AI','AI'],['机器人','机器人'],
-        ['纳斯达克','纳斯达克'],['纳指','纳斯达克'],['标普','标普500'],['道琼斯','道琼斯'],['恒生','恒生'],
+        ['纳斯达克','纳斯达克'],['纳指','纳斯达克'],['标普','标普500跟踪摩根'],['亚太','亚太精选'],['道琼斯','道琼斯'],['恒生','恒生'],
         ['黄金','黄金'],['红利低波','红利低波'],['红利','红利'],['低波','低波'],
         ['海外科技','海外科技'],['智能','智能'],['科技','科技'],
         ['医药','医药'],['医疗','医疗'],['创新药','创新药'],['中药','中药'],
@@ -1691,13 +1691,23 @@ function detectFundType(name){
     KW.forEach(function(k){ if(name.indexOf(k[0])>=0 && tags.indexOf(k[1])<0) tags.push(k[1]); });
     // 若同时匹配了「红利低波」与「红利」，去掉更泛的「红利」避免重复
     if(tags.indexOf('红利低波')>=0 && tags.indexOf('红利')>=0) tags.splice(tags.indexOf('红利'),1);
-    if(tags.indexOf('标普500')>=0 && tags.indexOf('标普')>=0) tags.splice(tags.indexOf('标普'),1);
+    if(tags.indexOf('红利低波')>=0 && tags.indexOf('低波')>=0) tags.splice(tags.indexOf('低波'),1);
     if(tags.indexOf('纳斯达克')>=0 && tags.indexOf('纳指')>=0) tags.splice(tags.indexOf('纳指'),1);
     return tags.slice(0,4).join(' · ');
 }
+function machineType(name){
+    name = String(name||'');
+    if(name.indexOf('纳斯达克')>=0 || name.indexOf('纳指')>=0) return 'nasdaq';
+    if(name.indexOf('标普')>=0) return 'qdii';
+    if(name.indexOf('QDII')>=0) return 'qdii';
+    if(name.indexOf('黄金')>=0) return 'gold';
+    if(name.indexOf('红利')>=0) return 'dividend';
+    return 'other';
+}
 function applyTypeName(name){
     var t = detectFundType(name);
-    var h = document.getElementById('as-type'); if(h) h.value = t;
+    var m = machineType(name);
+    var h = document.getElementById('as-type'); if(h) h.value = m;
     var s = document.getElementById('as-type-show'); if(s) s.textContent = t || '—';
 }
 
@@ -2659,7 +2669,7 @@ function renderAsset(){
     }
     var wrap = document.getElementById('assetList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">在下方输入6位基金代码识别导入</p></div>'; return; }
-    var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'标普500跟踪摩根', other:'其它基金'};
+    // 类型展示改为按基金名称 detectFundType 实时识别，不再用写死映射（避免 QDII 全显示成标普500跟踪摩根）
     var html='';
     arr.forEach(function(item, i){
         var amt = getMV(item);
@@ -2682,7 +2692,7 @@ function renderAsset(){
         var tpTxt = hasCost ? (tpSign2+fmt(totalProfit)) : '—';
         var subParts = [];
         if (item.code) subParts.push(item.code);
-        var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
+        var typeTxt = detectFundType(item.name); if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
         if (item.buyDate) subParts.push('买入 '+item.buyDate);
         var _dcaBadge = dcaBadgeText(item.dca); if (_dcaBadge) subParts.push(_dcaBadge);
@@ -2801,9 +2811,10 @@ function openEditAsset(idx){
     _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     var ty = it.name ? detectFundType(it.name) : (it.type||'');
+    var mty = it.name ? machineType(it.name) : (it.type||'');
     document.getElementById('ed-name').value = it.name||'';
     document.getElementById('ed-code').value = it.code||'';
-    document.getElementById('ed-type').value = ty||'';
+    document.getElementById('ed-type').value = mty||'';
     var ts = document.getElementById('ed-type-show'); if(ts) ts.textContent = ty || '—';
     document.getElementById('ed-amount').value = it.amount||'';
     document.getElementById('ed-cost').value = (it.cost!==undefined && it.cost!=='') ? it.cost : (it.amount||'');
@@ -2820,9 +2831,10 @@ function openEditAssetNew(code, name){
     for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); openEditAsset(i); return; } }
     _assetNewMode = true; _assetMenuIdx = -1;
     var ty = name ? detectFundType(name) : '';
+    var mty = name ? machineType(name) : '';
     document.getElementById('ed-name').value = name||'';
     document.getElementById('ed-code').value = code||'';
-    document.getElementById('ed-type').value = ty||'';
+    document.getElementById('ed-type').value = mty||'';
     var ts = document.getElementById('ed-type-show'); if(ts) ts.textContent = ty || '—';
     document.getElementById('ed-net').value = '';
     document.getElementById('ed-share').value = '';
