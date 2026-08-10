@@ -395,7 +395,7 @@
 .asset-name{font-size:15px;font-weight:600;color:#5A3346;line-height:1.2;flex:1;min-width:0;}
 .asset-sub{font-size:11px;color:#B090A0;margin-top:2px;line-height:1.3;word-break:break-all;}
 .asset-amt{font-size:16px;font-weight:700;color:#E91E63;white-space:nowrap;}
-.asset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;margin-top:10px;}
+.asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px;margin-top:10px;}
 .asset-cell{font-size:12px;color:#7A5A68;text-align:center;}
 .asset-cell .lab{color:#A98597;font-size:11px;display:block;margin-bottom:2px;}
 .asset-cell .val{font-weight:600;color:#5A3346;font-size:13px;}
@@ -904,6 +904,14 @@
                     <div class="form-item"><label>成本金额（买入总本金·算总收益）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
                     <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="as-plan" placeholder="例如 30%"></div>
                 </div>
+                <div class="form-row">
+                    <div class="form-item"><label>买入日期（算份额用）</label><input type="text" id="as-buy" placeholder="yyyy/mm/dd"></div>
+                    <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcSharesNew()"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-item"><label>最新净值（可留空，刷新自动填）</label><input type="text" id="as-net" placeholder="元/份"></div>
+                    <div class="form-item"><label>持有份额（份）</label><input type="text" id="as-share" placeholder="填后市值=净值×份额"></div>
+                </div>
                 <div class="form-item"><label>超配 / 低配判断</label><input type="text" id="as-judge" placeholder="回话时帮你对比计算"></div>
                 <div class="form-btn-row">
                     <button class="save-btn" onclick="saveAsset()"><i class="fa fa-check"></i> 保存持仓</button>
@@ -939,6 +947,10 @@
                     <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
                     <div id="ed-quote-hint" style="display:none;margin:-6px 0 6px;font-size:12px;color:#E91E63;"></div>
                     <div class="form-row">
+                        <div class="form-item"><label>最新净值（点「刷新跌涨」自动更新）</label><input type="text" id="ed-net" placeholder="元/份，刷新后自动填"></div>
+                        <div class="form-item"><label>持有份额（份）</label><input type="text" id="ed-share" placeholder="填后市值=净值×份额"></div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-item"><label>代码</label><input type="text" id="ed-code" placeholder="6位基金代码"></div>
                         <div class="form-item"><label>类型</label>
                             <select id="ed-type">
@@ -953,6 +965,10 @@
                     <div class="form-row">
                         <div class="form-item"><label>持仓金额（当前市值）</label><input type="text" id="ed-amount" placeholder="例如 5000"></div>
                         <div class="form-item"><label>成本金额（买入总本金）</label><input type="text" id="ed-cost" placeholder="不填=持仓额，用于算总盈亏"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-item"><label>买入日期（算份额用）</label><input type="text" id="ed-buy" placeholder="yyyy/mm/dd"></div>
+                        <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcShares(_assetMenuIdx)"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
                     </div>
                     <div class="form-row">
                         <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="ed-plan" placeholder="例如 30%"></div>
@@ -1241,7 +1257,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260809-1750';
+var BUILD_VER = '20260810-2001';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2493,6 +2509,9 @@ function autoFillFundName(){
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ hideAllForms(); } });
 
 function fmt(n){ n = parseFloat(n)||0; return n.toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+// 市值：填了「净值×份额」就用净值×份额（刷新时净值自动更新，市值/总收益会跟着变）；否则回退手填金额
+function getMV(it){ var nv=parseFloat(it.netValue)||0, sh=parseFloat(it.shares)||0; if(nv>0 && sh>0) return nv*sh; return parseFloat(it.amount)||0; }
+function getCost(it){ var c=it.cost; if(c!==undefined && c!==null && c!=='') return parseFloat(c)||0; return getMV(it); }
 function dateDiff(a,b){ try{ var x=new Date(a.replace(/-/g,'/')), y=new Date(b.replace(/-/g,'/')); return Math.max(0, Math.round((y-x)/86400000)); }catch(e){ return 0; } }
 
 function saveAsset(){
@@ -2504,18 +2523,24 @@ function saveAsset(){
     var type = document.getElementById('as-type').value.trim();
     var costRaw = document.getElementById('as-cost').value.trim();
     var cost = costRaw==='' ? amount : (parseFloat(costRaw.replace(/[, ¥￥元]/g,''))||0);
+    var _netRaw = document.getElementById('as-net').value.trim();
+    var _net = _netRaw==='' ? '' : (parseFloat(_netRaw.replace(/[, ¥￥元]/g,''))||0);
+    var _shRaw = document.getElementById('as-share').value.trim();
+    var _sh = _shRaw==='' ? '' : (parseFloat(_shRaw.replace(/[, ¥￥元]/g,''))||0);
     var arr = storeGet('assetList');
     arr.unshift({
         name:name, code:code,
         type:type, cost:cost,
         amount:amount,
+        netValue:_net, shares:_sh,
+        buyDate:document.getElementById('as-buy').value.trim(),
         plan:document.getElementById('as-plan').value.trim(),
         judge:document.getElementById('as-judge').value.trim(),
         dca:{enabled:false, daily:0, lastDate:todayStr(), acc:0},
         date:todayStr(), done:false
     });
     storeSet('assetList', arr);
-    ['as-name','as-code','as-amount','as-plan','as-judge','as-type','as-cost'].forEach(function(id){ document.getElementById(id).value=''; });
+    ['as-name','as-code','as-amount','as-plan','as-judge','as-type','as-cost','as-net','as-share'].forEach(function(id){ document.getElementById(id).value=''; });
     toggleForm('form-asset');
     showToast('持仓已保存');
     renderAsset();
@@ -2533,6 +2558,8 @@ function runDCA(){
                 if (days>0){
                     var add = days * (parseFloat(d.daily)||0);
                     it.amount = (parseFloat(it.amount)||0) + add;
+                    var _nv = parseFloat(it.netValue)||0;
+                    if (_nv>0){ it.shares = (parseFloat(it.shares)||0) + add/_nv; }
                     d.acc = (parseFloat(d.acc)||0) + add;
                     d.lastDate = today; changed=true;
                 }
@@ -2565,7 +2592,7 @@ function renderAsset(){
         arr = __CLOUD_FALLBACK.assetList;
       }
     }
-    var total = 0; arr.forEach(function(it){ total += (parseFloat(it.amount)||0); });
+    var total = 0; arr.forEach(function(it){ total += getMV(it); });
     var enabledDaily = 0; var dcaAccTotal = 0;
     arr.forEach(function(it){ if(it.dca && (parseFloat(it.dca.daily)||0)>0){ enabledDaily += (parseFloat(it.dca.daily)||0); dcaAccTotal += (parseFloat(it.dca.acc)||0); } });
     // 今日总收益
@@ -2573,11 +2600,11 @@ function renderAsset(){
     arr.forEach(function(it){
         var q = it.code ? fundQuote[it.code] : null;
         if (q && q.gszzl !== undefined && q.gszzl !== null){
-            todayProfit += (parseFloat(it.amount)||0) * (parseFloat(q.gszzl)||0) / 100;
+            todayProfit += getMV(it) * (parseFloat(q.gszzl)||0) / 100;
         }
     });
     var totalProfitSum = 0;
-    arr.forEach(function(it){ var c=(it.cost!==undefined && it.cost!==null && it.cost!=='')?parseFloat(it.cost):(parseFloat(it.amount)||0); totalProfitSum += (parseFloat(it.amount)||0) - c; });
+    arr.forEach(function(it){ var c=getCost(it); totalProfitSum += getMV(it) - c; });
     var sumWrap = document.getElementById('assetSummary');
     if (sumWrap){
         var tpCls = todayProfit>0 ? 'today-profit' : (todayProfit<0 ? 'today-profit neg' : 'today-profit zero');
@@ -2594,7 +2621,7 @@ function renderAsset(){
     var TYPE_TXT = {gold:'黄金', nasdaq:'纳斯达克100', dividend:'红利低波', qdii:'标普500跟踪摩根', other:'其它基金'};
     var html='';
     arr.forEach(function(item, i){
-        var amt = parseFloat(item.amount)||0;
+        var amt = getMV(item);
         var pct = total>0 ? (amt/total*100) : 0;
         var hasCost = (item.cost!==undefined && item.cost!==null && item.cost!=='');
         var cost = hasCost ? parseFloat(item.cost) : amt;
@@ -2616,8 +2643,11 @@ function renderAsset(){
         if (item.code) subParts.push(item.code);
         var typeTxt = TYPE_TXT[item.type]||''; if (typeTxt) subParts.push(typeTxt);
         if (item.judge) subParts.push(item.judge);
+        if (item.buyDate) subParts.push('买入 '+item.buyDate);
         if (item.dca && (parseFloat(item.dca.daily)||0)>0) subParts.push('定投 ¥'+fmt(item.dca.daily)+'/天 · 累计 ¥'+fmt(parseFloat(item.dca.acc)||0));
         var sub = subParts.join(' · ');
+        var nvTxt = (item.netValue!==undefined && item.netValue!=='' && parseFloat(item.netValue)>0) ? fmt(item.netValue) : '—';
+        var shTxt = (item.shares!==undefined && item.shares!=='' && parseFloat(item.shares)>0) ? fmt(item.shares) : '—';
         html += '<div class="asset-row" data-idx="'+i+'">'
             + '<div class="asset-top"><span class="asset-name">'+escHtml(item.name)+'</span>'
             + '<span class="asset-amt">¥'+fmt(amt)+'</span></div>'
@@ -2626,6 +2656,8 @@ function renderAsset(){
             +   '<div class="asset-cell"><span class="lab">跌涨</span><span class="val '+zCls+'">'+zTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">今日收益</span><span class="val '+todayCls+'">'+todayTxt+'</span></div>'
             +   '<div class="asset-cell"'+((!hasCost)?' title="未记录成本金额，无法计算总收益（编辑持仓填写成本即可）"':'')+'><span class="lab">总收益</span><span class="val '+tpCls2+'">'+tpTxt+'</span></div>'
+            +   '<div class="asset-cell"><span class="lab">净值</span><span class="val">'+nvTxt+'</span></div>'
+            +   '<div class="asset-cell"><span class="lab">份额</span><span class="val">'+shTxt+'</span></div>'
             +   '<div class="asset-cell"><span class="lab">占比</span><span class="val">'+pct.toFixed(1)+'%</span></div>'
             + '</div>'
             + '<div class="asset-foot-line">'
@@ -2720,6 +2752,9 @@ function openEditAsset(idx){
     document.getElementById('ed-cost').value = (it.cost!==undefined && it.cost!=='') ? it.cost : (it.amount||'');
     document.getElementById('ed-plan').value = it.plan||'';
     document.getElementById('ed-judge').value = it.judge||'';
+    document.getElementById('ed-net').value = (it.netValue!==undefined && it.netValue!=='') ? it.netValue : '';
+    document.getElementById('ed-share').value = (it.shares!==undefined && it.shares!=='') ? it.shares : '';
+    document.getElementById('ed-buy').value = (it.buyDate!==undefined && it.buyDate!=='') ? it.buyDate : '';
     // 显示最新净值（从缓存或接口）
     var qh = document.getElementById('ed-quote-hint');
     if (it.code && fundQuote[it.code]){
@@ -2743,6 +2778,11 @@ function saveEditAsset(){
     it.cost = costRaw==='' ? it.amount : (parseFloat(costRaw.replace(/[, ¥￥元]/g,''))||0);
     it.plan = document.getElementById('ed-plan').value.trim();
     it.judge = document.getElementById('ed-judge').value.trim();
+    var _nv = document.getElementById('ed-net').value.trim();
+    it.netValue = _nv==='' ? '' : (parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0);
+    var _sh = document.getElementById('ed-share').value.trim();
+    it.shares = _sh==='' ? '' : (parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0);
+    it.buyDate = document.getElementById('ed-buy').value.trim();
     storeSet('assetList', arr);
     document.getElementById('editModal').style.display='none';
     showToast('已更新');
@@ -2777,6 +2817,73 @@ function showQuickCodeInput(){
 function fmtDateValue(ms){
     try { var d=new Date(ms); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); } catch(e){ return ''; }
 }
+function navAtDate(trend, dateStr){
+    try{
+        var d = new Date(String(dateStr).replace(/-/g,'/'));
+        if (isNaN(d.getTime())) return 0;
+        var target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        var best=null;
+        for (var i=0;i<trend.length;i++){
+            var t = new Date(trend[i].x).getTime();
+            var td = new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+            if (td <= target) best = trend[i]; else break;
+        }
+        if (best && best.y) return parseFloat(best.y);
+    }catch(e){}
+    return 0;
+}
+// 买入日自动算份额：金额/买入日净值 → 写回 shares；并补最新净值
+function autoSharesFromTrend(code, trend){
+    try{
+        var arr = storeGet('assetList'); var changed=false;
+        arr.forEach(function(it){
+            if (it.code===code && it.buyDate && !it.shares && getCost(it)>0){
+                var nav = navAtDate(trend, it.buyDate);
+                if (nav>0){
+                    it.shares = getCost(it) / nav;
+                    if (fundQuote[code] && fundQuote[code].dwjz) it.netValue = parseFloat(fundQuote[code].dwjz)||0;
+                    changed=true;
+                }
+            }
+        });
+        if (changed) storeSet('assetList', arr);
+    }catch(e){}
+}
+function autoCalcShares(idx){
+    var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
+    if (!it.code){ showToast('请先填写基金代码'); return; }
+    if (!it.buyDate){ showToast('请先在「买入日期」填买入那天'); return; }
+    showToast('正在获取净值历史…');
+    var s=document.createElement('script');
+    s.src='https://fund.eastmoney.com/pingzhongdata/'+it.code+'.js';
+    s.onload=function(){
+        if (fillQuoteFromPingzhong(it.code)){ openEditAsset(idx); showToast('已按买入日净值自动算出份额'); }
+        else showToast('未获取到该基金净值历史');
+        s.remove();
+    };
+    s.onerror=function(){ s.remove(); showToast('净值接口失败，请检查网络'); };
+    document.body.appendChild(s);
+}
+function autoCalcSharesNew(){
+    var code=document.getElementById('as-code').value.trim();
+    var buy=document.getElementById('as-buy').value.trim();
+    if(!code||!buy){ showToast('请先填基金代码和买入日期'); return; }
+    var costRaw=document.getElementById('as-cost').value.trim();
+    var amt=parseFloat((document.getElementById('as-amount').value||'0').replace(/[, ¥￥元]/g,''))||0;
+    var principal= costRaw==='' ? amt : (parseFloat(costRaw.replace(/[, ¥￥元]/g,''))||0);
+    if(principal<=0){ showToast('请先填金额'); return; }
+    showToast('正在获取净值历史…');
+    var s=document.createElement('script');
+    s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+    s.onload=function(){
+        var nav=navAtDate(window.Data_netWorthTrend, buy);
+        if(nav>0){ document.getElementById('as-share').value=(principal/nav).toFixed(4); showToast('已算出份额：'+(principal/nav).toFixed(4)); }
+        else showToast('未找到该买入日的净值');
+        s.remove();
+    };
+    s.onerror=function(){ s.remove(); showToast('净值接口失败'); };
+    document.body.appendChild(s);
+}
 function fillQuoteFromPingzhong(code){
     try {
         var trend = window.Data_netWorthTrend;
@@ -2790,6 +2897,7 @@ function fillQuoteFromPingzhong(code){
             fundQuote[code].dwjz = (last.y!=null ? last.y : null);
             fundQuote[code].gztime = (last.x ? fmtDateValue(last.x) : '');
             saveFundCache();
+            try { autoSharesFromTrend(code, trend); } catch(e){}
             return true;
         }
         if (name){ if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=name; fundQuote[code].fundcode=code; saveFundCache(); }
@@ -2805,7 +2913,18 @@ function refreshFundQuotes(silent){
     var n=0, got=0;
     (function next(){
         if (n>=codes.length){
-            if (got>0){ var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; lastQuoteTime=_d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate())+' '+_p(_d.getHours())+':'+_p(_d.getMinutes()); }
+            if (got>0){
+                var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; lastQuoteTime=_d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate())+' '+_p(_d.getHours())+':'+_p(_d.getMinutes());
+                // 把抓到的最新净值写回每条持仓 → 市值=净值×份额 会自动变化，总收益随刷新更新
+                var _changed=false;
+                arr.forEach(function(it){
+                    if (it.code && fundQuote[it.code] && fundQuote[it.code].dwjz!==undefined && fundQuote[it.code].dwjz!==null && fundQuote[it.code].dwjz!==''){
+                        var _nv = parseFloat(fundQuote[it.code].dwjz)||0;
+                        if (_nv>0 && parseFloat(it.netValue||0)!==_nv){ it.netValue=_nv; _changed=true; }
+                    }
+                });
+                if (_changed) storeSet('assetList', arr);
+            }
             renderAsset();
             showToast(got>0?('每日涨跌已更新（'+got+'只）'):'接口未返回估值：可能非交易时段或网络受限');
             return;
