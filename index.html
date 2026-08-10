@@ -945,7 +945,6 @@
                     <button class="close" onclick="document.getElementById('editModal').style.display='none'">×</button>
                     <h4>编辑基金</h4>
                     <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
-                    <div id="ed-quote-hint" style="display:none;margin:-6px 0 6px;font-size:12px;color:#E91E63;"></div>
                     <div class="form-row">
                         <div class="form-item"><label>最新净值（点「刷新跌涨」自动更新）</label><input type="text" id="ed-net" placeholder="元/份，刷新后自动填"></div>
                         <div class="form-item"><label>持有份额（份）</label><input type="text" id="ed-share" placeholder="填后市值=净值×份额"></div>
@@ -968,7 +967,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-item"><label>买入日期（算份额用）</label><input type="text" id="ed-buy" placeholder="yyyy/mm/dd"></div>
-                        <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcShares(_assetMenuIdx)"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
+                        <div class="form-item" style="display:flex;align-items:flex-end;"><button type="button" class="save-btn" style="width:100%" onclick="autoCalcSharesFromForm()"><i class="fa fa-magic"></i> 按买入日算份额</button></div>
                     </div>
                     <div class="form-row">
                         <div class="form-item"><label>计划仓位（目标占比）</label><input type="text" id="ed-plan" placeholder="例如 30%"></div>
@@ -1257,7 +1256,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260810-2001';
+var BUILD_VER = '20260810-2030';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2676,6 +2675,7 @@ function renderAsset(){
 
 // ===== 长按 / 右键 菜单 =====
 var _assetMenuIdx = -1;
+var _assetNewMode = false;
 var _longPressTimer = null;
 function bindAssetLongPress(wrap){
     if (wrap._bound) return; wrap._bound = true;
@@ -2755,19 +2755,54 @@ function openEditAsset(idx){
     document.getElementById('ed-net').value = (it.netValue!==undefined && it.netValue!=='') ? it.netValue : '';
     document.getElementById('ed-share').value = (it.shares!==undefined && it.shares!=='') ? it.shares : '';
     document.getElementById('ed-buy').value = (it.buyDate!==undefined && it.buyDate!=='') ? it.buyDate : '';
-    // 显示最新净值（从缓存或接口）
-    var qh = document.getElementById('ed-quote-hint');
-    if (it.code && fundQuote[it.code]){
-        var fq = fundQuote[it.code];
-        qh.innerHTML = '💡 最新净值 <b>'+fq.dwjz+'</b>（'+fq.gztime+'）· 估算涨跌 <b style="color:'+(parseFloat(fq.gszzl)>=0?'#E53935':'#2E9E5B')+'">'+(fq.gszzl||'—')+'%</b>';
-        qh.style.display='block';
-    } else {
-        qh.innerHTML = '💡 暂无估值数据，点「刷新涨跌」后可查看净值';
-        qh.style.display='block';
-    }
+    // 净值/跌涨已在卡片展示，编辑弹窗不再重复显示
+    document.getElementById('editModal').style.display='flex';
+}
+function openEditAssetNew(code, name){
+    var arr = storeGet('assetList', []);
+    for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); openEditAsset(i); return; } }
+    _assetNewMode = true; _assetMenuIdx = -1;
+    document.getElementById('ed-name').value = name||'';
+    document.getElementById('ed-code').value = code||'';
+    document.getElementById('ed-net').value = '';
+    document.getElementById('ed-share').value = '';
+    document.getElementById('ed-amount').value = '';
+    document.getElementById('ed-cost').value = '';
+    document.getElementById('ed-buy').value = todayStr(); // 默认录入当天，留空也按当天算份额
+    document.getElementById('ed-plan').value = '';
+    document.getElementById('ed-judge').value = '';
     document.getElementById('editModal').style.display='flex';
 }
 function saveEditAsset(){
+    if (_assetNewMode){
+        var code=document.getElementById('ed-code').value.trim();
+        if(!code){ showToast('请填写基金代码'); return; }
+        var name=document.getElementById('ed-name').value.trim()||code;
+        var _type=document.getElementById('ed-type').value;
+        var _amt=parseFloat((document.getElementById('ed-amount').value||'0').replace(/[, ¥￥元]/g,''))||0;
+        var _costRaw=document.getElementById('ed-cost').value.trim();
+        var _cost=(_costRaw==='')?_amt:(parseFloat(_costRaw.replace(/[, ¥￥元]/g,''))||0);
+        var _nv=document.getElementById('ed-net').value.trim();
+        var _sh=document.getElementById('ed-share').value.trim();
+        var _buy=document.getElementById('ed-buy').value.trim()||todayStr();
+        var arr=storeGet('assetList',[]);
+        arr.unshift({
+            name:name, code:code, type:_type, cost:_cost, amount:_amt,
+            netValue:(_nv==='')?'':(parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0),
+            shares:(_sh==='')?'':(parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0),
+            buyDate:_buy,
+            plan:document.getElementById('ed-plan').value.trim(),
+            judge:document.getElementById('ed-judge').value.trim(),
+            dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()},
+            date:todayStr(), done:false
+        });
+        storeSet('assetList', arr);
+        _assetNewMode=false;
+        document.getElementById('editModal').style.display='none';
+        renderAsset();
+        showToast('已添加「'+name+'」');
+        return;
+    }
     var idx = _assetMenuIdx; if(idx<0) return;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     it.name = document.getElementById('ed-name').value.trim() || it.name;
@@ -2817,6 +2852,24 @@ function showQuickCodeInput(){
 function fmtDateValue(ms){
     try { var d=new Date(ms); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); } catch(e){ return ''; }
 }
+// ===== 买入日净值日期：15:00 前用当日净值；15:00 后用下一交易日净值(T+1) =====
+function isTradingDay(d){ var w=d.getDay(); return w!==0 && w!==6; }
+function nextTradingDay(d){ var nd=new Date(d.getFullYear(),d.getMonth(),d.getDate()); do { nd.setDate(nd.getDate()+1); } while(!isTradingDay(nd)); return nd; }
+function ymd(d){ var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate()); }
+function effectiveNavDate(buyDateStr){
+    try{
+        var bd=new Date(String(buyDateStr).replace(/-/g,'/'));
+        if(isNaN(bd.getTime())) return null;
+        var today=new Date();
+        var tMid=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+        var bMid=new Date(bd.getFullYear(),bd.getMonth(),bd.getDate());
+        if(bMid.getTime()===tMid.getTime()){
+            if(today.getHours()>=15) return nextTradingDay(today);   // 15点后下单 → 按 T+1 净值
+            return tMid;                                            // 15点前 → 当日净值
+        }
+        return bMid; // 历史日期用其本身净值（周末/节假日由 navAtDate 向前取最近交易日）
+    }catch(e){ return null; }
+}
 function navAtDate(trend, dateStr){
     try{
         var d = new Date(String(dateStr).replace(/-/g,'/'));
@@ -2836,9 +2889,14 @@ function navAtDate(trend, dateStr){
 function autoSharesFromTrend(code, trend){
     try{
         var arr = storeGet('assetList'); var changed=false;
+        var lastMs = (trend && trend.length) ? new Date(trend[trend.length-1].x).getTime() : 0;
         arr.forEach(function(it){
             if (it.code===code && it.buyDate && !it.shares && getCost(it)>0){
-                var nav = navAtDate(trend, it.buyDate);
+                var eff = effectiveNavDate(it.buyDate);
+                if (!eff) return;
+                var effMid = new Date(eff.getFullYear(),eff.getMonth(),eff.getDate()).getTime();
+                if (effMid > lastMs) return; // 目标净值尚未公布（如15点后买入的 T+1），等下一交易日再算
+                var nav = navAtDate(trend, ymd(eff));
                 if (nav>0){
                     it.shares = getCost(it) / nav;
                     if (fundQuote[code] && fundQuote[code].dwjz) it.netValue = parseFloat(fundQuote[code].dwjz)||0;
@@ -2878,6 +2936,33 @@ function autoCalcSharesNew(){
     s.onload=function(){
         var nav=navAtDate(window.Data_netWorthTrend, buy);
         if(nav>0){ document.getElementById('as-share').value=(principal/nav).toFixed(4); showToast('已算出份额：'+(principal/nav).toFixed(4)); }
+        else showToast('未找到该买入日的净值');
+        s.remove();
+    };
+    s.onerror=function(){ s.remove(); showToast('净值接口失败'); };
+    document.body.appendChild(s);
+}
+// 编辑/新增弹窗里点「按买入日算份额」：直接读弹窗表单字段计算（两种模式通用）
+function autoCalcSharesFromForm(){
+    var code=document.getElementById('ed-code').value.trim();
+    if(!code){ showToast('请先填写基金代码'); return; }
+    var buy=(document.getElementById('ed-buy').value.trim()) || todayStr();
+    var costRaw=document.getElementById('ed-cost').value.trim();
+    var amt=parseFloat((document.getElementById('ed-amount').value||'0').replace(/[, ¥￥元]/g,''))||0;
+    var principal= costRaw==='' ? amt : (parseFloat(costRaw.replace(/[, ¥￥元]/g,''))||0);
+    if(principal<=0){ showToast('请先填金额（成本或持仓额）'); return; }
+    var eff=effectiveNavDate(buy);
+    if(eff){
+        var effMid=new Date(eff.getFullYear(),eff.getMonth(),eff.getDate()).getTime();
+        var tMid=new Date(); tMid.setHours(0,0,0,0);
+        if(effMid > tMid.getTime()){ showToast('买入晚于15:00，需待下一交易日净值公布后再算份额'); return; }
+    }
+    showToast('正在获取净值历史…');
+    var s=document.createElement('script');
+    s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
+    s.onload=function(){
+        var nav=navAtDate(window.Data_netWorthTrend, ymd(eff||new Date(buy)));
+        if(nav>0){ document.getElementById('ed-share').value=(principal/nav).toFixed(4); showToast('已算出份额：'+(principal/nav).toFixed(4)); }
         else showToast('未找到该买入日的净值');
         s.remove();
     };
@@ -2942,7 +3027,7 @@ function refreshFundQuotes(silent){
 function quickAddByCode(){
     var code = (document.getElementById('quickCode').value||'').trim();
     if (!/^\d{6}$/.test(code)){ showToast('请输入6位基金代码'); return; }
-    if (fundQuote[code] && fundQuote[code].name){ doQuickAdd(code); return; }
+    if (fundQuote[code] && fundQuote[code].name){ openEditAssetNew(code, fundQuote[code].name); return; }
     showToast('识别中…');
     var s=document.createElement('script');
     s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
@@ -2960,7 +3045,7 @@ function quickFallbackFill(code){
 function afterQuickFill(code){
     var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || '';
     if (!name){ quickFallbackFill(code); return; }
-    doQuickAdd(code);
+    openEditAssetNew(code, name);
 }
 function doQuickAdd(code){
     var arr = storeGet('assetList', []);
