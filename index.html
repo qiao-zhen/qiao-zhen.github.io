@@ -890,7 +890,7 @@
                 <div class="form-item"><label>基金名称（自动补全，可改）</label><input type="text" id="as-name" placeholder="输入代码后自动识别"></div>
                 <div class="form-row">
                     <div class="form-item"><label>实际持仓金额</label><input type="text" id="as-amount" placeholder="元"></div>
-                    <div class="form-item"><label>类型 / 板块（留空=用自动识别，可手动改）</label><input type="text" id="as-sector" placeholder="自动识别，可手动修改" style="padding:8px 10px;border:1px solid #E3D5DE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;"></div><input type="hidden" id="as-type"></div>
+                    <div class="form-item"><label>类型 / 板块（留空=用自动识别，可手动改）</label><input type="text" id="as-sector" placeholder="自动识别，可手动修改" style="padding:8px 10px;border:1px solid #E3D5DE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;"><input type="hidden" id="as-type"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-item"><label>成本金额（买入总本金·算总收益）</label><input type="text" id="as-cost" placeholder="不填默认=持仓额"></div>
@@ -952,7 +952,7 @@
                     <button class="close" onclick="document.getElementById('editModal').style.display='none'">×</button>
                     <h4>编辑基金</h4>
                     <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
-                    <div class="form-item"><label>类型 / 板块（留空=用自动识别，可手动改）</label><input type="text" id="ed-sector" placeholder="自动识别，可手动修改" style="padding:8px 10px;border:1px solid #E3D5DE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;"></div><input type="hidden" id="ed-type"></div>
+                    <div class="form-item"><label>类型 / 板块（留空=用自动识别，可手动改）</label><input type="text" id="ed-sector" placeholder="自动识别，可手动修改" style="padding:8px 10px;border:1px solid #E3D5DE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;"><input type="hidden" id="ed-type"></div>
                     <div class="form-row">
                         <div class="form-item"><label>持仓金额（当前市值）</label><input type="text" id="ed-amount" placeholder="例如 5000"></div>
                         <div class="form-item"><label>成本金额（买入总本金）</label><input type="text" id="ed-cost" placeholder="不填=持仓额，用于算总盈亏"></div>
@@ -1251,7 +1251,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260810-2350';
+var BUILD_VER = '20260811-0010';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
