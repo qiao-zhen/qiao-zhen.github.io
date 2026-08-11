@@ -1283,7 +1283,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2230';
+var BUILD_VER = '20260811-2245';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1995,7 +1995,7 @@ function renderKnowledgeBase(){
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
         var linkExtra = (item.url && item.url.trim()) ? '<a href="'+escAttr(item.url.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-block;margin:6px 0 2px;padding:4px 12px;background:#F06292;color:#fff;border-radius:14px;font-size:12px;text-decoration:none;">🔗 打开原文</a>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")", cardOpen:false });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")", cardOpen:false, readMore:true });
     });
     wrap.innerHTML = html;
     truncateAllNews();
