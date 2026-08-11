@@ -637,7 +637,7 @@
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 记录对标账号的账号名称、更新节奏、作品链接、爆款视频要点（结构 / 钩子 / 怎么爆的，自行分析后填这里）、我的借鉴思路</div>
             <div class="card form-card hidden" id="form-account">
-                <h4>新增对标账号<button type="button" class="form-close" onclick="document.getElementById('form-account_ov').style.display='none'" aria-label="关闭">×</button></h4>
+                <h4>新增对标账号</h4>
                 <div class="form-row">
                     <div class="form-item"><label>账号名称</label><input type="text" placeholder="对方账号昵称"></div>
                     <div class="form-item"><label>更新节奏</label><input type="text" placeholder="例如 日更 / 周更3条"></div>
@@ -893,7 +893,7 @@
             <div id="ocrStatus" class="hidden"></div>
             <div id="ocrResult"></div>
             <div class="card form-card hidden" id="form-asset">
-                <h4>新增持仓<button type="button" class="form-close" onclick="document.getElementById('form-asset_ov').style.display='none'" aria-label="关闭">×</button></h4>
+                <h4>新增持仓</h4>
                 <p class="form-hint"><i class="fa fa-lightbulb-o"></i> 只填「基金代码 + 持仓金额」即可，名称与跌涨自动补全。<b>成本金额</b>是你买入花的总本金（公开接口查不到，需自己填，或直接发基金App持仓截图给我全自动录入）</p>
                 <div class="form-item"><label>基金代码（6位）</label><input type="text" id="as-code" placeholder="例如 000216" onblur="autoFillFundName()" oninput="if(this.value.length===6 && /^\d{6}$/.test(this.value)) autoFillFundName()"></div>
                 <div class="form-hint" id="as-quote" style="display:none;margin:-4px 0 6px"></div>
@@ -931,7 +931,6 @@
             <!-- 定投弹窗 -->
             <div class="modal-overlay" id="dcaModal" onclick="if(event.target===this) this.style.display='none'">
                 <div class="modal">
-                    <button class="close" onclick="document.getElementById('dcaModal').style.display='none'">×</button>
                     <h4 id="dcaTitle">定投设置</h4>
                     <div class="form-item"><label>基金</label><div id="dcaName" style="font-size:14px;color:#5A3346;"></div></div>
                     <div class="form-item"><label>定投频率</label>
@@ -959,7 +958,6 @@
             <!-- 编辑弹窗 -->
             <div class="modal-overlay" id="editModal" onclick="if(event.target===this) this.style.display='none'">
                 <div class="modal">
-                    <button class="close" onclick="document.getElementById('editModal').style.display='none'">×</button>
                     <h4>编辑基金</h4>
                     <div class="form-item"><label>基金名称</label><input type="text" id="ed-name" placeholder="自动识别，可手动修改"></div>
                     <div class="form-item"><label>类型 / 板块（留空=用自动识别，可手动改）</label><input type="text" id="ed-sector" placeholder="自动识别，可手动修改" style="padding:8px 10px;border:1px solid #E3D5DE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;"><input type="hidden" id="ed-type"></div>
@@ -1110,7 +1108,6 @@
 <!-- 弹窗 -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
     <div class="modal news-modal">
-        <button class="close" onclick="closeModal()">×</button>
         <h3 id="modalTitle"></h3>
         <div class="content" id="modalContent"></div>
     </div>
@@ -1119,7 +1116,6 @@
 <!-- 导出 Markdown 弹窗 -->
 <div class="modal-overlay" id="exportModal" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal">
-        <button class="close" onclick="document.getElementById('exportModal').style.display='none'">×</button>
         <h3 id="exportTitle">导出 Markdown</h3>
         <p class="export-sub" id="exportSub"></p>
         <textarea class="export-textarea" id="exportText" readonly></textarea>
@@ -1134,7 +1130,6 @@
 <!-- 全局搜索结果弹窗 -->
 <div class="modal-overlay" id="searchModal" onclick="if(event.target===this)closeSearchModal()">
     <div class="modal" style="max-width:560px;">
-        <button class="close" onclick="closeSearchModal()">×</button>
         <h3 id="searchResultTitle">搜索结果</h3>
         <div id="searchResultList" class="search-result-list"></div>
     </div>
@@ -1143,7 +1138,6 @@
 <!-- 待办新增/编辑弹窗 -->
 <div class="modal-overlay" id="todoModal" onclick="if(event.target===this && !isStrayPickerClick())document.getElementById('todoModal').style.display='none'">
     <div class="modal">
-        <button class="close" onclick="document.getElementById('todoModal').style.display='none'">×</button>
         <h3 id="todoModalTitle">新增待办</h3>
         <div class="form-item"><label>标题（选填，留空自动取内容首行）</label><input type="text" id="td-title" placeholder="例如：护肤脚本"></div>
         <div class="form-item"><label>待办事项</label><input type="text" id="td-text" placeholder="例如：写祛斑护肤脚本开头钩子"></div>
@@ -1157,7 +1151,6 @@
 <!-- 知识库粘贴弹窗 -->
 <div class="modal-overlay" id="kbModal" onclick="if(event.target===this)document.getElementById('kbModal').style.display='none'">
     <div class="modal">
-        <button class="close" onclick="document.getElementById('kbModal').style.display='none'">×</button>
         <h3 id="kbModalTitle">粘贴内容生成卡片</h3>
         <div class="form-item"><label>标题（选填，留空自动取首行）</label><input type="text" id="kb-title" placeholder="给这张卡片起个名字，例如：美联储9月降息预期"></div>
         <div class="form-item"><label>粘贴内容（整段生成一张卡片）</label><textarea id="kb-content" style="min-height:140px" placeholder="把 AI 分析好的文章/要点粘贴到这里，点生成卡片..." oninput="autoExtractKbUrl()"></textarea></div>
@@ -1177,7 +1170,6 @@
 <!-- 云端同步设置 -->
 <div class="modal-overlay sync-modal" id="syncModal" onclick="if(event.target===this)document.getElementById('syncModal').style.display='none'">
     <div class="modal">
-        <button class="close" onclick="document.getElementById('syncModal').style.display='none'">×</button>
         <h3>☁ 云端同步设置</h3>
         <div class="form-item"><label>GitHub Token（fine-grained）</label><input type="password" id="syncToken" placeholder="github_pat_... 仅授权 qiao-zhen.github.io 的 Contents 读写" oninput="saveTokenLive()"></div>
         <div class="sync-hint">配置后：手机/电脑/他人打开链接，数据都来自 GitHub 云端（userData.json），任一设备修改自动同步。Token 仅存本机浏览器、不上传；建议用只授权该仓库 Contents 读写的 fine-grained token，且别在待办/台账里写密码、银行卡号等敏感信息。</div>
@@ -1191,7 +1183,6 @@
 <!-- 复制知识库笔记 -->
 <div class="modal-overlay" id="copyKbModal" onclick="if(event.target===this)document.getElementById('copyKbModal').style.display='none'">
     <div class="modal">
-        <button class="close" onclick="document.getElementById('copyKbModal').style.display='none'">×</button>
         <h3>📋 复制知识库笔记</h3>
         <div class="filter-row" id="copy-cat-row" style="margin:6px 0 12px">
             <span class="filter-chip sel" data-cat="all" onclick="selectCopyCat('all',this)">全部</span>
@@ -1286,7 +1277,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2130';
+var BUILD_VER = '20260811-2145';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -4233,6 +4224,7 @@ function hideAllForms(){
 }
 document.addEventListener('keydown', function(e){ if ( e.key === 'Escape'){ hideAllForms(); closeModal(); } });
 function injectFormCloseButtons(){
+    return; // 关闭统一由右下角悬浮「关闭」按钮(globalCloseFab)处理，不再注入右上角×
     document.querySelectorAll('.form-card').forEach(function(card){
         if (card.querySelector('.form-close')) return; // 已有×的跳过
         var btn = document.createElement('button');
@@ -4503,5 +4495,28 @@ document.addEventListener('DOMContentLoaded', function(){
 var __CLOUD_FALLBACK = {"todoList": [], "knowledgeBase": [], "accountObserve": null, "workReview": null, "productList": [], "scriptList": null, "promptList": null, "recordList": [], "sideIdeas": [], "evalList": [], "testList": [], "archiveList": null, "assetList": [], "rebalanceList": null, "bodyNoteList": [], "checkinRecords": {}};
 </script>
 
+<button id="globalCloseFab" style="position:fixed;right:14px;bottom:14px;z-index:10002;display:none;align-items:center;gap:6px;background:#AD1457;color:#fff;border:none;border-radius:24px;padding:10px 18px;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer;" onclick="closeAllModals()">✕ 关闭</button>
+<script>
+function closeAllModals(){
+  try{ closeModal(); }catch(e){}
+  try{ hideAllForms(); }catch(e){}
+  try{ if(typeof closeSearchModal==='function') closeSearchModal(); }catch(e){}
+  ['exportModal','todoModal','kbModal','syncModal','copyKbModal','editModal','dcaModal'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
+  _syncFab();
+}
+function _modalOpen(m){
+  if(!m) return false;
+  if(m.id==='modalOverlay') return m.classList.contains('show');
+  var d=m.style.display; return d==='flex'||d==='block';
+}
+function _syncFab(){
+  var fab=document.getElementById('globalCloseFab'); if(!fab) return;
+  var any=false;
+  document.querySelectorAll('.modal-overlay').forEach(function(m){ if(_modalOpen(m)){ any=true; } });
+  fab.style.display = any ? 'flex' : 'none';
+}
+document.addEventListener('DOMContentLoaded', function(){ _syncFab(); });
+try{ var _mo=new MutationObserver(_syncFab); _mo.observe(document.body,{attributes:true,attributeFilter:['style','class'],subtree:true}); }catch(e){}
+</script>
 </body>
 </html>
