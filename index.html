@@ -1286,7 +1286,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2110';
+var BUILD_VER = '20260811-2130';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1421,12 +1421,16 @@ function cloudPush(force, cb){
   guardBlankOverwrite(snap, token, function(safeSnap, rescued){
     // 云端状态未知（读取失败）且本机存在空字段 → 放弃本次上传，宁可不同步也不能清空云端
     if (rescued === -1){
-      var anyBlank = SYNC_KEYS.some(function(k){ return _isBlank(safeSnap[k]); });
-      if (anyBlank){
+      // 读不到云端：仅当本机"整体为空"（疑似被清空/异常）才放弃上传，保护云端；
+      // 否则本机有数据仍尝试上传补全（冲突由 409 兜底重试），避免"任一字段为空就整体取消"导致用户数据永远推不上去
+      var _nonBlank = SYNC_KEYS.filter(function(k){ return !_isBlank(safeSnap[k]); }).length;
+      if (_nonBlank === 0){
         if(btn) btn.classList.remove('syncing');
-        try { setSyncStatus('已取消上传：读不到云端且本机有空字段（保护云端数据不被清空）'); } catch(e){}
+        try { setSyncStatus('已取消上传：本机无任何数据，跳过以保护云端'); } catch(e){}
         if(cb) cb(false); return;
       }
+      if(window.console) console.warn('[sync] 读不到云端，但本机有数据，仍尝试上传补全');
+      _doCloudPut(token, JSON.stringify(safeSnap), force, btn, cb); return;
     }
     if (rescued > 0){
       try { renderSyncModules(); } catch(e){}
@@ -1547,8 +1551,18 @@ function applyCloudSnap(snap, onlyEmpty){
     try { showToast('🛡 已保住你刚才新增的 '+rescuedCount+' 条（同步窗口期修改未丢失）'); } catch(e){}
   }
   if (blankGuarded > 0){
-    try { showToast('🛡 云端有 '+blankGuarded+' 项是空的，已保留本机数据未被清空'); } catch(e){}
+    if (window.__manualHydrate){
+      try { showToast('🛡 云端有 '+blankGuarded+' 项是空的，已保留本机数据未被清空'); } catch(e){}
+    } else {
+      // 自动加载时不再每次弹"云端有一项是空的"（那是防空覆盖守卫在正常工作，并非出错）；
+      // 改为静默自愈：把"本机有、云端空"的字段反向上传补全，云端不再空缺后就不会再弹此提示
+      try { setSyncStatus('已用本机数据补全云端空缺字段（'+blankGuarded+' 项）'); } catch(e){}
+    }
     if (window.console) console.warn('[sync] 防空覆盖生效，守住字段数：', blankGuarded);
+    // 自愈：把本机有、云端空的字段反向上传到云端（仅 API 实时读取路径，避免用滞后的 Pages 旧数据回推）
+    if (getGithubToken() && !onlyEmpty){
+      setTimeout(function(){ try { cloudPush(false); } catch(e){} }, 700);
+    }
   }
   window.__cloudSkip = false;
   // 云端数据已成功载入本机 → 开闸，此后本机改动才允许自动推送云端；
@@ -1556,6 +1570,7 @@ function applyCloudSnap(snap, onlyEmpty){
   // 仅"权威整份覆盖"(onlyEmpty=false，来自 API 实时读取)才开闸；
   // Pages 兜底(onlyEmpty=true)数据可能因 CDN 缓存滞后，不开闸，避免用旧数据回推覆盖较新的云端
   if (!onlyEmpty) openCloudGate('applyCloudSnap');
+  window.__manualHydrate = false;
   renderSyncModules();
   // 云端数据载入/恢复后，重新判定待办提醒（避免同步覆盖后漏弹通知）
   try { showTodoNotify(); } catch(e){}
@@ -1694,6 +1709,7 @@ function openSyncSettings(){
 function saveSyncSettings(){
   saveTokenLive();
   // 手动「拉取云端数据」按钮：整份覆盖本机（用户显式选择）
+  window.__manualHydrate = true;
   cloudHydrate(true);
 }
 function forceSyncNow(){
@@ -2082,7 +2098,7 @@ function renderAccountObserve(){
             '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
         html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 打开作品（抖音）</a>':''),
-            editAction:"openEdit('accountObserve',"+i+")", cardOpen:true, readMore:false, noModalUrl:true });
+            editAction:"openEdit('accountObserve',"+i+")", cardOpen:false, readMore:true, noModalUrl:true });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2140,7 +2156,7 @@ function renderWorkReview(){
         var cardContent = '⚠️ 问题判断：\n' + issueDisplay;
         html += buildCard({ key:'workReview', idx:i, title:item.title, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 打开作品（抖音）</a>':''),
-            editAction:"openEdit('workReview',"+i+")", cardOpen:true, readMore:false, noModalUrl:true });
+            editAction:"openEdit('workReview',"+i+")", cardOpen:false, readMore:true, noModalUrl:true });
     });
     wrap.innerHTML = html;
     truncateAllNews();
