@@ -977,7 +977,7 @@
                     <input type="hidden" id="ed-net">
                     <input type="hidden" id="ed-share">
                     <button class="save-btn" onclick="saveEditAsset()"><i class="fa fa-check"></i> 保存修改</button>
-                    <div class="export-actions"><button class="pill-btn ghost" onclick="document.getElementById('editModal').style.display='none'">关闭</button></div>
+                    <div class="export-actions"><button class="pill-btn ghost" onclick="closeEditModal()">关闭</button></div>
                 </div>
             </div>
         </div>
@@ -1283,7 +1283,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2200';
+var BUILD_VER = '20260811-2230';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1995,7 +1995,7 @@ function renderKnowledgeBase(){
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
         var linkExtra = (item.url && item.url.trim()) ? '<a href="'+escAttr(item.url.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-block;margin:6px 0 2px;padding:4px 12px;background:#F06292;color:#fff;border-radius:14px;font-size:12px;text-decoration:none;">🔗 打开原文</a>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")", cardOpen:true, readMore:false });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")", cardOpen:false });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2896,7 +2896,7 @@ function saveDCAFromModal(){
 }
 // ===== 编辑弹窗 =====
 function openEditAsset(idx){
-    _assetMenuIdx = idx;
+    _assetNewMode = false; _assetMenuIdx = idx;
     var arr = storeGet('assetList'); var it = arr[idx]; if(!it) return;
     var ty = it.name ? detectFundType(it.name) : (it.type||'');
     var mty = it.name ? machineType(it.name) : (it.type||'');
@@ -2946,6 +2946,17 @@ function saveEditAsset(){
         var _sh=document.getElementById('ed-share').value.trim();
         var _buy=document.getElementById('ed-buy').value.trim()||todayStr();
         var arr=storeGet('assetList',[]);
+        var existIdx=-1; for(var k=0;k<arr.length;k++){ if(arr[k].code===code){ existIdx=k; break; } }
+        if(existIdx>=0){
+            // 已存在同代码 → 更新该条，禁止重复新增（防状态残留/误导入造成两条同名基金）
+            var ex=arr[existIdx];
+            ex.name=name; ex.code=code; ex.type=_type; ex.sector=document.getElementById('ed-sector').value.trim();
+            ex.cost=_cost; ex.amount=_amt;
+            ex.netValue=(_nv==='')?'':(parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0);
+            ex.shares=(_sh==='')?'':(parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0);
+            ex.buyDate=_buy; ex.plan=document.getElementById('ed-plan').value.trim(); ex.judge=document.getElementById('ed-judge').value.trim();
+            showToast('该基金已存在，已更新「'+name+'」');
+        } else {
         arr.unshift({
             name:name, code:code, type:_type, sector:document.getElementById('ed-sector').value.trim(), cost:_cost, amount:_amt,
             netValue:(_nv==='')?'':(parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0),
@@ -2956,6 +2967,7 @@ function saveEditAsset(){
             dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()},
             date:todayStr(), done:false
         });
+        }
         storeSet('assetList', arr);
         _assetNewMode=false;
         document.getElementById('editModal').style.display='none';
@@ -2982,6 +2994,11 @@ function saveEditAsset(){
     document.getElementById('editModal').style.display='none';
     showToast('已更新');
     renderAsset();
+}
+// 关闭编辑/新增基金弹窗：必须重置新增标志，避免状态残留导致下次保存误新增一条
+function closeEditModal(){
+    _assetNewMode = false; _assetMenuIdx = -1;
+    var e = document.getElementById('editModal'); if (e) e.style.display='none';
 }
 
 // ---- 持仓 +号菜单 ----
@@ -3133,19 +3150,37 @@ function fillQuoteFromPingzhong(code){
     try {
         var trend = window.Data_netWorthTrend;
         var name = (typeof fS_name!=='undefined') ? fS_name : '';
-        if (trend && trend.length){
+        // 盘中实时估值（优先）：Data_gz 在交易时段(9:30-15:00)有估算净值 gsz 与估算涨跌 gszzl
+        var gz = window.Data_gz;
+        var gzItem = null;
+        if (gz && gz.length){ var lg = gz[gz.length-1]; if (lg && lg.gsz!=null && lg.gsz!=='') gzItem = lg; }
+        if (!fundQuote[code]) fundQuote[code] = {};
+        fundQuote[code].fundcode = code;
+        if (name) fundQuote[code].name = name;
+        if (gzItem){
+            // 盘中：用估算净值 gsz + 估算涨跌 gszzl（gszzl 缺失时按 gsz 与上一交易日收盘净值自算）
+            var gsz = parseFloat(gzItem.gsz) || 0;
+            var gzTime = (gzItem.x ? fmtDateValue(gzItem.x) : '');
+            var gzZzl = (gzItem.gszzl!=null && gzItem.gszzl!=='') ? parseFloat(gzItem.gszzl) : null;
+            if ((gzZzl===null || isNaN(gzZzl)) && trend && trend.length){
+                var prev = trend[trend.length-1].y ? parseFloat(trend[trend.length-1].y) : 0;
+                if (prev>0) gzZzl = (gsz - prev)/prev*100;
+            }
+            fundQuote[code].dwjz = gsz;                       // 盘中估值当作当前净值（市值随之实时更新）
+            fundQuote[code].gszzl = (gzZzl===null || isNaN(gzZzl)) ? 0 : gzZzl;
+            fundQuote[code].gztime = gzTime;
+            fundQuote[code].intraday = true;                  // 标记：这是盘中实时估值
+        } else if (trend && trend.length){
+            // 非交易时段：用收盘净值（dwjz=末项 y，gszzl=末项 equityReturn）
             var last = trend[trend.length-1];
-            if (!fundQuote[code]) fundQuote[code] = {};
-            fundQuote[code].fundcode = code;
-            if (name) fundQuote[code].name = name;
-            fundQuote[code].gszzl = (last.equityReturn!=null ? last.equityReturn : null);
             fundQuote[code].dwjz = (last.y!=null ? last.y : null);
+            fundQuote[code].gszzl = (last.equityReturn!=null ? last.equityReturn : null);
             fundQuote[code].gztime = (last.x ? fmtDateValue(last.x) : '');
-            saveFundCache();
-            try { autoSharesFromTrend(code, trend); } catch(e){}
-            return true;
+            fundQuote[code].intraday = false;
         }
-        if (name){ if(!fundQuote[code]) fundQuote[code]={}; fundQuote[code].name=name; fundQuote[code].fundcode=code; saveFundCache(); }
+        saveFundCache();
+        try { autoSharesFromTrend(code, trend); } catch(e){}
+        return !!(gzItem || (trend && trend.length) || name);
     } catch(e){}
     return false;
 }
