@@ -239,7 +239,7 @@
         .modal h3 { color:#E91E63; font-size:16px; margin-bottom:10px; padding-right:28px; }
         .modal .content { color:#333; line-height:1.7; font-size:14px; white-space:pre-wrap; }
         .modal .content a { color:#1976D2; word-break:break-all; }
-        .modal .close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:4px 8px; z-index:10; }
+        .modal .close { position:absolute; top:6px; right:10px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; line-height:1; padding:6px 10px; z-index:30; pointer-events:auto; }
         .modal .close:hover { color:#E91E63; }
         .modal.news-modal { overflow:visible; display:flex; flex-direction:column; max-height:85vh; }
         .modal.news-modal .content { overflow-y:auto; max-height:calc(85vh - 64px); padding-right:6px; }
@@ -279,8 +279,9 @@
         .n-title.sub-right { display:flex; justify-content:space-between; align-items:center; gap:8px; }
         .n-title.sub-right > span { margin-left:auto; flex-shrink:0; }
         /* 内联表单统一改为模态弹窗 */
-        .form-modal { position:fixed; inset:0; z-index:10000; background:transparent; display:none; align-items:center; justify-content:center; padding:14px; }
-        .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:88vh; overflow:auto; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:0; }
+        /* 修复：遮罩自身滚动、内层卡片不滚动，避免 iOS 嵌套滚动导致点×关不掉、点A框弹B下拉 */
+        .form-modal { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.45); display:none; align-items:flex-start; justify-content:center; padding:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+        .form-modal > .form-card { position:static; width:100%; max-width:520px; max-height:none; overflow:visible; box-shadow:0 16px 50px rgba(0,0,0,.3); margin:14px 0; }
         /* 右上角待办提醒通知 */
         .todo-notify-stack { position:fixed; top:70px; right:10px; z-index:12000; display:none; width:188px; height:0; pointer-events:none; }
         .todo-notify-stack.show { display:block; }
@@ -425,8 +426,17 @@
 .cancel-btn:active{background:#FFF0F5;}
 /* 表单弹窗外观：与「新增待办」一致，居中卡片 + 遮罩 + 可滚动 */
 .form-modal .form-card{max-width:520px;width:100%;max-height:86vh;overflow-y:auto;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);}
-.form-close{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:auto;height:auto;border:none;background:transparent;color:#999;font-size:22px;line-height:1;cursor:pointer;z-index:2;padding:2px 6px;}
+.form-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:auto;height:auto;border:none;background:transparent;color:#999;font-size:22px;line-height:1;cursor:pointer;z-index:5;padding:4px 8px;min-width:30px;min-height:30px;pointer-events:auto;}
 .form-close:active{color:#666;}
+/* 脑洞库状态药丸 + 搬运按钮（始终可见，不依赖 hover） */
+.status-pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:11px;cursor:pointer;white-space:nowrap;opacity:1;user-select:none;}
+.status-pill.st-none{background:#F1F1F1;color:#999;}
+.status-pill.st-doing{background:#E3F2FD;color:#1565C0;}
+.status-pill.st-done{background:#E8F5E9;color:#2E7D32;}
+.card-transport{color:#00897B;cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;opacity:1;}
+.card-transport:hover{text-decoration:underline;}
+/* 理财每日新知弹窗按钮靠左 */
+.export-actions.left{justify-content:flex-start;}
 /* 长按菜单（底部弹出） */
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
 .long-menu-mask.show{display:flex;}
@@ -1276,7 +1286,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2045';
+var BUILD_VER = '20260811-2110';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1763,7 +1773,9 @@ function buildCard(o){
     var extraHtml = o.extra || '';
     var titleHtml = escHtml(o.title);
     var titleCls = 'n-title' + (o.subRight ? ' sub-right' : '');
-    return '<div class="news-card'+(done?' done':'')+'"'+(o.id?' id="'+escAttr(o.id)+'"':'')+' data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-modal="'+modalAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'">'+
+    var _cardCls = 'news-card'+(done||o.doneCls?' done':'')+(o.cardOpen?' card-open':'');
+    var _rootAttr = ' class="'+_cardCls+'"'+(o.id?' id="'+escAttr(o.id)+'"':'')+(o.cardOpen?' onclick="openNewsModal(this)"':'')+(o.noModalUrl?' data-nolink="1"':'')+' data-title="'+titleAttr+'" data-content="'+contentAttr+'" data-modal="'+modalAttr+'" data-date="'+dateAttr+'" data-url="'+urlAttr+'"';
+    return '<div'+_rootAttr+'>'+
         '<div class="'+titleCls+'">'+titleHtml+subHtml+'</div>'+
         extraHtml+
         '<div class="n-content"></div>'+
@@ -1772,6 +1784,8 @@ function buildCard(o){
         (o.editAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.editAction+'" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>' : '')+
         (o.exportAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.exportAction+'" style="color:#00897B;cursor:pointer;">⤓ 导出</span></span>' : '')+
         (o.copyAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.copyAction+'" style="color:#7B1FA2;cursor:pointer;">⧉ 复制</span></span>' : '')+
+        (o.statusPill ? '<span class="status-pill '+(o.statusPill.cls||'')+'" onclick="event.stopPropagation();'+o.statusPill.onclick+'">'+o.statusPill.text+'</span>' : '')+
+        (o.transportOnclick ? '<span class="card-transport" onclick="event.stopPropagation();'+o.transportOnclick+'">📋 搬运</span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
         (o.readMore!==false && !o.cardOpen?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
@@ -2067,8 +2081,8 @@ function renderAccountObserve(){
         var cardContent = '🔥 爆款视频要点（结构 / 钩子 / 怎么爆的）：\n' + (item.hotVideo||'-') +
             '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
         html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
-            extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
-            editAction:"openEdit('accountObserve',"+i+")", cardOpen:true, readMore:false });
+            extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 打开作品（抖音）</a>':''),
+            editAction:"openEdit('accountObserve',"+i+")", cardOpen:true, readMore:false, noModalUrl:true });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2125,8 +2139,8 @@ function renderWorkReview(){
             '\n\n⚠️ 问题判断：\n' + issueDisplay + '\n\n🎯 下一次优化调整点：\n' + (item.optimize||'-');
         var cardContent = '⚠️ 问题判断：\n' + issueDisplay;
         html += buildCard({ key:'workReview', idx:i, title:item.title, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
-            extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
-            editAction:"openEdit('workReview',"+i+")" });
+            extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 打开作品（抖音）</a>':''),
+            editAction:"openEdit('workReview',"+i+")", cardOpen:true, readMore:false, noModalUrl:true });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2409,7 +2423,13 @@ function renderSideIdeas(){
     var html='';
     arr.forEach(function(item, i){
         var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
-        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:"openEdit('sideIdeas',"+i+")" });
+        var st = item.status || '';
+        var pillText = st==='done' ? '✅ 已实现' : (st==='doing' ? '🔵 实现中' : '○ 标记状态');
+        var pillCls = st==='done' ? 'st-done' : (st==='doing' ? 'st-doing' : 'st-none');
+        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:"openEdit('sideIdeas',"+i+")",
+            doneCls:(st==='done'),
+            statusPill:{ text:pillText, cls:pillCls, onclick:"cycleSideIdeaStatus("+i+")" },
+            transportOnclick:"transportSideIdeaToEval("+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2418,6 +2438,26 @@ function deleteSideIdea(idx){
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
     showToast('已删除'); renderSideIdeas();
+}
+// 状态循环：○ 标记状态 → 🔵 实现中 → ✅ 已实现(变绿) → 回到空
+function cycleSideIdeaStatus(idx){
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    var it = arr[idx]; if (!it) return;
+    var cur = it.status || '';
+    it.status = cur==='' ? 'doing' : (cur==='doing' ? 'done' : '');
+    localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    renderSideIdeas();
+}
+// 直接搬运到项目评估池（从灵感脑洞库移除并加入评估池）
+function transportSideIdeaToEval(idx){
+    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
+    var it = arr[idx]; if (!it) return;
+    var ev = storeGet('evalList');
+    ev.unshift({ info: it.title, case: it.content, link:'', date: todayStr(), source:'脑洞搬运', done:false });
+    storeSet('evalList', ev);
+    arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    showToast('已搬运到项目评估池');
+    renderSideIdeas(); renderEval();
 }
 
 // ===================== 11. 项目评估池（localStorage） =====================
@@ -3859,14 +3899,15 @@ function openNewsModal(el){
     var content = card.dataset.modal || card.dataset.content || '';
     var url = card.dataset.url || '';
     var mod = card.dataset.mod || '';
+    var noLink = card.dataset.nolink === '1';
     _newsModalText = (title ? title + '\n\n' : '') + content;
     document.getElementById('modalTitle').textContent = title;
     var contentHtml = escHtml(content);
-    var actions = '<div class="export-actions">';
+    var actions = '<div class="export-actions'+(mod==='finance'?' left':'')+'">';
     if (mod==='ops' || mod==='finance' || mod==='idea'){
         actions += '<button class="pill-btn" onclick="copyTextToClipboard(_newsModalText,\'已复制\')"><i class="fa fa-clipboard"></i> 复制</button>';
     }
-    if (url) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener">🔗 查看原文</a>';
+    if (url && !noLink) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener">🔗 查看原文</a>';
     actions += '<button class="pill-btn ghost" onclick="closeModal()">关闭</button>';
     actions += '</div>';
     contentHtml += actions;
@@ -4174,7 +4215,7 @@ function toggleForm(formId){
 function hideAllForms(){
     document.querySelectorAll('.form-modal').forEach(function(ov){ ov.style.display = 'none'; });
 }
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideAllForms(); });
+document.addEventListener('keydown', function(e){ if ( e.key === 'Escape'){ hideAllForms(); closeModal(); } });
 function injectFormCloseButtons(){
     document.querySelectorAll('.form-card').forEach(function(card){
         if (card.querySelector('.form-close')) return; // 已有×的跳过
