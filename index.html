@@ -1231,6 +1231,31 @@ function _scrubSnap(snap){
   }
   return snap;
 }
+// 按基金代码(code)去重：同一 code 多条只留一条，优先保留有真实净值+份额的条目
+function dedupeAssetList(arr){
+  if (!Array.isArray(arr)) return arr;
+  var best = {}, order = [];
+  arr.forEach(function(it){
+    if (!it || typeof it !== 'object') return;
+    var code = it.code ? String(it.code) : ('__nocode'+order.length);
+    var score = (parseFloat(it.shares)>0 ? 2 : 0) + (parseFloat(it.netValue)>0 ? 1 : 0);
+    if (!best[code]){ best[code] = { it:it, s:score }; order.push(code); }
+    else if (score > best[code].s){ best[code] = { it:it, s:score }; }
+  });
+  return order.map(function(c){ return best[c].it; });
+}
+// 推送时「云端优先按 code 合并」：以云端(remote)为基准保留真实净值/份额/金额，
+// 本机新增的 code（云端没有）才追加；已存在 code 绝不拿本机脏值覆盖云端真实数据。
+// 目的：杜绝手机端残留乱填数据回灌云端、覆盖干净版本、产生重复条目。
+function mergeAssetCloudPriority(local, remote){
+  var map = {};
+  (Array.isArray(remote) ? remote : []).forEach(function(it){ if(it && it.code) map[String(it.code)] = it; });
+  (Array.isArray(local) ? local : []).forEach(function(it){
+    if (!it || !it.code) return;
+    if (!map[String(it.code)]) map[String(it.code)] = it; // 本机新增基金才追加
+  });
+  return dedupeAssetList(Object.keys(map).map(function(c){ return map[c]; }));
+}
 // 启动即清理本机 localStorage 可能残留的演示/测试脏数据（洗内裤、云端同步测试等），
 // 确保首屏渲染前就抹掉，绝不显示；且写回时跳过云端推送（避免把污染又推上去）
 function cleanLocalDirty(){
@@ -1251,7 +1276,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-0010';
+var BUILD_VER = '20260811-2030';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1350,6 +1375,15 @@ function guardBlankOverwrite(snap, token, cb){
       var rescued = 0;
       window.__cloudSkip = true;
       SYNC_KEYS.forEach(function(k){
+        // 持仓台账：无论本机是否为空，一律「云端优先按 code 合并」，防止手机端残留乱填数据回灌云端
+        if (k === 'assetList'){
+          if (Array.isArray(snap[k]) && Array.isArray(remote[k]) && remote[k].length){
+            snap[k] = mergeAssetCloudPriority(snap[k], remote[k]);
+          } else if (!Array.isArray(snap[k]) || !snap[k].length){
+            snap[k] = remote[k]; // 本机为空 → 以云端为准
+          }
+          return;
+        }
         if (_isBlank(snap[k]) && !_isBlank(remote[k])){
           // 用户确实动手清空的（伴随点击/触摸/按键）→ 尊重用户，允许清空同步到云端
           if (window.__keyWriteByUser && window.__keyWriteByUser[k] === true){
@@ -1474,6 +1508,7 @@ function applyCloudSnap(snap, onlyEmpty){
   window.__cloudSkip = true;
   SYNC_KEYS.forEach(function(k){
     if (snap[k] === undefined) return;
+    if (k === 'assetList' && Array.isArray(snap[k])) snap[k] = dedupeAssetList(snap[k]); // 拉取前先去重，杜绝重复基金显示
     var localRaw = null;
     try { localRaw = localStorage.getItem(k); } catch(e){}
     var localExists = (localRaw !== null && localRaw !== undefined && localRaw !== 'null' && localRaw !== '[]');
