@@ -246,7 +246,7 @@
         .modal.news-modal .close { position:absolute; top:8px; right:12px; z-index:10; }
         .modal .export-sub { font-size:12px; color:#AD1457; margin:-4px 0 10px; line-height:1.5; }
         .modal .export-textarea { width:100%; height:42vh; border:1px solid #F8BBD0; border-radius:8px; padding:10px; font-size:12px; line-height:1.5; font-family:Consolas,Menlo,monospace; resize:none; box-sizing:border-box; color:#333; background:#FFF8FB; }
-        .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+        .modal .export-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; justify-content:flex-end; }
         .pill-btn.ghost { background:#fff; color:#E91E63; border:1px solid #F8BBD0; }
         .pill-btn.ghost:hover { background:#FCE4EC; }
         /* 查看全文弹窗底部按钮：与导出弹窗(复制/下载/关闭)同款尺寸，查看原文去掉蓝字 */
@@ -1276,7 +1276,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260811-2030';
+var BUILD_VER = '20260811-2045';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1774,7 +1774,7 @@ function buildCard(o){
         (o.copyAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.copyAction+'" style="color:#7B1FA2;cursor:pointer;">⧉ 复制</span></span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
-        (o.readMore!==false?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
+        (o.readMore!==false && !o.cardOpen?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
         '</div></div></div>';
 }
 
@@ -1968,7 +1968,7 @@ function renderKnowledgeBase(){
     all.forEach(function(item, i){
         if (kbFilterCat!=='all' && item.category!==kbFilterCat) return;
         var linkExtra = (item.url && item.url.trim()) ? '<a href="'+escAttr(item.url.trim())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-block;margin:6px 0 2px;padding:4px 12px;background:#F06292;color:#fff;border-radius:14px;font-size:12px;text-decoration:none;">🔗 打开原文</a>' : '';
-        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")" });
+        html += buildCard({ key:'knowledgeBase', idx:i, title:item.title||'未命名', sub:item.category, content:item.content, date:item.date, url:item.url, extra:linkExtra, copyAction:"copyCard("+i+")", exportAction:"exportCard("+i+")", editAction:"openEditKnowledge("+i+")", cardOpen:true, readMore:false });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2068,7 +2068,7 @@ function renderAccountObserve(){
             '\n\n💡 我的借鉴思路：\n' + (item.learn||'-');
         html += buildCard({ key:'accountObserve', idx:i, title:item.name, sub:'', content:cardContent, modal:full, date:item.date, url:item.link,
             extra:(item.link?'<a class="acc-link" href="'+escAttr(item.link)+'" target="_blank" rel="noopener">🔗 打开作品（抖音）</a>':''),
-            editAction:"openEdit('accountObserve',"+i+")" });
+            editAction:"openEdit('accountObserve',"+i+")", cardOpen:true, readMore:false });
     });
     wrap.innerHTML = html;
     truncateAllNews();
