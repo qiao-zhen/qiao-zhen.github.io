@@ -2757,7 +2757,7 @@ function renderAsset(){
     }
     var wrap = document.getElementById('assetList');
     if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-wallet"></i></div><p>暂无持仓</p><p class="sub">在下方输入6位基金代码识别导入</p></div>'; return; }
-    // 类型展示改为按基金名称 detectFundType 实时识别，不再用写死映射（避免 QDII 全显示成标普500跟踪摩根）
+    // 类型展示改为按基金名称 detectFundType 实时识别，不再用写死映射（避免标普类被误显示成单一基金全称）
     var html='';
     arr.forEach(function(item, i){
         var amt = getMV(item);
@@ -3378,7 +3378,7 @@ var INDEX_FUND_MAP = {
     '黄金':'518880',       // 华夏黄金ETF
     '纳斯达克100':'016452', // 南方纳斯达克100A
     '红利低波':'012709',   // 易方达红利低波ETF联接A
-    '标普500跟踪摩根':'017641',    // 摩根标普500指数A
+    '标普500':'017641',    // 摩根标普500指数A
     '中证500':'000905'     // 嘉实中证500ETF联接A
 };
 var indexQuote = {};
