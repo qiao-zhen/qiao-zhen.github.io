@@ -1283,7 +1283,7 @@ function cleanLocalDirty(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260812-2030';
+var BUILD_VER = '20260813-2035';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2785,7 +2785,9 @@ function renderAsset(){
         if (item.buyDate) subParts.push('买入 '+item.buyDate);
         var _dcaBadge = dcaBadgeText(item.dca); if (_dcaBadge) subParts.push(_dcaBadge);
         var sub = subParts.join(' · ');
-        var nvTxt = (item.netValue!==undefined && item.netValue!=='' && parseFloat(item.netValue)>0) ? fmt(item.netValue) : '—';
+        var _liveNv = (item.code && fundQuote[item.code] && fundQuote[item.code].dwjz) ? parseFloat(fundQuote[item.code].dwjz) : 0;
+        var _nvSrc = _liveNv>0 ? _liveNv : (parseFloat(item.netValue)||0);
+        var nvTxt = (_nvSrc>0) ? fmt(_nvSrc) : '—';
         var shTxt = (item.shares!==undefined && item.shares!=='' && parseFloat(item.shares)>0) ? fmt(item.shares) : '—';
         html += '<div class="asset-row" data-idx="'+i+'">'
             + '<div class="asset-top"><span class="asset-name">'+escHtml(item.name)+'</span>'
@@ -3146,7 +3148,8 @@ function autoCalcSharesFromForm(){
     s.onerror=function(){ s.remove(); showToast('净值接口失败'); };
     document.body.appendChild(s);
 }
-function fillQuoteFromPingzhong(code){
+function fillQuoteFromPingzhong(code, allowAutoShares){
+    if (allowAutoShares===undefined) allowAutoShares=true;
     try {
         var trend = window.Data_netWorthTrend;
         var name = (typeof fS_name!=='undefined') ? fS_name : '';
@@ -3179,7 +3182,7 @@ function fillQuoteFromPingzhong(code){
             fundQuote[code].intraday = false;
         }
         saveFundCache();
-        try { autoSharesFromTrend(code, trend); } catch(e){}
+        try { if (allowAutoShares) autoSharesFromTrend(code, trend); } catch(e){}
         return !!(gzItem || (trend && trend.length) || name);
     } catch(e){}
     return false;
@@ -3196,14 +3199,19 @@ function refreshFundQuotes(silent){
             if (got>0){
                 var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; lastQuoteTime=_d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate())+' '+_p(_d.getHours())+':'+_p(_d.getMinutes());
                 // 把抓到的最新净值写回每条持仓 → 市值=净值×份额 会自动变化，总收益随刷新更新
-                var _changed=false;
-                arr.forEach(function(it){
+                // 仅用户主动点「刷新」(silent=false)才把最新净值写回台账并持久化；
+                // 自动打开(silent=true)只更新内存 fundQuote 用于实时展示，绝不改写持仓字段、不触发云端推送，
+                // 避免和 cloudHydrate 的整份覆盖互相打架导致净值/市值每次打开都跳（"乱"的根因）
+                if (!silent){
+                  var _changed=false;
+                  arr.forEach(function(it){
                     if (it.code && fundQuote[it.code] && fundQuote[it.code].dwjz!==undefined && fundQuote[it.code].dwjz!==null && fundQuote[it.code].dwjz!==''){
                         var _nv = parseFloat(fundQuote[it.code].dwjz)||0;
                         if (_nv>0 && parseFloat(it.netValue||0)!==_nv){ it.netValue=_nv; _changed=true; }
                     }
-                });
-                if (_changed) storeSet('assetList', arr);
+                  });
+                  if (_changed) storeSet('assetList', arr);
+                }
             }
             renderAsset();
             showToast(got>0?('每日涨跌已更新（'+got+'只）'):'接口未返回估值：可能非交易时段或网络受限');
@@ -3212,7 +3220,7 @@ function refreshFundQuotes(silent){
         var code=codes[n++];
         var s=document.createElement('script');
         s.src='https://fund.eastmoney.com/pingzhongdata/'+code+'.js';
-        s.onload=function(){ if(fillQuoteFromPingzhong(code)) got++; s.remove(); next(); };
+        s.onload=function(){ if(fillQuoteFromPingzhong(code, !silent)) got++; s.remove(); next(); };
         s.onerror=function(){ s.remove(); next(); };
         document.body.appendChild(s);
     })();
