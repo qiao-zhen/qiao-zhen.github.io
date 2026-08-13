@@ -879,6 +879,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-wallet ico"></i> 持仓台账</div>
                 <button class="pill-btn ghost" onclick="refreshFundQuotes()"><i class="fa fa-refresh"></i> 刷新涨跌</button>
+                <button class="pill-btn ghost" onclick="openAssetRestore()"><i class="fa fa-wrench"></i> 持仓修复</button>
             </div>
             <div class="tip"><i class="fa fa-info-circle"></i> 每只基金可开「定投」按日自动累加金额 · 自动算占比 · 一键抓取每日涨跌</div>
             <div class="summary-bar" id="assetSummary"></div>
@@ -1185,6 +1186,20 @@
     </div>
 </div>
 
+<!-- 持仓修复（看差异再决定覆盖/上传） -->
+<div class="modal-overlay" id="assetRestoreModal" onclick="if(event.target===this)document.getElementById('assetRestoreModal').style.display='none'">
+    <div class="modal" style="max-width:460px">
+        <h3>🛠 持仓修复</h3>
+        <p class="sync-hint">先对比「云端」与「本机」的基金清单，再决定用哪边为准，绝不偷偷删你真实基金。</p>
+        <div id="assetRestoreBody" style="max-height:46vh;overflow:auto;margin:8px 0"></div>
+        <div class="form-btn-row" style="flex-wrap:wrap;gap:8px">
+            <button class="save-btn" id="btnRestoreCloud" onclick="confirmRestoreFromCloud()" style="background:#AD1457">① 用云端覆盖本机（删掉本机多出的）</button>
+            <button class="save-btn" id="btnPushLocal" onclick="pushLocalToCloud()" style="background:#2E7D32">② 把本机上传到云端（以本机为准）</button>
+            <button type="button" class="cancel-btn" onclick="document.getElementById('assetRestoreModal').style.display='none'">取消</button>
+        </div>
+    </div>
+</div>
+
 <!-- 复制知识库笔记 -->
 <div class="modal-overlay" id="copyKbModal" onclick="if(event.target===this)document.getElementById('copyKbModal').style.display='none'">
     <div class="modal">
@@ -1282,8 +1297,25 @@ function cleanLocalDirty(){
     }
   } catch(e){}
 }
+// 开机即把本机持仓按「基金代码」去重：同名 code 的重复卡（早前导入 bug 残留）立刻合并为一条，
+// 保留数据最完整的一条，绝不凭空新增；不影响不同 code 的真实基金。
+function dedupeLocalAssetList(){
+  try {
+    var raw = localStorage.getItem('assetList');
+    if (!raw) return;
+    var arr; try { arr = JSON.parse(raw); } catch(e){ return; }
+    if (!Array.isArray(arr) || arr.length < 2) return;
+    var ded = dedupeAssetList(arr);
+    if (ded.length !== arr.length){
+      window.__cloudSkip = true;
+      try { localStorage.setItem('assetList', JSON.stringify(ded)); } catch(e){}
+      window.__cloudSkip = false;
+      if (window.console) console.log('[asset] 本地按代码去重：'+arr.length+' → '+ded.length);
+    }
+  } catch(e){}
+}
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260813-2035';
+var BUILD_VER = '20260813-2130';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1536,11 +1568,18 @@ function applyCloudSnap(snap, onlyEmpty){
         blankGuarded++;
         return;
       }
-      // 整份覆盖本机（云端权威）；若处于抢救模式，把窗口期新增的条目追加回来
+      // 持仓台账：云端优先合并——云端同名 code 的真实净值/份额覆盖本机，本机独有 code 保留，
+      // 绝不静默删除本机真实持有的基金；最终再保险去重，杜绝重复卡。
+      if (k === 'assetList' && Array.isArray(val)){
+        var _localArr = []; try { _localArr = JSON.parse(localRaw || '[]'); } catch(e){}
+        val = mergeAssetCloudPriority(_localArr, val);
+      }
+      // 若处于抢救模式，把窗口期新增的条目追加回来（随后统一去重）
       if (rescueWindow && Array.isArray(val)){
         var extra = _windowNewItems(k, val);
         if (extra.length){ val = extra.concat(val); rescuedCount += extra.length; }
       }
+      if (k === 'assetList' && Array.isArray(val)) val = dedupeAssetList(val);
       try { localStorage.setItem(k, JSON.stringify(val)); } catch(e){}
     }
   });
@@ -1648,14 +1687,15 @@ function cloudHydrate(force){
   // 一条道走到黑会导致"拉不到 / 拉到旧数据"，进而页面空白。
   setSyncStatus('正在拉取云端数据…');
   var channels = [
+    { name:'同源',     url:'userData.json?t=' + Date.now() },
     { name:'Pages',    url:'https://qiao-zhen.github.io/userData.json?t=' + Date.now() },
     { name:'jsDelivr', url:'https://cdn.jsdelivr.net/gh/qiao-zhen/qiao-zhen.github.io@main/userData.json?t=' + Date.now() },
     { name:'raw',      url:'https://raw.githubusercontent.com/qiao-zhen/qiao-zhen.github.io/main/userData.json?t=' + Date.now() }
   ];
   (function tryChannel(i){
     if (i >= channels.length){
-      setSyncStatus('云端读取失败（三条通道均不可达），已保留本机数据');
-      try { showToast('⚠ 云端读不到，页面显示的是本机数据'); } catch(e){}
+      setSyncStatus('云端读取失败（四条通道均不可达），已保留本机数据');
+      try { showToast('⚠ 云端读不到，当前显示的是本机数据（可能含旧数据）。可点持仓台账的「持仓修复」用同源通道重试'); } catch(e){}
       return;
     }
     var ch = channels[i];
@@ -1720,6 +1760,83 @@ function forceSyncNow(){
   });
 }
 function setSyncStatus(m){ var el = document.getElementById('syncStatus'); if(el) el.textContent = m; }
+// ===== 持仓修复：先看差异再决定 =====
+// 用同源 + GitHub 多通道读取云端快照（同源=CloudStudio 国内可达，手机必能拉到）
+function fetchCloudSnapForRestore(cb){
+  var channels = [
+    { name:'同源',     url:'userData.json?t=' + Date.now() },
+    { name:'Pages',    url:'https://qiao-zhen.github.io/userData.json?t=' + Date.now() },
+    { name:'jsDelivr', url:'https://cdn.jsdelivr.net/gh/qiao-zhen/qiao-zhen.github.io@main/userData.json?t=' + Date.now() },
+    { name:'raw',      url:'https://raw.githubusercontent.com/qiao-zhen/qiao-zhen.github.io/main/userData.json?t=' + Date.now() }
+  ];
+  (function tryI(i){
+    if (i >= channels.length){ cb(null); return; }
+    var ch = channels[i];
+    var ctrl = new AbortController(); var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+    fetch(ch.url, { cache:'no-store', signal: ctrl.signal })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP'+r.status); return r.text(); })
+      .then(function(t){
+        clearTimeout(timer);
+        if(!t || typeof t !== 'string' || t.length < 10) throw new Error('empty');
+        var s; try { s = JSON.parse(t); } catch(e){ throw new Error('parse'); }
+        if (!s || typeof s !== 'object') throw new Error('fmt');
+        cb(s);
+      })
+      .catch(function(err){ clearTimeout(timer); if(window.console) console.warn('[restore] '+ch.name+' 失败', err); tryI(i+1); });
+  })(0);
+}
+function openAssetRestore(){
+  var body = document.getElementById('assetRestoreBody');
+  body.innerHTML = '<p style="color:#888">正在从云端读取持仓…</p>';
+  document.getElementById('assetRestoreModal').style.display = 'flex';
+  fetchCloudSnapForRestore(function(snap){
+    if (!snap){ body.innerHTML = '<p style="color:#C62828">⚠ 四条通道都连不上云端（国内网络限制）。<br>若你本机 11 只才是真实持仓，请改用「同步」弹窗里的「立即同步到云端」把本机上传；或换电脑/wifi 再试。</p>'; return; }
+    var cloud = (snap.assetList && Array.isArray(snap.assetList)) ? dedupeAssetList(snap.assetList) : [];
+    var local = storeGet('assetList');
+    var cloudCodes = {}, localCodes = {};
+    cloud.forEach(function(it){ if(it && it.code) cloudCodes[String(it.code)] = 1; });
+    local.forEach(function(it){ if(it && it.code) localCodes[String(it.code)] = 1; });
+    var onlyLocal = local.filter(function(it){ return it && it.code && !cloudCodes[String(it.code)]; });
+    var onlyCloud = cloud.filter(function(it){ return it && it.code && !localCodes[String(it.code)]; });
+    var html = '<p>云端 <b>'+cloud.length+'</b> 只 · 本机 <b>'+local.length+'</b> 只</p>';
+    if (onlyLocal.length){
+      html += '<p style="color:#C62828;font-weight:600">⚠ 本机有 <b>'+onlyLocal.length+'</b> 只云端没有（选①覆盖后会被删除）：</p><ul style="margin:4px 0 8px;padding-left:18px">';
+      onlyLocal.forEach(function(it){
+        var mv = getMV(it); var tag = (localCodes[String(it.code)]!==undefined)?'':'';
+        html += '<li>'+escHtml(it.name||it.code)+' <span style="color:#999">('+escHtml(it.code||'')+')</span> 市值≈¥'+(mv?fmt(mv):'?')+'</li>';
+      });
+      html += '</ul>';
+    }
+    if (onlyCloud.length){
+      html += '<p style="color:#2E7D32">云端有 <b>'+onlyCloud.length+'</b> 只本机没有（选①覆盖后将补回）：</p><ul style="margin:4px 0 8px;padding-left:18px">';
+      onlyCloud.forEach(function(it){ html += '<li>'+escHtml(it.name||it.code)+' <span style="color:#999">('+escHtml(it.code||'')+')</span></li>'; });
+      html += '</ul>';
+    }
+    if (!onlyLocal.length && !onlyCloud.length){ html += '<p style="color:#2E7D32">两边清单一致，无需修复。</p>'; }
+    html += '<p class="sync-hint">判断：如果「本机多出的」是重复/不想要的旧基金 → 选①；如果本机 11 只才是你真实全部持仓 → 选②把本机上传到云端。</p>';
+    body.innerHTML = html;
+    window.__pendingRestore = cloud;
+  });
+}
+function confirmRestoreFromCloud(){
+  var cloud = window.__pendingRestore || [];
+  window.__cloudSkip = true;
+  try { localStorage.setItem('assetList', JSON.stringify(cloud)); } catch(e){}
+  window.__cloudSkip = false;
+  document.getElementById('assetRestoreModal').style.display = 'none';
+  renderAsset();
+  try { showToast('已从云端恢复持仓（'+cloud.length+' 只）'); } catch(e){}
+  if (getGithubToken()){ setTimeout(function(){ try{ cloudPush(false); }catch(e){} }, 400); }
+}
+function pushLocalToCloud(){
+  if (!getGithubToken()){ alert('请先在「同步」弹窗里填写 GitHub Token，再上传本机到云端。'); return; }
+  var local = dedupeAssetList(storeGet('assetList'));
+  window.__cloudSkip = true;
+  try { localStorage.setItem('assetList', JSON.stringify(local)); } catch(e){}
+  window.__cloudSkip = false;
+  document.getElementById('assetRestoreModal').style.display = 'none';
+  cloudPush(true, function(ok){ alert(ok ? '已把本机持仓上传到云端 ✓（'+local.length+' 只）' : '上传失败：api.github.com 不可达（国内网络限制），换网络或电脑再试。'); });
+}
 
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -4515,6 +4632,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (window.console) console.log('[桥桥工作台] 页面版本 ' + BUILD_VER);
     ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
     cleanLocalDirty();       // 首屏渲染前先抹掉本机可能残留的演示/测试脏数据（洗内裤等），绝不显示
+    dedupeLocalAssetList();  // 首屏渲染前先按代码合并本机重复基金卡（早前导入 bug 残留），避免"11只"假象
     captureGateBaseline();   // 拍下本机基线：用于在"云端拉取完成前"用户所做的新增不被随后的整份覆盖冲掉
     // 每个渲染模块独立隔离：任一模块报错不影响其它模块，且最关心的数据优先渲染
     function safe(name, fn){ try { fn(); } catch(e){ if(window.console) console.error('[render:'+name+']', e); } }
