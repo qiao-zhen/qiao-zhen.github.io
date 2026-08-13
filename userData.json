@@ -273,10 +273,10 @@
       "name": "摩根标普500指数(QDII)A",
       "sector": "标普500 · QDII · 指数",
       "type": "qdii",
-      "amount": 339.8,
-      "cost": 350,
+      "amount": 359.8,
+      "cost": 370.0,
       "netValue": 1.7204,
-      "shares": 197.51,
+      "shares": 209.1352,
       "buyDate": "",
       "plan": "",
       "judge": "",
@@ -287,7 +287,7 @@
         "weeklyAmount": 0,
         "weekday": 0,
         "lastDate": "2026-08-13",
-        "acc": 0
+        "acc": 20
       }
     },
     {
@@ -339,10 +339,10 @@
       "name": "南方纳斯达克100指数发起(QDII)I",
       "sector": "纳斯达克 · QDII · 指数",
       "type": "nasdaq",
-      "amount": 1006.45,
-      "cost": 1111.32,
+      "amount": 1046.45,
+      "cost": 1151.32,
       "netValue": 2.3105,
-      "shares": 435.6,
+      "shares": 452.9123,
       "buyDate": "",
       "plan": "",
       "judge": "",
@@ -353,7 +353,7 @@
         "weeklyAmount": 0,
         "weekday": 0,
         "lastDate": "2026-08-13",
-        "acc": 0
+        "acc": 40
       }
     },
     {
@@ -381,19 +381,19 @@
     {
       "code": "021842",
       "name": "国富全球科技互联混合(QDII)人民币C",
-      "amount": 1489.77,
-      "cost": 1256,
+      "amount": 1589.77,
+      "cost": 1356.0,
       "type": "qdii",
       "plan": "",
       "judge": "观察中",
       "dca": {
         "enabled": true,
         "daily": 50,
-        "acc": 300,
+        "acc": 400,
         "lastDate": "2026-08-13"
       },
       "netValue": 6.9227,
-      "shares": 215.2
+      "shares": 229.6452
     }
   ],
   "rebalanceList": [],
