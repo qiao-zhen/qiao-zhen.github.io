@@ -1307,7 +1307,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260814-2207';
+var BUILD_VER = '20260814-2218';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2158,7 +2158,7 @@ function renderOperationIdeas(){
             '<div class="n-title">'+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-'<div class="right"><span class="actions"><span onclick="event.stopPropagation();addToFavFromCard(this);" style="color:#C2185B;cursor:pointer;font-weight:600;opacity:1;">📥 收藏</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+(item.url?'<a class="read-more" href="'+escAttr(item.url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="text-decoration:none">查看原文🔗</a>':'')+'</div></div></div>';
+'<div class="right"><span class="actions"><span onclick="event.stopPropagation();addToFavFromCard(this);" style="color:#C2185B;cursor:pointer;font-weight:600;opacity:1;">📥 收藏</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>'+(item.url?'<a class="pill-btn ops-origin-link" href="'+escAttr(item.url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="text-decoration:none;padding:4px 12px;font-size:12px;">🔗 查看原文</a>':'')+'</div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
     truncateAllNews();
@@ -4057,6 +4057,8 @@ function truncateAllNews(){
         if (!full || !display) return;
         if (full.length > 100) display.textContent = full.substring(0, 100) + '...';
         else display.textContent = full;
+        var originBtn = card.querySelector('.ops-origin-link');
+        if (originBtn) originBtn.style.display = (full.length > 100) ? '' : 'none';
     });
 }
 
@@ -4083,7 +4085,7 @@ function openNewsModal(el){
     if (mod==='ops' || mod==='finance' || mod==='idea'){
         actions += '<button class="pill-btn" onclick="copyTextToClipboard(_newsModalText,\'已复制\')"><i class="fa fa-clipboard"></i> 复制</button>';
     }
-    if (url && !noLink) actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener">🔗 查看原文</a>';
+    if (url && !noLink && mod!=='ops') actions += '<a class="pill-btn" href="'+escAttr(url)+'" target="_blank" rel="noopener">🔗 查看原文</a>';
     actions += '<button class="pill-btn ghost" onclick="closeModal()">关闭</button>';
     actions += '</div>';
     contentHtml += actions;
