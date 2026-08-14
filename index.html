@@ -131,7 +131,7 @@
         .news-card .n-title { font-size:14px; font-weight:bold; color:#E91E63; margin-bottom:4px; }
         .news-card .n-content { font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
         .news-card .n-foot { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#999; flex-wrap:wrap; gap:6px; }
-        .news-card .n-foot .right { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+        .news-card .n-foot .right { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; margin-left:auto; }
         .news-card .n-foot .actions { display:flex; gap:0; opacity:0; transition:opacity .2s; }
         .news-card:hover .n-foot .actions { opacity:1; }
         .news-card .n-foot .actions span { cursor:pointer; color:#F06292; white-space:nowrap; }
@@ -1307,7 +1307,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260814-2218';
+var BUILD_VER = '20260814-2227';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -4055,10 +4055,11 @@ function truncateAllNews(){
         var full = card.dataset.content;
         var display = card.querySelector('.n-content');
         if (!full || !display) return;
-        if (full.length > 100) display.textContent = full.substring(0, 100) + '...';
-        else display.textContent = full;
+        var truncated = full.length > 100;
+        display.textContent = truncated ? (full.substring(0, 100) + '...') : full;
         var originBtn = card.querySelector('.ops-origin-link');
-        if (originBtn) originBtn.style.display = (full.length > 100) ? '' : 'none';
+        if (originBtn) originBtn.style.display = truncated ? '' : 'none';
+        card.querySelectorAll('.read-more').forEach(function(rm){ rm.style.display = truncated ? '' : 'none'; });
     });
 }
 
