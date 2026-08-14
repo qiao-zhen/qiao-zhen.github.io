@@ -435,10 +435,11 @@
 .status-pill.st-done{background:#E8F5E9;color:#2E7D32;}
 .card-transport{color:#00897B;cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;opacity:1;}
 .card-transport:hover{text-decoration:underline;}
-/* 灵感脑洞库：状态药丸固定在卡片右下角（始终可见，不随 hover 隐藏），点击「实现中」即送项目评估池 */
-.side-idea-card{position:relative;}
-.side-idea-card .n-foot{padding-right:96px;}
-.status-pill.corner-status{position:absolute;right:12px;bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid rgba(0,0,0,.04);font-size:12px;padding:3px 10px;}
+/* 灵感脑洞库：卡片底部一行 → 左日期 / 右[编辑 删除 状态药丸]，横向排列；状态药丸(实现中)点击即送项目测试记录 */
+.side-idea-card .side-foot{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:12px; color:#999; flex-wrap:wrap;}
+.side-idea-card .side-actions{display:flex; align-items:center; gap:12px; flex-wrap:nowrap;}
+.side-idea-card .si-btn{color:#F06292; cursor:pointer; white-space:nowrap; font-size:12px; font-weight:600;}
+.side-idea-card .si-btn:hover{color:#E91E63;}
 /* 理财每日新知弹窗底部按钮默认靠右（与导出弹窗一致） */
 /* 长按菜单（底部弹出） */
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
@@ -548,8 +549,7 @@
             <div class="group-title" onclick="toggleGroup(3)"><span class="arrow">▼</span><i class="fa fa-money"></i><span>赚钱思路与副业机会</span></div>
             <div class="sub-list">
                 <div class="sub-item" data-page="side-idea" onclick="showPage('side-idea',this)"><span class="ico"><i class="fa fa-flask"></i></span><span>灵感脑洞库</span></div>
-                <div class="sub-item" data-page="project-eval" onclick="showPage('project-eval',this)"><span class="ico"><i class="fa fa-balance-scale"></i></span><span>项目评估池</span></div>
-                <div class="sub-item" data-page="project-test" onclick="showPage('project-test',this)"><span class="ico"><i class="fa fa-vial"></i></span><span>项目测试记录</span></div>
+                <div class="sub-item" data-page="project-eval" onclick="showPage('project-eval',this)"><span class="ico"><i class="fa fa-vial"></i></span><span>项目测试记录</span></div>
                 <div class="sub-item" data-page="project-archive" onclick="showPage('project-archive',this)"><span class="ico"><i class="fa fa-archive"></i></span><span>项目归档复盘</span></div>
             </div>
         </div>
@@ -808,6 +808,7 @@
             <div class="tip"><i class="fa fa-info-circle"></i> 手动记录你的副业灵感想法 · 附带「阻碍初步预判」· 服装资讯搬运的内容也显示在这里</div>
             <div class="card form-card hidden" id="form-sideidea">
                 <h4>新增脑洞</h4>
+                <div class="form-item"><label>标题</label><input type="text" id="si-title" placeholder="给这个脑洞起个名字"></div>
                 <div class="form-item"><label>想法描述</label><textarea id="si-desc" placeholder="一句话描述这个副业想法"></textarea></div>
                 <div class="form-item"><label>阻碍初步预判（必填）</label><input type="text" id="si-block" placeholder="现实约束 1-2 句"></div>
                 <button class="save-btn" onclick="saveSideIdea()"><i class="fa fa-check"></i> 保存想法</button>
@@ -815,38 +816,22 @@
             <div id="sideIdeaList"></div>
         </div>
 
-        <!-- 11. 项目评估池 -->
+        <!-- 11. 项目测试记录（由「项目评估池」合并改名） -->
         <div class="page" id="page-project-eval">
             <div class="page-header">
-                <div class="page-title"><i class="fa fa-balance-scale ico"></i> 项目评估池</div>
+                <div class="page-title"><i class="fa fa-vial ico"></i> 项目测试记录</div>
                 <button class="pill-btn" onclick="toggleForm('form-eval')"><i class="fa fa-plus"></i> 新增项目</button>
             </div>
-            <div class="tip"><i class="fa fa-link"></i> 填写对标案例、参考链接，链接可丢给网页摘要工具解析调研</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 记录你做的副业小项目：标题、测试过程/现象、遇到的问题、用户反馈</div>
             <div class="card form-card hidden" id="form-eval">
-                <h4>新增项目</h4>
-                <div class="form-item"><label>项目信息</label><input type="text" id="ev-info" placeholder="项目名称 / 简介"></div>
-                <div class="form-item"><label>对标案例</label><textarea id="ev-case" placeholder="同类对标项目说明"></textarea></div>
-                <div class="form-item"><label>参考链接</label><input type="text" id="ev-link" placeholder="https://...（可联动网页摘要解析）"></div>
+                <h4>新增项目测试记录</h4>
+                <div class="form-item"><label>项目标题</label><input type="text" id="ev-title" placeholder="项目名称"></div>
+                <div class="form-item"><label>项目测试记录（过程 / 现象）</label><textarea id="ev-record" placeholder="记录测试过程、观察到的现象"></textarea></div>
+                <div class="form-item"><label>问题</label><textarea id="ev-problem" placeholder="做项目时遇到的问题，自己填进去"></textarea></div>
+                <div class="form-item"><label>用户反馈</label><textarea id="ev-feedback" placeholder="用户反馈内容"></textarea></div>
                 <button class="save-btn" onclick="saveEval()"><i class="fa fa-check"></i> 保存项目</button>
             </div>
             <div id="evalList"></div>
-        </div>
-
-        <!-- 12. 项目测试记录 -->
-        <div class="page" id="page-project-test">
-            <div class="page-header">
-                <div class="page-title"><i class="fa fa-vial ico"></i> 项目测试记录</div>
-                <button class="pill-btn" onclick="toggleForm('form-test')"><i class="fa fa-plus"></i> 新增测试</button>
-            </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 记录副业小项目测试全过程、用户反馈、现象</div>
-            <div class="card form-card hidden" id="form-test">
-                <h4>新增测试</h4>
-                <div class="form-item"><label>测试项目</label><input type="text" id="te-name" placeholder="项目名称"></div>
-                <div class="form-item"><label>测试过程 / 现象</label><textarea id="te-process" placeholder="记录测试过程、观察到的现象"></textarea></div>
-                <div class="form-item"><label>用户反馈</label><textarea id="te-feedback" placeholder="用户反馈内容"></textarea></div>
-                <button class="save-btn" onclick="saveTest()"><i class="fa fa-check"></i> 保存测试</button>
-            </div>
-            <div id="testList"></div>
         </div>
 
         <!-- 13. 项目归档复盘 -->
@@ -1234,7 +1219,7 @@ function storeSet(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 // 仅同步用户数据 key；AI 内容(data.json)仍由对话「刷新」写入，不在此列。
 // GitHub REST API 本身允许浏览器跨域调用（Access-Control-Allow-Origin: *），
 // 因此可直接从网页 PUT/GET userData.json，省去中间 Worker。
-var SYNC_KEYS = ['todoList','knowledgeBase','accountObserve','workReview','productList','scriptList','promptList','recordList','sideIdeas','evalList','testList','archiveList','assetList','rebalanceList','bodyNoteList','checkinRecords','wb_fav'];
+var SYNC_KEYS = ['todoList','knowledgeBase','accountObserve','workReview','productList','scriptList','promptList','recordList','sideIdeas','evalList','archiveList','assetList','rebalanceList','bodyNoteList','checkinRecords','wb_fav'];
 var GH_OWNER='qiao-zhen', GH_REPO='qiao-zhen.github.io', GH_BRANCH='main', GH_PATH='userData.json';
 function getGithubToken(){ try { return (localStorage.getItem('syncGithubToken')||'').trim(); } catch(e){ return ''; } }
 window.__cloudSkip = false;
@@ -1319,7 +1304,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260814-2103';
+var BUILD_VER = '20260814-2145';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1731,7 +1716,7 @@ function renderSyncModules(){
     ['renderWorkReview', renderWorkReview], ['renderProduct', renderProduct],
     ['renderScript', renderScript], ['renderPrompt', renderPrompt],
     ['renderRecord', renderRecord], ['renderSideIdeas', renderSideIdeas],
-    ['renderEval', renderEval], ['renderTest', renderTest],
+    ['renderEval', renderEval],
     ['renderArchive', renderArchive], ['renderAsset', renderAsset],
     ['renderRebalance', renderRebalance], ['renderBodyNote', renderBodyNote],
     ['renderTodo', renderTodo]
@@ -2170,7 +2155,7 @@ function renderOperationIdeas(){
             '<div class="n-title">'+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-'<div class="right"><span class="actions"><span onclick="event.stopPropagation();addToFavFromCard(this);" style="color:#C2185B;cursor:pointer;font-weight:600;">📥 收藏</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+'<div class="right"><span class="actions"><span onclick="event.stopPropagation();addToFavFromCard(this);" style="color:#C2185B;cursor:pointer;font-weight:600;opacity:1;">📥 收藏</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
     truncateAllNews();
@@ -2365,7 +2350,7 @@ function renderIdeaLib(){
             '<div class="n-title">'+escHtml(item.title)+' '+statusLabel+holdNote+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+(item.date||'动态更新')+'</span>'+
-            '<div class="right"><span class="actions"><span data-mod="idea" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('idea',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+            '<div class="right"><span class="actions"><span data-mod="idea" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;opacity:1;font-weight:600;">'+(isFav('idea',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('ideaLibList').innerHTML = html;
     truncateAllNews();
@@ -2531,11 +2516,13 @@ function renderRecord(){
 
 // ===================== 10. 灵感脑洞库 =====================
 function saveSideIdea(){
-    var f = document.getElementById('form-sideidea');
-    var desc = f.querySelector('textarea').value.trim();
-    var block = f.querySelectorAll('input')[0].value.trim();
-    if (!desc){ showToast('请填写想法描述'); return; }
-    var item = { title:desc, content:'阻碍初步预判：' + (block||'未填写'), date:todayStr(), source:'手动录入', block:true, done:false };
+    var title = document.getElementById('si-title').value.trim();
+    var desc = document.getElementById('si-desc').value.trim();
+    var block = document.getElementById('si-block').value.trim();
+    if (!title && !desc){ showToast('请填写标题或想法描述'); return; }
+    var finalTitle = title || desc.slice(0,20);
+    var content = (desc?('想法描述：'+desc+'\n'):'') + '阻碍初步预判：' + (block||'未填写');
+    var item = { title:finalTitle, desc:desc, block:block, content:content, date:todayStr(), source:'手动录入', done:false };
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     if (_editState.key === 'sideIdeas' && _editState.idx != null && arr[_editState.idx]){
         item.source = arr[_editState.idx].source || item.source;
@@ -2543,8 +2530,8 @@ function saveSideIdea(){
     } else { arr.unshift(item); }
     localStorage.setItem('sideIdeas', JSON.stringify(arr));
     _editState.key = null; _editState.idx = null;
-    f.querySelector('textarea').value=''; f.querySelectorAll('input')[0].value='';
-    f.classList.add('hidden');
+    document.getElementById('si-title').value=''; document.getElementById('si-desc').value=''; document.getElementById('si-block').value='';
+    document.getElementById('form-sideidea').classList.add('hidden');
     var ovsi = document.getElementById('form-sideidea_ov'); if (ovsi) ovsi.style.display = 'none';
     showToast('脑洞已保存');
     renderSideIdeas();
@@ -2564,12 +2551,14 @@ function renderSideIdeas(){
         html += '<div class="news-card side-idea-card" data-idx="'+i+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date||'')+'">'
             + '<div class="n-title">'+escHtml(item.title)+' '+sourceTag+'</div>'
             + '<div class="n-content"></div>'
-            + '<div class="n-foot"><span class="sa-left">'
-            +   '<span>'+(item.date||'')+'</span>'
-            +   '<span class="actions"><span onclick="event.stopPropagation();openEdit(\'sideIdeas\','+i+');" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>'
-            +   '<span class="actions"><span onclick="event.stopPropagation();deleteSideIdea('+i+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'
-            + '</span></div>'
-            + '<span class="status-pill corner-status '+pillCls+'" onclick="event.stopPropagation();cycleSideIdeaStatus('+i+')" title="点击直接送项目评估池（实现中）">'+pillText+'</span>'
+            + '<div class="side-foot">'
+            +   '<span class="sa-date">'+(item.date||'')+'</span>'
+            +   '<span class="side-actions">'
+            +     '<span class="si-btn" onclick="event.stopPropagation();openEdit(\'sideIdeas\','+i+');">✎ 编辑</span>'
+            +     '<span class="si-btn" onclick="event.stopPropagation();deleteSideIdea('+i+');">✕ 删除</span>'
+            +     '<span class="status-pill '+pillCls+'" onclick="event.stopPropagation();cycleSideIdeaStatus('+i+')" title="点击直接送项目测试记录（实现中）">'+pillText+'</span>'
+            +   '</span>'
+            + '</div>'
             + '</div>';
     });
     wrap.innerHTML = html;
@@ -2597,20 +2586,20 @@ function cycleSideIdeaStatus(idx){
     }
     // cur === '' → 标记为「实现中」并直接搬入项目评估池（不再需要单独的搬运按钮）
     var ev = storeGet('evalList');
-    ev.unshift({ info: it.title, case: it.content, link:'', date: todayStr(), source:'脑洞搬运', done:false });
+    ev.unshift({ title: it.title, record: it.content, problem:'', feedback:'', date: todayStr(), source:'脑洞搬运', done:false });
     storeSet('evalList', ev);
     arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
-    showToast('已送项目评估池（实现中）');
+    showToast('已送项目测试记录（实现中）');
     renderSideIdeas(); renderEval();
 }
 
-// ===================== 11. 项目评估池（localStorage） =====================
+// ===================== 11. 项目测试记录（localStorage，由「项目评估池」合并改名） =====================
 function saveEval(){
-    var info = document.getElementById('ev-info').value.trim();
-    if (!info){ showToast('请填写项目信息'); return; }
-    var item = { info:info, case:document.getElementById('ev-case').value.trim(), link:document.getElementById('ev-link').value.trim(), date:todayStr(), done:false };
+    var title = document.getElementById('ev-title').value.trim();
+    if (!title){ showToast('请填写项目标题'); return; }
+    var item = { title:title, record:document.getElementById('ev-record').value.trim(), problem:document.getElementById('ev-problem').value.trim(), feedback:document.getElementById('ev-feedback').value.trim(), date:todayStr(), done:false };
     editOrInsert('evalList', item);
-    ['ev-info','ev-case','ev-link'].forEach(function(id){ document.getElementById(id).value=''; });
+    ['ev-title','ev-record','ev-problem','ev-feedback'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('form-eval').classList.add('hidden');
     var ove = document.getElementById('form-eval_ov'); if (ove) ove.style.display = 'none';
     showToast(_editState.key?'项目已更新':'项目已保存');
@@ -2620,37 +2609,15 @@ function renderEval(){
     RENDER_MAP['evalList'] = renderEval;
     var arr = storeGet('evalList');
     var wrap = document.getElementById('evalList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-balance-scale"></i></div><p>暂无评估项目</p><p class="sub">点「新增项目」开始评估副业机会</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-vial"></i></div><p>暂无项目测试记录</p><p class="sub">点「新增项目」开始记录你的副业项目</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
-        var full = '项目：' + item.info + (item.link?('\n参考链接：'+item.link):'') + '\n\n🔍 对标案例：\n' + (item.case||'-');
-        html += buildCard({ key:'evalList', idx:i, title:item.info, content:full, date:item.date, url:item.link, editAction:"openEdit('evalList',"+i+")" });
-    });
-    wrap.innerHTML = html;
-    truncateAllNews();
-}
-
-// ===================== 12. 项目测试记录（localStorage） =====================
-function saveTest(){
-    var name = document.getElementById('te-name').value.trim();
-    if (!name){ showToast('请填写测试项目'); return; }
-    var item = { name:name, process:document.getElementById('te-process').value.trim(), feedback:document.getElementById('te-feedback').value.trim(), date:todayStr(), done:false };
-    editOrInsert('testList', item);
-    ['te-name','te-process','te-feedback'].forEach(function(id){ document.getElementById(id).value=''; });
-    document.getElementById('form-test').classList.add('hidden');
-    var ovt = document.getElementById('form-test_ov'); if (ovt) ovt.style.display = 'none';
-    showToast(_editState.key?'测试记录已更新':'测试记录已保存');
-    renderTest();
-}
-function renderTest(){
-    RENDER_MAP['testList'] = renderTest;
-    var arr = storeGet('testList');
-    var wrap = document.getElementById('testList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-vial"></i></div><p>暂无测试记录</p><p class="sub">点「新增测试」记录副业小项目测试全过程</p></div>'; return; }
-    var html='';
-    arr.forEach(function(item, i){
-        var full = '测试项目：' + item.name + '\n\n🔬 过程/现象：\n' + (item.process||'-') + '\n\n💬 用户反馈：\n' + (item.feedback||'-');
-        html += buildCard({ key:'testList', idx:i, title:item.name, content:full, date:item.date, editAction:"openEdit('testList',"+i+")" });
+        var title = item.title || item.info || '';
+        var full = '📋 项目标题：' + title
+            + (item.record?('\n\n🧪 测试记录：\n'+item.record):'')
+            + (item.problem?('\n\n❓ 问题：\n'+item.problem):'')
+            + (item.feedback?('\n\n💬 用户反馈：\n'+item.feedback):'');
+        html += buildCard({ key:'evalList', idx:i, title:title, content:full, date:item.date, editAction:"openEdit('evalList',"+i+")" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -4136,7 +4103,6 @@ var MODULE_MAP = {
     '发布':'record-review',
     '脑洞':'side-idea','副业':'side-idea',
     '评估':'project-eval','项目':'project-eval',
-    '测试':'project-test',
     '归档':'project-archive',
     '理财':'finance-news','新知':'finance-news','美联储':'finance-news','CPI':'finance-news','科技':'finance-news',
     '持仓':'asset-account','台账':'asset-account',
@@ -4163,8 +4129,7 @@ function collectSearchSources(){
     push('promptList','prompt-lib', storeGet('promptList'), function(i){return i.title;}, function(i){return i.title+i.content;});
     push('recordList','record-review', storeGet('recordList'), function(i){return i.title;}, function(i){return i.title+i.analysis;});
     push('sideIdeas','side-idea', JSON.parse(localStorage.getItem('sideIdeas')||'[]'), function(i){return i.title;}, function(i){return i.title+i.content;});
-    push('evalList','project-eval', storeGet('evalList'), function(i){return i.info;}, function(i){return i.info+i.case;});
-    push('testList','project-test', storeGet('testList'), function(i){return i.name;}, function(i){return i.name+i.process;});
+    push('evalList','project-eval', storeGet('evalList'), function(i){return i.title||i.info;}, function(i){return (i.title||i.info)+(i.record||'');});
     push('archiveList','project-archive', storeGet('archiveList'), function(i){return i.name;}, function(i){return i.name+i.review;});
     push('assetList','asset-account', storeGet('assetList'), function(i){return i.name;}, function(i){return i.name+i.judge;});
     push('rebalanceList','rebalance', storeGet('rebalanceList'), function(i){return i.target;}, function(i){return i.target+i.logic;});
@@ -4180,8 +4145,8 @@ function collectSearchSources(){
 var MODULE_LABELS = {
   'knowledge-base':'知识库笔记','operation-ideas':'运营思路&选题','account-observe':'对标账号观测',
   'work-review':'作品复盘','product-lib':'选品库','idea-lib':'选题灵感库','script-lib':'短视频脚本库',
-  'prompt-lib':'提示词仓库','record-review':'发布记录&复盘','side-idea':'灵感脑洞库','project-eval':'项目评估池',
-  'project-test':'项目测试记录','project-archive':'项目归档复盘','finance-news':'理财每日新知','asset-account':'持仓台账',
+  'prompt-lib':'提示词仓库','record-review':'发布记录&复盘',  'side-idea':'灵感脑洞库','project-eval':'项目测试记录',
+  'project-archive':'项目归档复盘','finance-news':'理财每日新知','asset-account':'持仓台账',
   'index-track':'指数跟踪表','rebalance':'调仓再平衡','health-checkin':'今日打卡','checkin-history':'打卡历史汇总',
   'body-note':'身体观察备忘录','todo-list':'今日待办'
 };
@@ -4492,11 +4457,9 @@ var EDIT_CONFIG = {
     recordList:{ f:'form-record', t:'编辑发布记录',
         fld:[['rec-title','title'],['rec-play','play'],['rec-like','like'],['rec-ctr','ctr'],['rec-deal','deal'],['rec-analysis','analysis']] },
     sideIdeas:{ f:'form-sideidea', t:'编辑脑洞',
-        fld:[['si-desc','title'],['si-block','source']] },
-    evalList:{ f:'form-eval', t:'编辑项目评估',
-        q:true, props:['info','link','pros','cons','score','nextStep'] },
-    testList:{ f:'form-test', t:'编辑测试记录',
-        q:true, props:['name','result','lesson'] },
+        fld:[['si-title','title'],['si-desc','desc'],['si-block','block']] },
+    evalList:{ f:'form-eval', t:'编辑项目测试记录',
+        q:true, props:['title','record','problem','feedback'] },
     archiveList:{ f:'form-archive', t:'编辑归档项目',
         q:true, props:['name','reason','takeaway'] },
     rebalanceList:{ f:'form-rebalance', t:'编辑调仓记录',
@@ -4680,7 +4643,6 @@ document.addEventListener('DOMContentLoaded', function(){
     safe('renderRecord', renderRecord);
     safe('renderSideIdeas', renderSideIdeas);
     safe('renderEval', renderEval);
-    safe('renderTest', renderTest);
     safe('renderArchive', renderArchive);
     safe('refreshFundQuotes', function(){ refreshFundQuotes(true); });
     safe('refreshIndexQuotes', function(){ refreshIndexQuotes(true); });
@@ -4692,7 +4654,7 @@ document.addEventListener('DOMContentLoaded', function(){
     cloudHydrate(false);    // 自动联网更新：整份覆盖本机（云端权威，杜绝保底/本地脏数据残留）；保底个人字段已清空，仅在云端完全不可达时短暂显示空白
 });
 // 云端数据内嵌兜底：当网络 fetch 全部失败时，直接使用此处预置的云端快照（无需联网）
-var __CLOUD_FALLBACK = {"todoList": [], "knowledgeBase": [], "accountObserve": null, "workReview": null, "productList": [], "scriptList": null, "promptList": null, "recordList": [], "sideIdeas": [], "evalList": [], "testList": [], "archiveList": null, "assetList": [], "rebalanceList": null, "bodyNoteList": [], "checkinRecords": {}};
+var __CLOUD_FALLBACK = {"todoList": [], "knowledgeBase": [], "accountObserve": null, "workReview": null, "productList": [], "scriptList": null, "promptList": null, "recordList": [], "sideIdeas": [], "evalList": [], "archiveList": null, "assetList": [], "rebalanceList": null, "bodyNoteList": [], "checkinRecords": {}};
 </script>
 
 </body>
