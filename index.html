@@ -1307,7 +1307,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260814-2257';
+var BUILD_VER = '20260814-2312';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -1907,7 +1907,7 @@ function buildCard(o){
         (o.exportAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.exportAction+'" style="color:#00897B;cursor:pointer;">⤓ 导出</span></span>' : '')+
         (o.copyAction ? '<span class="actions"><span onclick="event.stopPropagation();'+o.copyAction+'" style="color:#7B1FA2;cursor:pointer;">⧉ 复制</span></span>' : '')+
         (o.statusPill ? '<span class="status-pill '+(o.statusPill.cls||'')+'" onclick="event.stopPropagation();'+o.statusPill.onclick+'">'+o.statusPill.text+'</span>' : '')+
-        (o.transportOnclick ? '<span class="card-transport" onclick="event.stopPropagation();'+o.transportOnclick+'">📋 搬运</span>' : '')+
+        (o.transportOnclick ? '<span class="card-transport" onclick="event.stopPropagation();'+o.transportOnclick+'">'+(o.transportLabel||'📋 搬运')+'</span>' : '')+
         '<span class="actions"><span onclick="event.stopPropagation();deleteItem(\''+o.key+'\','+o.idx+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'+
         (o.showDone ? '<span class="done-pill'+(done?' on':'')+'" onclick="event.stopPropagation();toggleDone(\''+o.key+'\','+o.idx+');">✓ 已完成</span>' : '')+
         (o.readMore!==false && !o.cardOpen?'<span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span>':'')+
@@ -2560,9 +2560,7 @@ function renderSideIdeas(){
             +   '<span class="side-actions">'
             +     '<span class="si-btn" onclick="event.stopPropagation();openEdit(\'sideIdeas\','+i+');">✎ 编辑</span>'
             +     '<span class="si-btn" onclick="event.stopPropagation();deleteSideIdea('+i+');">✕ 删除</span>'
-            +     '<span class="si-btn" onclick="event.stopPropagation();transportSideIdea('+i+',\'eval\')" title="仅搬运标题到项目测试记录（其余自己填）">📋 测试记录</span>'
-            +     '<span class="si-btn" onclick="event.stopPropagation();transportSideIdea('+i+',\'archive\')" title="仅搬运标题到项目归档复盘（其余自己填）">📦 归档复盘</span>'
-            +     '<span class="status-pill '+pillCls+'" onclick="event.stopPropagation();cycleSideIdeaStatus('+i+')" title="点击切换状态：空→实现中→已实现">'+pillText+'</span>'
+            +     '<span class="status-pill '+pillCls+'" onclick="event.stopPropagation();cycleSideIdeaStatus('+i+')" title="点击送项目测试记录（仅搬运标题）→ 实现中 → 已实现">'+pillText+'</span>'
             +   '</span>'
             + '</div>'
             + '</div>';
@@ -2575,40 +2573,36 @@ function deleteSideIdea(idx){
     arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
     showToast('已删除'); renderSideIdeas();
 }
-// 状态逻辑：○(空) → 🔵实现中 → ✅已实现 → ○，只切状态，不再自动搬运
+// 状态逻辑：○(空「送评估池」) → 🔵实现中 → ✅已实现 → ○
+// 点击空态「送评估池」时：标记为实现中，并把标题（仅标题）搬运到「项目测试记录」，原脑洞保留
 function cycleSideIdeaStatus(idx){
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     var it = arr[idx]; if (!it) return;
     var cur = it.status || '';
     if (cur === 'doing'){ it.status = 'done'; showToast('已标记为「已实现」'); }
     else if (cur === 'done'){ it.status = ''; showToast('状态已重置'); }
-    else { it.status = 'doing'; showToast('已标记为「实现中」'); }
+    else {
+        it.status = 'doing';
+        var title = (it.title||'').trim();
+        if (title){
+            var ev = storeGet('evalList');
+            if (!ev.some(function(e){ return (e.title||'') === title; })){
+                ev.unshift({ title:title, record:'', problem:'', feedback:'', date:todayStr(), source:'脑洞搬运', done:false });
+                storeSet('evalList', ev);
+                renderEval();
+                showToast('已送「项目测试记录」（仅标题）');
+            } else {
+                showToast('已标记实现中（测试记录已有同名，未重复添加）');
+            }
+        } else {
+            showToast('已标记为「实现中」');
+        }
+    }
     localStorage.setItem('sideIdeas', JSON.stringify(arr));
+    try { if (getGithubToken()) scheduleCloudPush(); } catch(e){}
     renderSideIdeas();
 }
-// 搬运：仅复制标题到目标模块（项目测试记录 / 项目归档复盘），不删除原脑洞，其余字段留空由用户自填
-function transportSideIdea(idx, target){
-    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
-    var it = arr[idx]; if (!it) return;
-    var title = (it.title || '').trim();
-    if (!title){ showToast('该脑洞没有标题，无法搬运'); return; }
-    if (target === 'eval'){
-        var ev = storeGet('evalList');
-        if (ev.some(function(e){ return (e.title||'') === title; })){ showToast('「项目测试记录」已有同名标题'); return; }
-        ev.unshift({ title:title, record:'', problem:'', feedback:'', date:todayStr(), source:'脑洞搬运', done:false });
-        storeSet('evalList', ev);
-        renderEval();
-        showToast('已搬运标题到「项目测试记录」');
-    } else if (target === 'archive'){
-        var ar = storeGet('archiveList');
-        if (ar.some(function(a){ return (a.name||'') === title; })){ showToast('「项目归档复盘」已有同名项目'); return; }
-        ar.unshift({ name:title, review:'', date:todayStr(), done:false });
-        storeSet('archiveList', ar);
-        renderArchive();
-        showToast('已搬运标题到「项目归档复盘」');
-    }
-    try { if (getGithubToken()) scheduleCloudPush(); } catch(e){}
-}
+
 
 // ===================== 11. 项目测试记录（localStorage，由「项目评估池」合并改名） =====================
 function saveEval(){
@@ -2634,7 +2628,7 @@ function renderEval(){
             + (item.record?('\n\n🧪 测试记录：\n'+item.record):'')
             + (item.problem?('\n\n❓ 问题：\n'+item.problem):'')
             + (item.feedback?('\n\n💬 用户反馈：\n'+item.feedback):'');
-        html += buildCard({ key:'evalList', idx:i, title:title, content:full, date:item.date, editAction:"openEdit('evalList',"+i+")" });
+        html += buildCard({ key:'evalList', idx:i, title:title, content:full, date:item.date, editAction:"openEdit('evalList',"+i+")", transportOnclick:"transportEvalToArchive("+i+")", transportLabel:"📦 归档复盘" });
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2664,6 +2658,21 @@ function renderArchive(){
     });
     wrap.innerHTML = html;
     truncateAllNews();
+}
+
+// 项目测试记录 → 项目归档复盘：仅搬运标题，不删除原记录，其余字段留空由用户自填
+function transportEvalToArchive(idx){
+    var ev = storeGet('evalList');
+    var it = ev[idx]; if (!it) return;
+    var title = (it.title || it.info || '').trim();
+    if (!title){ showToast('该项目没有标题，无法搬运'); return; }
+    var ar = storeGet('archiveList');
+    if (ar.some(function(a){ return (a.name||'') === title; })){ showToast('「项目归档复盘」已有同名项目'); return; }
+    ar.unshift({ name:title, review:'', date:todayStr(), done:false });
+    storeSet('archiveList', ar);
+    renderArchive();
+    try { if (getGithubToken()) scheduleCloudPush(); } catch(e){}
+    showToast('已搬运标题到「项目归档复盘」');
 }
 
 // ===================== 14. 理财每日新知（AI 抓取） =====================
