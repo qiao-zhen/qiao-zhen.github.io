@@ -435,6 +435,10 @@
 .status-pill.st-done{background:#E8F5E9;color:#2E7D32;}
 .card-transport{color:#00897B;cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;opacity:1;}
 .card-transport:hover{text-decoration:underline;}
+/* 灵感脑洞库：状态药丸固定在卡片右下角（始终可见，不随 hover 隐藏），点击「实现中」即送项目评估池 */
+.side-idea-card{position:relative;}
+.side-idea-card .n-foot{padding-right:96px;}
+.status-pill.corner-status{position:absolute;right:12px;bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid rgba(0,0,0,.04);font-size:12px;padding:3px 10px;}
 /* 理财每日新知弹窗底部按钮默认靠右（与导出弹窗一致） */
 /* 长按菜单（底部弹出） */
 .long-menu-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
@@ -611,7 +615,7 @@
             <div class="page-header">
                 <div class="page-title"><i class="fa fa-bookmark ico"></i> 我的收藏</div>
             </div>
-            <div class="tip"><i class="fa fa-info-circle"></i> 这里聚拢你在「理财每日新知」和「运营思路&选题素材库」点 🔖 收藏的内容 · 已开启同步则自动存云端，否则仅存本地浏览器</div>
+            <div class="tip"><i class="fa fa-info-circle"></i> 这里聚拢你在各板块点 🔖/📥 收藏的内容（理财每日新知、运营思路&选题素材库等）· 已开启同步则自动存云端，否则仅存本地浏览器</div>
             <div id="favoritesList"></div>
         </div>
 
@@ -1315,7 +1319,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260813-2130';
+var BUILD_VER = '20260814-2103';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2166,7 +2170,7 @@ function renderOperationIdeas(){
             '<div class="n-title">'+escHtml(item.title)+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+escHtml(item.date)+'</span>'+
-'<div class="right"><span class="actions"><span data-mod="ops" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('ops',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="actions"><span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+'<div class="right"><span class="actions"><span onclick="event.stopPropagation();addToFavFromCard(this);" style="color:#C2185B;cursor:pointer;font-weight:600;">📥 收藏</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('operationIdeasList').innerHTML = html;
     truncateAllNews();
@@ -2361,7 +2365,7 @@ function renderIdeaLib(){
             '<div class="n-title">'+escHtml(item.title)+' '+statusLabel+holdNote+'</div>'+
             '<div class="n-content"></div>'+
             '<div class="n-foot"><span>AI 抓取时间：'+(item.date||'动态更新')+'</span>'+
-            '<div class="right"><span class="actions"><span data-mod="idea" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('idea',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="actions"><span onclick="event.stopPropagation();transportToSideIdea(this);">📋 搬运</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
+            '<div class="right"><span class="actions"><span data-mod="idea" data-key="'+escAttr(item.title)+'" onclick="event.stopPropagation();toggleFav(this);" style="color:#C2185B;cursor:pointer;">'+(isFav('idea',item.title)?'🔖 已收藏':'🔖 收藏')+'</span></span><span class="read-more" onclick="openNewsModal(this)">查看全文 ›</span></div></div></div>';
     });
     document.getElementById('ideaLibList').innerHTML = html;
     truncateAllNews();
@@ -2549,17 +2553,24 @@ function renderSideIdeas(){
     RENDER_MAP['sideIdeas'] = renderSideIdeas;
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     var wrap = document.getElementById('sideIdeaList');
-    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-flask"></i></div><p>暂无灵感记录</p><p class="sub">点击「新增脑洞」手动录入，或在AI抓取板块点「搬运」推送过来</p></div>'; return; }
+    if (arr.length === 0){ wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-flask"></i></div><p>暂无灵感记录</p><p class="sub">点击「新增脑洞」手动录入，或在「选题灵感库 / 运营思路」点「收藏」收进来</p></div>'; return; }
     var html='';
     arr.forEach(function(item, i){
         var sourceTag = item.source === '手动录入' ? '<span class="source-tag">手动录入</span>' : '<span class="source-tag">来自AI抓取</span>';
         var st = item.status || '';
-        var pillText = st==='done' ? '✅ 已实现' : (st==='doing' ? '🔵 实现中' : '○ 标记状态');
+        var pillText = st==='done' ? '✅ 已实现' : (st==='doing' ? '🔵 实现中' : '↗ 送评估池');
         var pillCls = st==='done' ? 'st-done' : (st==='doing' ? 'st-doing' : 'st-none');
-        html += buildCard({ key:'sideIdeas', idx:i, title:item.title, sub:item.source==='手动录入'?'手动':'AI抓取', content:item.content, date:item.date, editAction:"openEdit('sideIdeas',"+i+")",
-            doneCls:(st==='done'),
-            statusPill:{ text:pillText, cls:pillCls, onclick:"cycleSideIdeaStatus("+i+")" },
-            transportOnclick:"transportSideIdeaToEval("+i+")" });
+        var full = item.content;
+        html += '<div class="news-card side-idea-card" data-idx="'+i+'" data-title="'+escAttr(item.title)+'" data-content="'+escAttr(full)+'" data-date="'+escAttr(item.date||'')+'">'
+            + '<div class="n-title">'+escHtml(item.title)+' '+sourceTag+'</div>'
+            + '<div class="n-content"></div>'
+            + '<div class="n-foot"><span class="sa-left">'
+            +   '<span>'+(item.date||'')+'</span>'
+            +   '<span class="actions"><span onclick="event.stopPropagation();openEdit(\'sideIdeas\','+i+');" style="color:#F06292;cursor:pointer;">✎ 编辑</span></span>'
+            +   '<span class="actions"><span onclick="event.stopPropagation();deleteSideIdea('+i+');" style="color:#E91E63;cursor:pointer;">✕ 删除</span></span>'
+            + '</span></div>'
+            + '<span class="status-pill corner-status '+pillCls+'" onclick="event.stopPropagation();cycleSideIdeaStatus('+i+')" title="点击直接送项目评估池（实现中）">'+pillText+'</span>'
+            + '</div>';
     });
     wrap.innerHTML = html;
     truncateAllNews();
@@ -2569,24 +2580,27 @@ function deleteSideIdea(idx){
     arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
     showToast('已删除'); renderSideIdeas();
 }
-// 状态循环：○ 标记状态 → 🔵 实现中 → ✅ 已实现(变绿) → 回到空
+// 状态逻辑：○(空) → 点击即「实现中」并直接搬入项目评估池；🔵实现中 → ✅已实现；✅已实现 → 回到空
 function cycleSideIdeaStatus(idx){
     var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
     var it = arr[idx]; if (!it) return;
     var cur = it.status || '';
-    it.status = cur==='' ? 'doing' : (cur==='doing' ? 'done' : '');
-    localStorage.setItem('sideIdeas', JSON.stringify(arr));
-    renderSideIdeas();
-}
-// 直接搬运到项目评估池（从灵感脑洞库移除并加入评估池）
-function transportSideIdeaToEval(idx){
-    var arr = JSON.parse(localStorage.getItem('sideIdeas') || '[]');
-    var it = arr[idx]; if (!it) return;
+    if (cur === 'doing'){
+        it.status = 'done';
+        localStorage.setItem('sideIdeas', JSON.stringify(arr));
+        renderSideIdeas(); showToast('已标记为「已实现」'); return;
+    }
+    if (cur === 'done'){
+        it.status = '';
+        localStorage.setItem('sideIdeas', JSON.stringify(arr));
+        renderSideIdeas(); showToast('状态已重置'); return;
+    }
+    // cur === '' → 标记为「实现中」并直接搬入项目评估池（不再需要单独的搬运按钮）
     var ev = storeGet('evalList');
     ev.unshift({ info: it.title, case: it.content, link:'', date: todayStr(), source:'脑洞搬运', done:false });
     storeSet('evalList', ev);
     arr.splice(idx, 1); localStorage.setItem('sideIdeas', JSON.stringify(arr));
-    showToast('已搬运到项目评估池');
+    showToast('已送项目评估池（实现中）');
     renderSideIdeas(); renderEval();
 }
 
@@ -4019,13 +4033,32 @@ function isFav(m,t){ return !!_wbGetSet(WB_FAV)[m+'::'+t]; }
 function toggleFav(btn){ var m=btn.getAttribute('data-mod'),k=btn.getAttribute('data-key'); var card = btn.closest('.news-card'); var s=_wbGetSet(WB_FAV), key=m+'::'+k; var wasFav = !!s[key]; if (wasFav){ delete s[key]; } else { var snap = { mod:m, title:(card?card.dataset.title:''), content:(card?card.dataset.content:''), url:(card?card.dataset.url:''), date:(card?card.dataset.date:''), favAt:todayStr() }; s[key]=snap; } _wbSetSet(WB_FAV,s); if(m==='finance')renderFinanceNews(); else if(m==='ops')renderOperationIdeas(); else if(m==='idea')renderIdeaLib(); else if(m==='index')renderIndexTrack(); renderFavoritesSafe(); try { if (getGithubToken()) scheduleCloudPush(); } catch(e){} showToast(wasFav ? '已取消收藏' : '已收藏 ✓'); }
 
 function renderFavoritesSafe(){ try { renderFavorites(); } catch(e){} }
+// 直接把一条内容收进「我的收藏」（运营思路/选题灵感库 的「📥 收藏」按钮调用）
+function addToFavDirect(mod, title, content, url, date){
+    if (!title){ return; }
+    var s = _wbGetSet(WB_FAV);
+    var key = mod+'::'+title;
+    if (s[key]){ showToast('已在收藏中'); return; }
+    s[key] = { mod:mod, title:title, content:(content||''), url:(url||''), date:(date||''), favAt:todayStr() };
+    _wbSetSet(WB_FAV, s);
+    if (mod==='ops'){ try{ renderOperationIdeas(); }catch(e){} }
+    else if (mod==='idea'){ try{ renderIdeaLib(); }catch(e){} }
+    else if (mod==='finance'){ try{ renderFinanceNews(); }catch(e){} }
+    renderFavoritesSafe();
+    try { if (getGithubToken()) scheduleCloudPush(); } catch(e){}
+    showToast('已收进我的收藏 ✓');
+}
+function addToFavFromCard(btn){
+    var card = btn.closest('.news-card'); if (!card) return;
+    addToFavDirect(card.dataset.mod, card.dataset.title, card.dataset.content, card.dataset.url, card.dataset.date);
+}
 function renderFavorites(){
   var wrap = document.getElementById('favoritesList');
   if (!wrap) return;
   var s = _wbGetSet(WB_FAV);
   var keys = Object.keys(s).filter(function(k){ return s[k]; });
   if (keys.length === 0){
-    wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-bookmark"></i></div><p>还没有收藏内容</p><p class="sub">在「理财每日新知」或「运营思路&选题素材库」点 🔖 收藏，这里会聚拢所有收藏</p></div>';
+    wrap.innerHTML = '<div class="empty"><div class="ico"><i class="fa fa-bookmark"></i></div><p>还没有收藏内容</p><p class="sub">在「理财每日新知」或「运营思路&选题素材库」点 🔖/📥 收藏，这里会聚拢所有收藏</p></div>';
     return;
   }
   var html='';
