@@ -73,17 +73,17 @@
         .group.collapsed .sub-list { display:none; }
         .sub-list { display:flex; flex-direction:column; gap:6px; padding:4px 0 8px 0; }
         .sub-item {
-            display:flex; align-items:center; gap:8px; padding:8px 12px;
-            border:1px solid #FCE4EC; border-radius:8px; background:#FFFFFF;
-            color:#666; font-size:14px; cursor:pointer; transition:all .15s;
+            display:flex; align-items:center; gap:8px; padding:10px 14px;
+            border:1px solid rgba(255,255,255,.85); border-radius:14px; background:rgba(255,255,255,.7);
+            color:#666; font-size:14px; cursor:pointer; transition:transform .3s cubic-bezier(.22,1,.36,1),background .25s,box-shadow .3s;
         }
         .sub-item .ico { color:#F06292; font-size:14px; }
-        .sub-item:hover { background:#FCE4EC; }
-        .sub-item.active { background:#FFB6C1; border-color:#F48FB1; color:#AD1457; font-weight:600; }
+        .sub-item:hover { background:#FCEAF1; transform:translateX(3px); }
+        .sub-item.active { background:linear-gradient(135deg,#FFD3E0,#FFB6C8); border-color:#F48FB1; color:#AD1457; font-weight:600; box-shadow:0 6px 16px rgba(231,140,175,.25); }
         .sub-item.active .ico { color:#AD1457; }
 
         /* ===== 主内容 ===== */
-        .main { flex:1; overflow-y:auto; padding:20px 24px; background:#FFF8FA; scrollbar-width:none; -ms-overflow-style:none; position:relative; }
+        .main { flex:1; overflow-y:auto; padding:20px 24px; background:#FBF5F2; scrollbar-width:none; -ms-overflow-style:none; position:relative; }
         .main::-webkit-scrollbar { width:0; height:0; }
         .sidebar { scrollbar-width:none; -ms-overflow-style:none; }
         .sidebar::-webkit-scrollbar { width:0; height:0; }
@@ -108,21 +108,29 @@
         }
         .export-btn:hover { background:#FCE4EC; }
         .tip { font-size:13px; color:#AD1457; margin:4px 0 12px 0; display:flex; align-items:center; gap:4px; }
-        .empty { text-align:center; padding:36px 20px; color:#AD1457; background:#FFF0F4; border-radius:10px; border:1px dashed #F8BBD0; }
+        .empty { text-align:center; padding:36px 20px; color:#AD1457; background:rgba(255,255,255,.6); border-radius:18px; border:1px dashed #F3C6D8; box-shadow:0 6px 20px rgba(231,140,175,.12); animation:cardIn .55s cubic-bezier(.22,1,.36,1) both; }
         .empty .ico { font-size:32px; color:#F8BBD0; margin-bottom:8px; }
         .empty p { font-size:14px; }
         .empty .sub { font-size:12px; color:#999; margin-top:4px; }
 
         /* ===== 资讯 / AI 抓取卡片 ===== */
-        .news-card { border:1px solid #FCE4EC; border-radius:6px; padding:12px; margin-bottom:10px; background:#FFFFFF; transition:all .15s; }
-        .news-card:hover { box-shadow:0 2px 8px rgba(248,187,208,.4); }
+        .news-card { border:1px solid rgba(255,255,255,.85); border-radius:16px; padding:14px; margin-bottom:12px; background:rgba(255,255,255,.74); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); box-shadow:0 6px 20px rgba(231,140,175,.15); transition:transform .42s cubic-bezier(.22,1,.36,1),box-shadow .42s; animation:cardIn .55s cubic-bezier(.22,1,.36,1) both; }
+        .news-card:hover { transform:translateY(-4px); box-shadow:0 16px 34px rgba(231,140,175,.26); }
         .news-card.done { background:#E8F5E9; border-color:#A5D6A7; }
         .news-card.done .n-title { text-decoration:line-through; color:#2E7D32; }
         .news-card.hl { box-shadow:0 0 0 3px #E91E63; border-color:#E91E63; animation:hlPulse 1.2s ease 2; }
         @keyframes hlPulse { 0%,100%{box-shadow:0 0 0 3px #E91E63, 0 0 0 6px rgba(233,30,99,.18);} 50%{box-shadow:0 0 0 4px #E91E63, 0 0 0 16px rgba(233,30,99,.4);} }
+        @keyframes cardIn { from { opacity:0; transform:translateY(16px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .bottom-nav { display:none; position:fixed; left:0; right:0; bottom:0; z-index:70; justify-content:space-around; align-items:center; gap:4px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:rgba(255,253,252,.82); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); border-top:1px solid rgba(255,255,255,.8); box-shadow:0 -6px 24px rgba(231,140,175,.18); }
+        .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 2px; border-radius:14px; background:transparent; border:none; color:#B07A90; font-size:11px; cursor:pointer; transition:transform .25s,background .25s,color .25s; }
+        .bnav-item .bi { font-size:18px; line-height:1; }
+        .bnav-item:active { transform:scale(.92); }
+        .bnav-item.active { color:#E91E63; background:rgba(255,182,193,.28); }
+        .drawer-mask { display:none; position:fixed; inset:53px 0 66px 0; background:rgba(80,40,55,.28); z-index:55; }
         /* ===== 全局搜索结果 ===== */
         .search-result-list { max-height:60vh; overflow:auto; margin-top:10px; }
-        .search-result-item { padding:12px 14px; border:1px solid #FCE4EC; border-radius:12px; margin-bottom:10px; cursor:pointer; background:#FFF; transition:background .15s; }
+        .search-result-item { padding:14px 16px; border:1px solid rgba(255,255,255,.85); border-radius:16px; margin-bottom:12px; cursor:pointer; background:rgba(255,255,255,.74); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 6px 20px rgba(231,140,175,.15); transition:transform .42s cubic-bezier(.22,1,.36,1),box-shadow .42s,background .25s; animation:cardIn .55s cubic-bezier(.22,1,.36,1) both; }
+        .search-result-item:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(231,140,175,.24); background:rgba(255,255,255,.88); }
         .search-result-item:hover { background:#FFF0F5; }
         .sr-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .sr-mod { font-size:11px; padding:2px 8px; border-radius:10px; background:#FCE4EC; color:#C2185B; }
@@ -176,7 +184,7 @@
         .form-row .form-item { flex:1; }
         .save-btn { background:#F06292; color:#FFF; border:none; padding:7px 18px; border-radius:6px; cursor:pointer; font-size:14px; margin-top:4px; }
         .save-btn:hover { background:#E91E63; }
-        .form-card { transition:all .3s; overflow:hidden; }
+        .form-card { transition:all .3s; overflow:hidden; background:rgba(255,255,255,.78); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); border:1px solid rgba(255,255,255,.85); border-radius:16px; box-shadow:0 8px 26px rgba(231,140,175,.16); }
         .form-card.hidden { display:none; }
 
         /* ===== 标签药丸 ===== */
@@ -185,7 +193,7 @@
         .tag-row span.sel { background:#FFB6C1; border-color:#F48FB1; color:#AD1457; font-weight:600; }
 
         /* ===== 卡片 ===== */
-        .card { background:#FFFFFF; border:1px solid #FCE4EC; border-radius:8px; padding:18px; margin-bottom:12px; }
+        .card { background:rgba(255,255,255,.74); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); border:1px solid rgba(255,255,255,.85); border-radius:18px; padding:18px; margin-bottom:14px; box-shadow:0 6px 20px rgba(231,140,175,.16),0 1px 2px rgba(0,0,0,.04); transition:transform .42s cubic-bezier(.22,1,.36,1),box-shadow .42s; animation:cardIn .55s cubic-bezier(.22,1,.36,1) both; }
         .card h4 { font-size:16px; color:#E91E63; margin-bottom:6px; }
 
         /* ===== 估值徽章 ===== */
@@ -301,12 +309,17 @@
         @media (max-width:768px) {
             .layout { position:relative; overflow:hidden; }
             .sidebar {
-                position:relative; top:auto; left:auto;
-                flex:0 0 30%; width:30%; min-width:30%; max-width:30%;
-                height:calc(100% - 53px); z-index:auto; transform:none; box-shadow:none;
-                border-right:1px solid #FCE4EC; overflow-y:auto;
+                position:fixed; top:53px; bottom:66px; left:0;
+                width:82%; max-width:324px; background:#FFFDFC; z-index:60;
+                transform:translateX(-106%); transition:transform .3s cubic-bezier(.22,1,.36,1);
+                box-shadow:8px 0 34px rgba(231,140,175,.22); border-right:1px solid #F6DDE8;
+                border-radius:0 20px 20px 0; overflow-y:auto; padding:14px 12px;
             }
+            .sidebar.open { transform:translateX(0); }
             .sidebar.collapsed { display:none; }
+            .bottom-nav { display:flex; }
+            .drawer-mask { display:block; }
+            .main { padding-bottom:84px; }
             .main { flex:1; min-width:0; padding:14px 12px; overflow-y:auto; overflow-x:hidden; position:relative; }
             .group-title { font-size:13px; }
             .sub-item { font-size:13px; padding:8px 8px; line-height:1.4; }
@@ -1327,7 +1340,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260816-1340';
+var BUILD_VER = '20260816-1645';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -4023,13 +4036,28 @@ function toggleGroup(id){
 function toggleSidebar(){
     var sb = document.getElementById('sidebar');
     var btn = document.getElementById('menuIcon');
-    sb.classList.toggle('collapsed');
-    if (sb.classList.contains('collapsed')){
+    if (window.innerWidth <= 768){
+        sb.classList.toggle('open');
+    } else {
+        sb.classList.toggle('collapsed');
+    }
+    var closed = sb.classList.contains('collapsed') || !sb.classList.contains('open');
+    if (closed){
         btn.innerHTML = '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>';
     } else {
         btn.innerHTML = '<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>';
     }
 }
+function openGroup(n){
+    var sb = document.getElementById('sidebar');
+    if (window.innerWidth <= 768){ sb.classList.add('open'); }
+    var g = document.querySelector('[data-group="'+n+'"]');
+    if (g) g.classList.remove('collapsed');
+    document.querySelectorAll('.bnav-item').forEach(function(b){ b.classList.remove('active'); });
+    var act = document.querySelector('.bnav-item[data-g="'+n+'"]');
+    if (act) act.classList.add('active');
+}
+function closeDrawer(){ var sb=document.getElementById('sidebar'); if(sb) sb.classList.remove('open'); }
 function showPage(pageId, el){
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
     document.querySelectorAll('.sub-item').forEach(function(s){s.classList.remove('active');});
@@ -4042,6 +4070,7 @@ function showPage(pageId, el){
     if (mainEl) mainEl.scrollTop = 0;
     truncateAllNews();
     window.scrollTo(0, 0);
+    if (window.innerWidth <= 768){ var sb=document.getElementById('sidebar'); if(sb) sb.classList.remove('open'); }
     if (pageId === 'health-checkin') renderCheckinCards();
     if (pageId === 'checkin-history') renderCheckinHistory();
     if (pageId === 'favorites') renderFavorites();
@@ -4719,5 +4748,14 @@ document.addEventListener('DOMContentLoaded', function(){
 var __CLOUD_FALLBACK = {"todoList": [], "knowledgeBase": [], "accountObserve": null, "workReview": null, "productList": [], "scriptList": null, "promptList": null, "recordList": [], "sideIdeas": [], "evalList": [], "archiveList": null, "assetList": [], "rebalanceList": null, "bodyNoteList": [], "checkinRecords": {}};
 </script>
 
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-item" data-g="1" onclick="openGroup(1)"><span class="bi">🚀</span>运营</button>
+  <button class="bnav-item" data-g="2" onclick="openGroup(2)"><span class="bi">✨</span>服装</button>
+  <button class="bnav-item" data-g="3" onclick="openGroup(3)"><span class="bi">💡</span>副业</button>
+  <button class="bnav-item" data-g="4" onclick="openGroup(4)"><span class="bi">📈</span>理财</button>
+  <button class="bnav-item" data-g="5" onclick="openGroup(5)"><span class="bi">🌿</span>养生</button>
+  <button class="bnav-item" data-g="6" onclick="openGroup(6)"><span class="bi">🛠️</span>工具</button>
+</nav>
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
 </body>
 </html>
