@@ -1251,24 +1251,44 @@ function dedupeAssetList(arr){
   var best = {}, order = [];
   arr.forEach(function(it){
     if (!it || typeof it !== 'object') return;
-    var code = it.code ? String(it.code) : ('__nocode'+order.length);
+    var code = (it.id ? String(it.id) : (it.code ? 'a_'+String(it.code) : ('__nocode'+order.length)));
     var score = (parseFloat(it.shares)>0 ? 2 : 0) + (parseFloat(it.netValue)>0 ? 1 : 0);
     if (!best[code]){ best[code] = { it:it, s:score }; order.push(code); }
     else if (score > best[code].s){ best[code] = { it:it, s:score }; }
   });
   return order.map(function(c){ return best[c].it; });
 }
-// 推送时「云端优先按 code 合并」：以云端(remote)为基准保留真实净值/份额/金额，
-// 本机新增的 code（云端没有）才追加；已存在 code 绝不拿本机脏值覆盖云端真实数据。
-// 目的：杜绝手机端残留乱填数据回灌云端、覆盖干净版本、产生重复条目。
+// 持仓 id / 时间戳工具：跨设备「按最新编辑合并」，根治 last-writer-wins 静默丢改动
+function assetIdOf(it){ if (it && it.id) return String(it.id); if (it && it.code) return 'a_'+String(it.code); return 'a_'+Math.random().toString(36).slice(2,10); }
+function ensureAssetId(it){ if (it && typeof it==='object'){ if(!it.id) it.id = assetIdOf(it); if (it.updatedAt===undefined||it.updatedAt===null) it.updatedAt=0; } return it; }
+function bumpAsset(it){ if (it && typeof it==='object'){ if(!it.id) it.id = assetIdOf(it); it.updatedAt = Date.now(); } return it; }
+function ensureAssetIds(){
+  try {
+    var raw = localStorage.getItem('assetList'); if (!raw) return;
+    var arr; try { arr = JSON.parse(raw); } catch(e){ return; }
+    if (!Array.isArray(arr)) return;
+    var changed=false;
+    arr.forEach(function(it){ if(it && typeof it==='object'){ if(!it.id){ it.id = assetIdOf(it); changed=true; } if(it.updatedAt===undefined||it.updatedAt===null){ it.updatedAt=0; changed=true; } } });
+    if (changed){ window.__cloudSkip=true; try { localStorage.setItem('assetList', JSON.stringify(arr)); } catch(e){} window.__cloudSkip=false; }
+  } catch(e){}
+}
+// 合并(local, remote)：按「稳定 id」聚合，同 id 取 updatedAt 最新者；平局(都为0/旧数据)云端优先。
+// 取代旧「同代码云端永远赢」，让手机/电脑各改各的、谁改得新就留谁，不再静默丢某端修改。
 function mergeAssetCloudPriority(local, remote){
   var map = {};
-  (Array.isArray(remote) ? remote : []).forEach(function(it){ if(it && it.code) map[String(it.code)] = it; });
-  (Array.isArray(local) ? local : []).forEach(function(it){
-    if (!it || !it.code) return;
-    if (!map[String(it.code)]) map[String(it.code)] = it; // 本机新增基金才追加
+  function keyOf(it){ if(!it||typeof it!=='object') return null; if(it.id) return String(it.id); if(it.code) return 'a_'+String(it.code); return null; }
+  function isRemote(it){ return (remote.indexOf(it)>=0); }
+  var src = (Array.isArray(remote)?remote:[]).concat(Array.isArray(local)?local:[]);
+  src.forEach(function(it){
+    var k = keyOf(it); if(!k) return;
+    if (!map[k]){ map[k]=it; return; }
+    var cur=map[k];
+    var ta=(cur.updatedAt||0), tb=(it.updatedAt||0);
+    if (tb>ta) map[k]=it;
+    else if (tb===ta && isRemote(it) && !isRemote(cur)) map[k]=it;
   });
-  return dedupeAssetList(Object.keys(map).map(function(c){ return map[c]; }));
+  var out=[]; Object.keys(map).forEach(function(k){ out.push(map[k]); });
+  return dedupeAssetList(out);
 }
 // 启动即清理本机 localStorage 可能残留的演示/测试脏数据（洗内裤、云端同步测试等），
 // 确保首屏渲染前就抹掉，绝不显示；且写回时跳过云端推送（避免把污染又推上去）
@@ -1307,7 +1327,7 @@ function dedupeLocalAssetList(){
   } catch(e){}
 }
 // 页面代码版本标记：每次发布更新，用于快速判断浏览器/主屏幕APP是否还在跑旧缓存
-var BUILD_VER = '20260814-2312';
+var BUILD_VER = '20260816-1340';
 // 【用户手势追踪】区分"用户真的动手删了" vs "程序/渲染异常把数据写空了"。
 // 只有伴随真实点击/触摸/按键的写入，才允许把某个板块清空并同步到云端；
 // 没有用户操作却出现的清空，一律判定为异常，用云端数据救回。
@@ -2784,7 +2804,7 @@ function saveAsset(){
     var _shRaw = document.getElementById('as-share').value.trim();
     var _sh = _shRaw==='' ? '' : (parseFloat(_shRaw.replace(/[, ¥￥元]/g,''))||0);
     var arr = storeGet('assetList');
-    arr.unshift({
+    var _newAsset = {
         name:name, code:code, sector:document.getElementById('as-sector').value.trim(),
         type:type, cost:cost,
         amount:amount,
@@ -2794,7 +2814,9 @@ function saveAsset(){
         judge:document.getElementById('as-judge').value.trim(),
         dca:{enabled:false, daily:0, lastDate:todayStr(), acc:0},
         date:todayStr(), done:false
-    });
+    };
+    bumpAsset(_newAsset);
+    arr.unshift(_newAsset);
     storeSet('assetList', arr);
     ['as-name','as-code','as-amount','as-plan','as-judge','as-type','as-sector','as-cost','as-net','as-share'].forEach(function(id){ document.getElementById(id).value=''; });
     toggleForm('form-asset');
@@ -2836,6 +2858,7 @@ function toggleDCA(i){
     if (!it.dca) it.dca={enabled:false, daily:0, lastDate:todayStr(), acc:0};
     it.dca.enabled = !it.dca.enabled;
     if (it.dca.enabled && !it.dca.lastDate) it.dca.lastDate = todayStr();
+    bumpAsset(it);
     storeSet('assetList', arr); renderAsset();
 }
 function setDCAmount(i, val){
@@ -3014,6 +3037,7 @@ function saveDCAFromModal(){
     } else {
         it.dca.enabled = false;
     }
+    bumpAsset(it);
     storeSet('assetList', arr);
     document.getElementById('dcaModal').style.display='none';
     var lbl = (freq==='weekly') ? ('每周'+WEEK_CN[it.dca.weekday]+' ¥'+fmt(amt)) : ('每日 ¥'+fmt(amt));
@@ -3081,9 +3105,10 @@ function saveEditAsset(){
             ex.netValue=(_nv==='')?'':(parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0);
             ex.shares=(_sh==='')?'':(parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0);
             ex.buyDate=_buy; ex.plan=document.getElementById('ed-plan').value.trim(); ex.judge=document.getElementById('ed-judge').value.trim();
+            bumpAsset(ex);
             showToast('该基金已存在，已更新「'+name+'」');
         } else {
-        arr.unshift({
+        var _ea = {
             name:name, code:code, type:_type, sector:document.getElementById('ed-sector').value.trim(), cost:_cost, amount:_amt,
             netValue:(_nv==='')?'':(parseFloat(_nv.replace(/[, ¥￥元]/g,''))||0),
             shares:(_sh==='')?'':(parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0),
@@ -3092,7 +3117,9 @@ function saveEditAsset(){
             judge:document.getElementById('ed-judge').value.trim(),
             dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()},
             date:todayStr(), done:false
-        });
+        };
+        bumpAsset(_ea);
+        arr.unshift(_ea);
         }
         storeSet('assetList', arr);
         _assetNewMode=false;
@@ -3116,6 +3143,7 @@ function saveEditAsset(){
     var _sh = document.getElementById('ed-share').value.trim();
     it.shares = _sh==='' ? '' : (parseFloat(_sh.replace(/[, ¥￥元]/g,''))||0);
     it.buyDate = document.getElementById('ed-buy').value.trim();
+    bumpAsset(it);
     storeSet('assetList', arr);
     document.getElementById('editModal').style.display='none';
     showToast('已更新');
@@ -3378,7 +3406,9 @@ function doQuickAdd(code){
     var arr = storeGet('assetList', []);
     for (var i=0;i<arr.length;i++){ if(arr[i].code===code){ showToast('该基金已存在，请长按编辑'); document.getElementById('quickCode').value=''; return; } }
     var name = (fundQuote[code] && fundQuote[code].name) || (typeof fS_name!=='undefined' && fS_name) || ('基金 '+code);
-    arr.push({ code:code, name:name, amount:0, cost:0, type:machineType(name), sector:detectFundType(name), plan:'', judge:'', dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()} });
+    var _qa = { code:code, name:name, amount:0, cost:0, type:machineType(name), sector:detectFundType(name), plan:'', judge:'', dca:{enabled:false,daily:0,acc:0,lastDate:todayStr()} };
+    bumpAsset(_qa);
+    arr.push(_qa);
     storeSet('assetList', arr);
     document.getElementById('quickCode').value='';
     renderAsset();
@@ -3448,7 +3478,7 @@ function confirmOCR(){
     });
     if(rows.length===0){ showToast('没有勾选任何行'); return; }
     var arr=storeGet('assetList');
-    rows.forEach(function(r){ arr.unshift({name:r.name, code:r.code, amount:r.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false}); });
+    rows.forEach(function(r){ var _ocr={name:r.name, code:r.code, amount:r.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false}; bumpAsset(_ocr); arr.unshift(_ocr); });
     storeSet('assetList', arr);
     document.getElementById('ocrResult').innerHTML='';
     showToast('已导入 '+rows.length+' 条持仓');
@@ -4602,9 +4632,11 @@ function loadRemoteData(){
                     var code = (h.code||'').trim();
                     if (!code || !h.name || !(h.amount > 0)) return; // 跳过无效行
                     if (codeMap[code]){
-                        for(var i=0;i<arr.length;i++){ if(arr[i].code === code){ arr[i].amount = h.amount; arr[i].name = h.name; if(h.cost!==undefined && h.cost!==null && h.cost!=='') arr[i].cost = h.cost; break; } }
+                        for(var i=0;i<arr.length;i++){ if(arr[i].code === code){ arr[i].amount = h.amount; arr[i].name = h.name; if(h.cost!==undefined && h.cost!==null && h.cost!=='') arr[i].cost = h.cost; bumpAsset(arr[i]); break; } }
                     } else {
-                        arr.unshift({name:h.name, code:code, amount:h.amount, type:h.type||'other', cost:(h.cost!==undefined && h.cost!==null && h.cost!=='')?h.cost:h.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false});
+                        var _di = {name:h.name, code:code, amount:h.amount, type:h.type||'other', cost:(h.cost!==undefined && h.cost!==null && h.cost!=='')?h.cost:h.amount, plan:'', judge:'', dca:{enabled:false,daily:0,lastDate:todayStr(),acc:0}, date:todayStr(), done:false};
+                        bumpAsset(_di);
+                        arr.unshift(_di);
                         codeMap[code] = true;
                     }
                 });
@@ -4658,6 +4690,7 @@ document.addEventListener('DOMContentLoaded', function(){
     ensureFallbackData();   // 本地为空先用内嵌云端快照填充（不依赖网络，立刻可见）
     cleanLocalDirty();       // 首屏渲染前先抹掉本机可能残留的演示/测试脏数据（洗内裤等），绝不显示
     dedupeLocalAssetList();  // 首屏渲染前先按代码合并本机重复基金卡（早前导入 bug 残留），避免"11只"假象
+    ensureAssetIds();         // 给每条持仓补上稳定 id + updatedAt，支撑跨设备"按最新合并"
     captureGateBaseline();   // 拍下本机基线：用于在"云端拉取完成前"用户所做的新增不被随后的整份覆盖冲掉
     // 每个渲染模块独立隔离：任一模块报错不影响其它模块，且最关心的数据优先渲染
     function safe(name, fn){ try { fn(); } catch(e){ if(window.console) console.error('[render:'+name+']', e); } }
